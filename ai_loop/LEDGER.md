@@ -253,3 +253,5 @@
 - 2026-11-21 B-1504〜B-1507 の LEDGER 追記（リード、台帳の締め）: 2026-11-19 に ai-native へ反映済みだったが LEDGER への転記が漏れていたため補記。B-1504 村同士を道で結ぶ（最小全域木＋A*、全区間の連結を単体テストで確認、全テスト 1560 pass、記録 iterations/2026-11-19-B-1504-claude.md）。B-1505／B-1506 は UZUWorldGen として統合（modules/uzu_worldgen、CI 全テスト 1548 pass）。B-1507 街にベンチと NavigationMesh（建物・木・街灯・ベンチ・噴水を除外、places_connected）＋歩行の自己検証 uzu.py map walk／MCP map_walk、6つの街で全目的地に到着、全テスト 1561 pass、記録 iterations/2026-11-19-B-1507-claude.md。BACKLOG・CLAIMS は完了済み。Phase 15 の完了自体は B-1511 の項に記録済み。
 
 - 2026-11-22 B-1310 UI品質ゲート完了（リード統合）: agent/b-1310-muse を統合。`uzu.py ui-quality` が AAA水準5項目（繰り返し指数／コントラスト／状態完全性／被覆率／スケール適合）を合否 JSON で返す。現行 wafu は fail（繰り返し 0.52、被覆率 0.375、フォーカス不可視、余白・影のオフスケール多数）＝監査の欠陥を検出漏れなく捕捉。以後の UI 改善（B-1311〜B-1315）の判定はこのゲートで行う。
+
+- 2026-11-22 B-1310 修正（リード、CI 復旧）: 統合直後の uzu_verify run #44955489719 が Agent tool self-tests で failure（ui_quality.py とテストが numpy を import するがランナーに無く ModuleNotFoundError）。ワークフロー変更ではなく本体側で直した: 自己相関の FFT を標準ライブラリ実装へフォールバック化（numpy がある場合は従来の高速経路、無い場合は純 Python FFT で同じ値を計算。実測で両経路の差 0.00000 を確認）。テストの合成画像生成も random＋PIL 化。numpy 遮断のシミュレーションでゲートが完走し、現行 wafu は従来どおり fail（繰り返し指数 0.5205）になることを確認。

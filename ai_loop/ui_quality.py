@@ -27,7 +27,9 @@ Exit code: 0 = pass, 1 = fail, 2 = usage/input error.
 """
 
 import argparse
+import cmath
 import json
+import math
 import os
 import subprocess
 import sys
@@ -64,43 +66,141 @@ REPETITION_LAG_MAX = 300
 
 # ---------------------------------------------------------------- images
 
-def _autocorr_peak(channel, lag_min, lag_max):
+def _next_pow2(n):
+    p = 1
+    while p < n:
+        p <<= 1
+    return p
+
+
+def _fft_1d(a):
+    """Iterative radix-2 FFT, in place, on a list of complex (length a power of 2)."""
+    n = len(a)
+    j = 0
+    for i in range(1, n):
+        bit = n >> 1
+        while j & bit:
+            j ^= bit
+            bit >>= 1
+        j |= bit
+        if i < j:
+            a[i], a[j] = a[j], a[i]
+    length = 2
+    while length <= n:
+        wlen = cmath.exp(-2j * cmath.pi / length)
+        half = length // 2
+        for i in range(0, n, length):
+            w = 1 + 0j
+            for k in range(half):
+                u = a[i + k]
+                v = a[i + k + half] * w
+                a[i + k] = u + v
+                a[i + k + half] = u - v
+                w *= wlen
+        length <<= 1
+    return a
+
+
+def _fft2(a):
+    """2D FFT of rows of complex (any size; zero-padded to powers of 2)."""
+    h = len(a)
+    w = len(a[0])
+    H = _next_pow2(h)
+    W = _next_pow2(w)
+    rows = [[complex(a[y][x]) if y < h and x < w else 0j for x in range(W)] for y in range(H)]
+    for y in range(H):
+        _fft_1d(rows[y])
+    for x in range(W):
+        col = [rows[y][x] for y in range(H)]
+        _fft_1d(col)
+        for y in range(H):
+            rows[y][x] = col[y]
+    return rows
+
+
+def _ifft2(F):
+    """Inverse 2D FFT via the conjugate trick."""
+    H = len(F)
+    W = len(F[0])
+    conj = [[v.conjugate() for v in row] for row in F]
+    out = _fft2(conj)
+    return [[v.conjugate() / (H * W) for v in row] for row in out]
+
+
+def _autocorr_peak_stdlib(a, lag_min, lag_max):
+    """Autocorrelation peak via the stdlib FFT (same maths as the numpy path,
+    slower). a is rows of float, already high-passed and mean-removed."""
+    F = _fft2(a)
+    P = [[v * v.conjugate() for v in row] for row in F]
+    corr = _ifft2(P)
+    c00 = corr[0][0].real
+    if c00 <= 1e-12:
+        return 0.0, (0, 0)
+    h = len(a)
+    w = len(a[0])
+    best = -1.0
+    best_lag = (0, 0)
+    for dy in range(0, h // 2 + 1):
+        for dx in range(0, w // 2 + 1):
+            dist = math.hypot(dx, dy)
+            if dist < lag_min or dist > lag_max:
+                continue
+            val = corr[dy][dx].real / c00
+            if val > best:
+                best, best_lag = val, (dx, dy)
+    return best, best_lag
+
+
+def _autocorr_peak(channel, lag_min, lag_max, _force_stdlib=False):
     """Strongest normalised autocorrelation at lag distance in
     [lag_min, lag_max] (FFT based). The channel is high-passed first so a
     smooth gradient or vignette cannot masquerade as repetition.
-    Returns (peak, (dx, dy)). A flat channel scores 0."""
-    import numpy as np
+    Returns (peak, (dx, dy)). A flat channel scores 0.
+    numpy is used when available; otherwise a stdlib FFT computes the same
+    values (slower), so the gate also runs on runners without numpy."""
     from PIL import Image, ImageFilter
 
-    a = channel.astype(np.float64)
-    lo = float(a.min())
-    hi = float(a.max())
+    h = len(channel)
+    w = len(channel[0])
+    flat = [v for row in channel for v in row]
+    lo = min(flat)
+    hi = max(flat)
     if hi - lo <= 1e-9:
         return 0.0, (0, 0)
-    u8 = ((a - lo) / (hi - lo) * 255.0).astype(np.uint8)
-    blur = Image.fromarray(u8).filter(ImageFilter.GaussianBlur(4))
-    a = a - np.asarray(blur).astype(np.float64) * ((hi - lo) / 255.0)
-    a -= a.mean()
-    if float((a * a).sum()) <= 1e-9:
+    u8 = Image.new("L", (w, h))
+    u8.putdata([round((v - lo) / (hi - lo) * 255.0) for v in flat])
+    blur = u8.filter(ImageFilter.GaussianBlur(4))
+    blur_px = list(blur.getdata())
+    scale = (hi - lo) / 255.0
+    a = [[channel[y][x] - blur_px[y * w + x] * scale for x in range(w)] for y in range(h)]
+    mean = sum(sum(row) for row in a) / (h * w)
+    a = [[v - mean for v in row] for row in a]
+    if sum(v * v for row in a for v in row) <= 1e-9:
         return 0.0, (0, 0)
-    f = np.fft.rfft2(a)
-    corr = np.fft.irfft2(f * np.conj(f), s=a.shape)
-    corr /= corr[0, 0]
-    h, w = corr.shape
-    ys, xs = np.mgrid[0 : h // 2 + 1, 0 : w // 2 + 1]
-    dist = np.sqrt(xs**2 + ys**2)
-    region = corr[: h // 2 + 1, : w // 2 + 1].copy()
-    region[(dist < lag_min) | (dist > lag_max)] = -1.0
-    idx = int(np.argmax(region))
-    dy, dx = np.unravel_index(idx, region.shape)
-    return float(region[dy, dx]), (int(dx), int(dy))
+    if not _force_stdlib:
+        try:
+            import numpy as np
+        except ImportError:
+            return _autocorr_peak_stdlib(a, lag_min, lag_max)
+        arr = np.asarray(a, dtype=np.float64)
+        f = np.fft.rfft2(arr)
+        corr = np.fft.irfft2(f * np.conj(f), s=arr.shape)
+        corr /= corr[0, 0]
+        ch, cw = corr.shape
+        ys, xs = np.mgrid[0 : ch // 2 + 1, 0 : cw // 2 + 1]
+        dist = np.sqrt(xs**2 + ys**2)
+        region = corr[: ch // 2 + 1, : cw // 2 + 1].copy()
+        region[(dist < lag_min) | (dist > lag_max)] = -1.0
+        idx = int(np.argmax(region))
+        dy, dx = np.unravel_index(idx, region.shape)
+        return float(region[dy, dx]), (int(dx), int(dy))
+    return _autocorr_peak_stdlib(a, lag_min, lag_max)
 
 
 def texture_repetition(image_path, region=None, max_side=512):
     """Repetition index of one screenshot (optionally cropped to a panel
     region x,y,w,h). Two channels: luminance and red excess (vermillion
     ornament dots on parchment are strongest in the second)."""
-    import numpy as np
     from PIL import Image
 
     img = Image.open(image_path).convert("RGB")
@@ -111,9 +211,10 @@ def texture_repetition(image_path, region=None, max_side=512):
     if max(img.size) > max_side:
         scale = max_side / max(img.size)
         img = img.resize((max(8, int(img.size[0] * scale)), max(8, int(img.size[1] * scale))))
-    a = np.asarray(img).astype(np.float64)
-    lum = 0.2126 * a[:, :, 0] + 0.7152 * a[:, :, 1] + 0.0722 * a[:, :, 2]
-    red = a[:, :, 0] - 0.5 * (a[:, :, 1] + a[:, :, 2])
+    w, h = img.size
+    pix = list(img.getdata())
+    lum = [[0.2126 * pix[y * w + x][0] + 0.7152 * pix[y * w + x][1] + 0.0722 * pix[y * w + x][2] for x in range(w)] for y in range(h)]
+    red = [[pix[y * w + x][0] - 0.5 * (pix[y * w + x][1] + pix[y * w + x][2]) for x in range(w)] for y in range(h)]
     lag_min = max(2, int(round(REPETITION_LAG_MIN * scale)))
     lag_max = max(lag_min + 1, int(round(REPETITION_LAG_MAX * scale)))
     results = {}

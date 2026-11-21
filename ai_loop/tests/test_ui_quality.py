@@ -105,32 +105,36 @@ class RepetitionTest(unittest.TestCase):
         img.save(tmp.name)
         return tmp.name
 
-    def test_dot_grid_fails(self):
-        import numpy as np
+    def _noise_image(self, seed, blur):
+        import random
         from PIL import Image, ImageFilter
 
-        rng = np.random.default_rng(7)
-        noise = np.asarray(Image.fromarray(rng.normal(128, 40, (160, 640)).astype("uint8")).filter(ImageFilter.GaussianBlur(2))).astype(np.float64)
-        a = np.zeros((160, 640, 3))
-        a[:] = [239, 226, 196]
-        a += (noise - 128)[:, :, None] * 0.15
+        rng = random.Random(seed)
+        noise = Image.new("L", (640, 160))
+        noise.putdata([max(0, min(255, int(rng.gauss(128, 40)))) for _ in range(640 * 160)])
+        return noise.filter(ImageFilter.GaussianBlur(blur))
+
+    def test_dot_grid_fails(self):
+        from PIL import Image, ImageDraw
+
+        base = Image.new("RGB", (640, 160), (239, 226, 196))
+        noise = self._noise_image(7, 2).convert("RGB")
+        img = Image.blend(base, noise, 0.15)
+        draw = ImageDraw.Draw(img)
         for yy in range(16, 160, 32):
             for xx in range(16, 640, 32):
-                a[yy - 2:yy + 3, xx - 2:xx + 3] = [184, 50, 42]
-        result = ui_quality.texture_repetition(self._write(Image.fromarray(a.astype("uint8"))))
+                draw.rectangle([xx - 2, yy - 2, xx + 2, yy + 2], fill=(184, 50, 42))
+        result = ui_quality.texture_repetition(self._write(img))
         self.assertFalse(result["pass"], result)
         self.assertGreater(result["index"], ui_quality.REPETITION_MAX)
 
     def test_smooth_parchment_passes(self):
-        import numpy as np
-        from PIL import Image, ImageFilter
+        from PIL import Image
 
-        rng = np.random.default_rng(11)
-        noise = np.asarray(Image.fromarray(rng.normal(128, 40, (160, 640)).astype("uint8")).filter(ImageFilter.GaussianBlur(9))).astype(np.float64)
-        a = np.zeros((160, 640, 3))
-        a[:] = [239, 226, 196]
-        a += (noise - 128)[:, :, None] * 0.2
-        result = ui_quality.texture_repetition(self._write(Image.fromarray(a.astype("uint8"))))
+        base = Image.new("RGB", (640, 160), (239, 226, 196))
+        noise = self._noise_image(11, 9).convert("RGB")
+        img = Image.blend(base, noise, 0.2)
+        result = ui_quality.texture_repetition(self._write(img))
         self.assertTrue(result["pass"], result)
 
 
