@@ -82,6 +82,14 @@ or through ai_loop\\windows\\uzu.bat.
                   ai_loop/audio_check.py): peak/RMS levels, clipping, unintended silence runs, the
                   loop seam and audio-sprite segment/gap consistency, as numbers in one JSON report.
                   Simultaneous-playback overlap is out of scope (it needs playback-side logs)
+  uzu.py ui-quality [--probe probe.json] [--engine PATH] [--theme wafu] [--image shot.png]
+                  [--region x,y,w,h] [--out report.json]   AAA UI quality gate (B-1310, see
+                  ai_loop/ui_quality.py): texture repetition index (autocorrelation peak at
+                  tile lags), WCAG contrast (body >= 4.5, heading >= 3.0), 5-state completeness
+                  (focus must not be StyleBoxEmpty), theme coverage of the standard controls
+                  and spacing/radius/shadow scale conformance, as one uzu-ui-quality/1 JSON
+                  verdict. Theme data comes from --probe or from running
+                  ai_loop/ui_quality_probe.gd with --engine. Exit 0 = pass, 1 = fail
   uzu.py catalog  <word> [<word> ...] [--limit N] [--caps a,b] [--profile caps.json]
                   search the feature catalog (B-403): every command, MCP tool,
                   preset, tool script and UZU class, generated from their definitions by ai_loop/make_catalog.py
@@ -2472,6 +2480,7 @@ def selftest_tools():
     commands.append(("tests/test_spec_diff.py", []))
     commands.append(("tests/test_animation.py", []))
     commands.append(("tests/test_audio_check.py", []))
+    commands.append(("tests/test_ui_quality.py", []))
     commands.append(("tests/test_feel_report.py", []))
     ok = True
     for tool, args in commands:
@@ -2524,6 +2533,10 @@ def main(argv):
         import audio_check
 
         return audio_check.main(rest)
+    if tool == "ui-quality":
+        import ui_quality
+
+        return ui_quality.main(rest)
     if tool == "catalog":
         import catalog
 
