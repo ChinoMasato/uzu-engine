@@ -2,13 +2,13 @@
  "version": 1,
  "generated_by": "ai_loop/make_catalog.py",
  "counts": {
-  "cli": 24,
+  "cli": 25,
   "command": 72,
   "mcp": 80,
   "preset": 7,
-  "script": 40,
+  "script": 42,
   "class": 15,
-  "total": 238
+  "total": 241
  },
  "entries": [
   {
@@ -326,6 +326,19 @@
    "required_capabilities": [],
    "fallback": null,
    "usage": "uzu.py ui <project> --spec ui.json [--shot out.png [--over res://game.tscn]] [--theme wafu|sf|fantasy] [--world fantasy|wafu|sf|horror|persona|pixel] [--font-subset]"
+  },
+  {
+   "name": "ui-quality",
+   "kind": "cli",
+   "description": "AAA UI quality gate (B-1310, see ai_loop/ui_quality.py): texture repetition index (autocorrelation peak at tile lags), WCAG contrast (body >= 4.5, heading >= 3.0), 5-state completeness (focus must not be StyleBoxEmpty), theme coverage of the standard controls and spacing/radius/shadow scale conformance, as one uzu-ui-quality/1 JSON verdict. Theme data comes from --probe or from running ai_loop/ui_quality_probe.gd with --engine. Exit 0 = pass, 1 = fail",
+   "tags": [
+    "cli",
+    "uzu.py"
+   ],
+   "source": "ai_loop/uzu.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "usage": "uzu.py ui-quality [--probe probe.json] [--engine PATH] [--theme wafu] [--image shot.png] [--region x,y,w,h] [--out report.json]"
   },
   {
    "name": "action-add",
@@ -3368,6 +3381,30 @@
     "script"
    ],
    "source": "ai_loop/ui_font.py",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "ui_quality",
+   "kind": "script",
+   "description": "UI quality gate (B-1310): score a UZUUI theme + sample screenshots against",
+   "tags": [
+    "python",
+    "script"
+   ],
+   "source": "ai_loop/ui_quality.py",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "ui_quality_probe",
+   "kind": "script",
+   "description": "B-1310: theme probe for the UI quality gate (ai_loop/ui_quality.py). Dumps everything the gate scores from UZUUI themes as JSON: per theme type, the styleboxes (class + the numbers the scale check reads + a sampled fill colour), colours, co",
+   "tags": [
+    "gdscript",
+    "script"
+   ],
+   "source": "ai_loop/ui_quality_probe.gd",
    "required_capabilities": [],
    "fallback": null
   },
