@@ -9,6 +9,12 @@ sys.path.insert(0, str(LOOP))
 
 import ui_quality  # noqa: E402
 
+try:
+    import PIL  # noqa: F401  (Pillow is needed only to synthesise test images)
+    HAVE_PIL = True
+except ImportError:
+    HAVE_PIL = False
+
 
 def flat(r, g, b, a=1.0):
     return {"class": "StyleBoxFlat", "bg_color": [r, g, b, a],
@@ -99,6 +105,7 @@ class ScaleTest(unittest.TestCase):
         self.assertIn(6, shadow_values)
 
 
+@unittest.skipUnless(HAVE_PIL, "Pillow (PIL) is not installed")
 class RepetitionTest(unittest.TestCase):
     def _write(self, img):
         tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)

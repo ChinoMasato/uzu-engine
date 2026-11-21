@@ -255,3 +255,5 @@
 - 2026-11-22 B-1310 UI品質ゲート完了（リード統合）: agent/b-1310-muse を統合。`uzu.py ui-quality` が AAA水準5項目（繰り返し指数／コントラスト／状態完全性／被覆率／スケール適合）を合否 JSON で返す。現行 wafu は fail（繰り返し 0.52、被覆率 0.375、フォーカス不可視、余白・影のオフスケール多数）＝監査の欠陥を検出漏れなく捕捉。以後の UI 改善（B-1311〜B-1315）の判定はこのゲートで行う。
 
 - 2026-11-22 B-1310 修正（リード、CI 復旧）: 統合直後の uzu_verify run #44955489719 が Agent tool self-tests で failure（ui_quality.py とテストが numpy を import するがランナーに無く ModuleNotFoundError）。ワークフロー変更ではなく本体側で直した: 自己相関の FFT を標準ライブラリ実装へフォールバック化（numpy がある場合は従来の高速経路、無い場合は純 Python FFT で同じ値を計算。実測で両経路の差 0.00000 を確認）。テストの合成画像生成も random＋PIL 化。numpy 遮断のシミュレーションでゲートが完走し、現行 wafu は従来どおり fail（繰り返し指数 0.5205）になることを確認。
+
+- 2026-11-22 B-1310 修正その2（リード、CI 復旧）: numpy 修正直後の uzu_verify run #44957378060 が再び Agent tool self-tests で failure（tests/test_ui_quality.py の RepetitionTest 2件が `from PIL import Image` で ModuleNotFoundError。ランナーに Pillow が無い）。ワークフロー変更ではなく本体側で直した: PIL 依存の合成画像テスト2件を PIL 不在時は skip する形にし、ui font subset の skip（fonttools/brotli 不在時）と同じ扱いにした。PIL がある環境では 13件すべて実行され pass、PIL 遮断のシミュレーションでは 11件 pass＋2件 skip で exit 0 を確認。`uzu.py ui-quality` 本体の texture_repetition は従来どおり PIL を使う（スクリーンショット解析の実行時依存であり、CI の self-test では呼ばれない）。
