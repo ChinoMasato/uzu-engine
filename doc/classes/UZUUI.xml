@@ -74,6 +74,7 @@
 				- [code]radius[/code], [code]border_width[/code] and [code]shadow[/code].
 				- [code]ornament[/code]: corner ornaments, [code]none[/code], [code]rivets[/code], [code]nails[/code], [code]brackets[/code] or [code]diamonds[/code].
 				- [code]padding[/code] and [code]seed[/code].
+				- [code]scale[/code]: generation resolution, 1 (default) or 2 (twice the px, for high-DPI).
 				The textures are procedural and repeat every 32 pixels.
 			</description>
 		</method>

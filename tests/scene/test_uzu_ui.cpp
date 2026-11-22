@@ -260,6 +260,189 @@ TEST_CASE("[SceneTree][UZUUI] Parchment: calm over a wide panel, no printed patt
 	CHECK(steps / n_steps < 0.01f); // Smooth: neighbouring pixels barely differ.
 }
 
+TEST_CASE("[SceneTree][UZUUI] Ornaments stay inside the 9-slice corner squares") {
+	// Regression (B-1311): the corner the 9-slice keeps used to reserve
+	// only MAX(radius, bw*2, orn) px, while an ornament reaches
+	// bw + 3 + orn px in from the frame edge. The outer part fell into
+	// the edge strips — the regions the 9-slice tiles — and printed as
+	// rows of dots across wide panels (the wafu talk window in the
+	// owner's playtest, 2026-11-21). For every ornament, at both
+	// generation scales, every pixel painted in the ornament's color
+	// must lie in one of the four corner squares.
+	struct Case {
+		const char *ornament;
+		Color color;
+	};
+	const Case cases[] = {
+		{ "rivets", Color::html("#e6c36a").lightened(0.2f) },
+		{ "nails", Color(0.15f, 0.12f, 0.1f) },
+		{ "brackets", Color::html("#e6c36a") },
+		{ "diamonds", Color::html("#e6c36a") },
+	};
+	for (const Case &cse : cases) {
+		for (int scale = 1; scale <= 2; scale++) {
+			Dictionary style;
+			style["material"] = "flat";
+			style["base"] = "#30507a";
+			style["edge"] = "#101820";
+			style["accent"] = "#e6c36a";
+			style["ornament"] = cse.ornament;
+			style["radius"] = 2;
+			style["border_width"] = 3;
+			style["shadow"] = 6;
+			style["scale"] = scale;
+			const Ref<Image> img = UZUUI::draw_frame(style);
+			REQUIRE(img.is_valid());
+			Ref<StyleBoxTexture> sb = UZUUI::create_frame_style(style);
+			REQUIRE(sb.is_valid());
+			const int w = img->get_width();
+			const int h = img->get_height();
+			const int m = int(sb->get_texture_margin(SIDE_LEFT));
+			int found = 0;
+			int leaked = 0;
+			for (int y = 0; y < h; y++) {
+				for (int x = 0; x < w; x++) {
+					if (!close(img->get_pixel(x, y), cse.color)) {
+						continue;
+					}
+					found++;
+					const bool corner_x = x < m || x >= w - m;
+					const bool corner_y = y < m || y >= h - m;
+					if (!(corner_x && corner_y)) {
+						leaked++;
+					}
+				}
+			}
+			CHECK(found > 0); // The ornament is drawn at all.
+			CHECK(leaked == 0);
+		}
+	}
+	// The wafu frame itself: its diamonds are the accent color, and the
+	// parchment under them never reaches that color.
+	const Dictionary frame = UZUUI::get_world_options("wafu")["frame"];
+	const Ref<Image> img = UZUUI::draw_frame(frame);
+	REQUIRE(img.is_valid());
+	Ref<StyleBoxTexture> sb = UZUUI::create_frame_style(frame);
+	REQUIRE(sb.is_valid());
+	const int w = img->get_width();
+	const int h = img->get_height();
+	const int m = int(sb->get_texture_margin(SIDE_LEFT));
+	const Color accent = Color::html("#b8322a");
+	int leaked = 0;
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			if (!close(img->get_pixel(x, y), accent)) {
+				continue;
+			}
+			const bool corner_x = x < m || x >= w - m;
+			const bool corner_y = y < m || y >= h - m;
+			if (!(corner_x && corner_y)) {
+				leaked++;
+			}
+		}
+	}
+	CHECK(leaked == 0);
+}
+
+TEST_CASE("[SceneTree][UZUUI] Frame materials: exact tile period, bounded values") {
+	// The materials are fbm-based (B-1311): whatever the layer mix, the
+	// tile must repeat exactly (pixel(x) == pixel(x + tile)) or the
+	// tiled render shows the period as a pattern. (The pre-B-1311 metal
+	// streaks, sampled at x*0.25, had a period of four tiles and failed
+	// exactly this.) Every material must also actually vary — a flat
+	// tile is the other failure mode.
+	const char *materials[] = { "wood", "metal", "parchment", "stone", "glass", "halftone", "grime" };
+	for (const char *mat : materials) {
+		Dictionary style;
+		style["material"] = mat;
+		style["base"] = "#7a6a55";
+		style["edge"] = "#201812";
+		style["accent"] = "#e6c36a";
+		// A wide corner keeps the checked region clear of the frame-space
+		// effects (bevel, burnt edges, edge glow) that are not tile-periodic.
+		style["radius"] = 24;
+		style["border_width"] = 0;
+		style["shadow"] = 0;
+		const Ref<Image> img = UZUUI::draw_frame(style);
+		REQUIRE_MESSAGE(img.is_valid(), mat);
+		Ref<StyleBoxTexture> sb = UZUUI::create_frame_style(style);
+		REQUIRE_MESSAGE(sb.is_valid(), mat);
+		const int w = img->get_width();
+		const int m = int(sb->get_texture_margin(SIDE_LEFT));
+		const int tile = w - 2 * m;
+		CHECK_MESSAGE(tile >= 256, mat); // The B-1311 tile size.
+		for (int y : { w / 3, w / 2, 2 * w / 3 }) {
+			for (int x = m; x < m + 16; x++) {
+				CHECK_MESSAGE(close(img->get_pixel(x, y), img->get_pixel(x + tile, y)), mat);
+			}
+		}
+		// Variation across the tile (alpha for glass, whose texture
+		// lives in the scan lines and so varies along y, not x). The
+		// sampling step is 3 so it cannot sync with the 4 px scan lines.
+		float lo = 1.0f, hi = 0.0f;
+		for (int y = m; y < m + tile; y += 3) {
+			for (int x = m; x < m + tile; x += 3) {
+				const Color px = img->get_pixel(x, y);
+				const float v = String(mat) == "glass" ? px.a : px.get_luminance();
+				lo = MIN(lo, v);
+				hi = MAX(hi, v);
+			}
+		}
+		CHECK_MESSAGE(hi - lo > 0.01f, mat);
+	}
+	// The fbm value range, on parchment: it only ever darkens the base,
+	// by a bounded amount — no layer may blow out or go muddy.
+	Dictionary parch;
+	parch["material"] = "parchment";
+	parch["base"] = "#efe2c4";
+	parch["edge"] = "#3b2416";
+	parch["radius"] = 24;
+	parch["border_width"] = 0;
+	parch["shadow"] = 0;
+	const Ref<Image> img = UZUUI::draw_frame(parch);
+	REQUIRE(img.is_valid());
+	Ref<StyleBoxTexture> sb = UZUUI::create_frame_style(parch);
+	const int w = img->get_width();
+	const int m = int(sb->get_texture_margin(SIDE_LEFT));
+	const int tile = w - 2 * m;
+	const Color base = Color::html("#efe2c4");
+	for (int y = m; y < m + tile; y += 17) {
+		for (int x = m; x < m + tile; x += 17) {
+			const Color px = img->get_pixel(x, y);
+			CHECK(px.r <= base.r + 0.01f);
+			CHECK(px.g <= base.g + 0.01f);
+			CHECK(px.b <= base.b + 0.01f);
+			CHECK(px.r >= base.r * 0.85f);
+			CHECK(px.g >= base.g * 0.85f);
+			CHECK(px.b >= base.b * 0.85f);
+		}
+	}
+}
+
+TEST_CASE("[SceneTree][UZUUI] Frame generation scale: twice the px, same design") {
+	const Dictionary frame = UZUUI::get_world_options("wafu")["frame"];
+	const Ref<Image> img1 = UZUUI::draw_frame(frame);
+	Dictionary frame2 = frame.duplicate();
+	frame2["scale"] = 2;
+	const Ref<Image> img2 = UZUUI::draw_frame(frame2);
+	REQUIRE(img1.is_valid());
+	REQUIRE(img2.is_valid());
+	CHECK(img2->get_width() == 2 * img1->get_width());
+	CHECK(img2->get_height() == 2 * img1->get_height());
+	Ref<StyleBoxTexture> sb1 = UZUUI::create_frame_style(frame);
+	Ref<StyleBoxTexture> sb2 = UZUUI::create_frame_style(frame2);
+	REQUIRE(sb1.is_valid());
+	REQUIRE(sb2.is_valid());
+	CHECK(int(sb2->get_texture_margin(SIDE_LEFT)) == 2 * int(sb1->get_texture_margin(SIDE_LEFT)));
+	// The default is scale 1: an explicit 1 draws the identical image.
+	Dictionary frame1 = frame.duplicate();
+	frame1["scale"] = 1;
+	const Ref<Image> img1b = UZUUI::draw_frame(frame1);
+	REQUIRE(img1b.is_valid());
+	CHECK(img1b->get_width() == img1->get_width());
+	CHECK(close(img1b->get_pixel(40, 40), img1->get_pixel(40, 40)));
+}
+
 TEST_CASE("[SceneTree][UZUUI] World themes and game parts") {
 	const PackedStringArray worlds = UZUUI::get_world_names();
 	CHECK(worlds.size() == 6);

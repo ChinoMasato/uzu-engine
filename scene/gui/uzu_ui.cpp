@@ -277,20 +277,23 @@ Ref<Theme> UZUUI::create_theme(const Dictionary &p_options) {
 
 namespace {
 
-const int FRAME_TILE = 128; // The repeating middle of a frame image. Wide, so the
-// repeat period across a panel is long: at 32 the same small pattern printed
-// itself dozens of times across a wide talk window and read as a cheap print
-// (owner playtest, 2026-11-21).
+const int FRAME_TILE = 256; // The repeating middle of a frame image. At 128 the
+// repeat period across a wide panel was still short enough to read as a
+// pattern; 256 with multi-octave noise keeps the period below perception
+// on talk-window-sized panels (B-1311).
 
-// Value noise that repeats every FRAME_TILE pixels (cells of p_cell px), so tiled frames have no seams.
-float tile_noise(float p_x, float p_y, int p_cell, uint32_t p_seed) {
-	const int n = MAX(1, FRAME_TILE / p_cell);
-	const float fx = p_x / p_cell;
-	const float fy = p_y / p_cell;
+// Periodic value noise: the lattice wraps at p_cells_x × p_cells_y cells
+// across the tile, so the value repeats exactly every p_tile px on both
+// axes and a tiled frame has no seams.
+float value_noise(float p_x, float p_y, int p_tile, int p_cells_x, int p_cells_y, uint32_t p_seed) {
+	const float fx = p_x * p_cells_x / p_tile;
+	const float fy = p_y * p_cells_y / p_tile;
 	const int x0 = int(Math::floor(fx));
 	const int y0 = int(Math::floor(fy));
 	auto lattice = [&](int x, int y) {
-		const uint32_t h = (uint32_t(((x % n) + n) % n) * 73856093u) ^ (uint32_t(((y % n) + n) % n) * 19349663u) ^ (p_seed * 83492791u);
+		const int wx = ((x % p_cells_x) + p_cells_x) % p_cells_x;
+		const int wy = ((y % p_cells_y) + p_cells_y) % p_cells_y;
+		const uint32_t h = (uint32_t(wx) * 73856093u) ^ (uint32_t(wy) * 19349663u) ^ (p_seed * 83492791u);
 		return float((h * 2654435761u) >> 8) / float(1 << 24);
 	};
 	const float tx = fx - x0;
@@ -298,6 +301,34 @@ float tile_noise(float p_x, float p_y, int p_cell, uint32_t p_seed) {
 	const float sx = tx * tx * (3.0f - 2.0f * tx);
 	const float sy = ty * ty * (3.0f - 2.0f * ty);
 	return Math::lerp(Math::lerp(lattice(x0, y0), lattice(x0 + 1, y0), sx), Math::lerp(lattice(x0, y0 + 1), lattice(x0 + 1, y0 + 1), sx), sy);
+}
+
+// Fractal noise: octaves of value noise whose cell counts double from
+// p_cells_x/p_cells_y. Every count stays an integer, so the sum keeps the
+// exact tile period. The result is normalized to [0, 1].
+float fbm_noise(float p_x, float p_y, int p_tile, int p_cells_x, int p_cells_y, uint32_t p_seed, int p_octaves = 4) {
+	float sum = 0.0f;
+	float amp = 0.5f;
+	float norm = 0.0f;
+	int cx = p_cells_x;
+	int cy = p_cells_y;
+	for (int i = 0; i < p_octaves; i++) {
+		sum += amp * value_noise(p_x, p_y, p_tile, cx, cy, p_seed + uint32_t(i) * 131u);
+		norm += amp;
+		amp *= 0.5f;
+		cx *= 2;
+		cy *= 2;
+	}
+	return sum / norm;
+}
+
+// Domain-warped fbm: the sample point is pushed around by another fbm
+// field, which bends the regular lattice shapes into organic ones. Both
+// fields share the tile period, so the warped result still tiles exactly.
+float fbm_warped(float p_x, float p_y, int p_tile, int p_cells, uint32_t p_seed, float p_warp) {
+	const float qx = fbm_noise(p_x, p_y, p_tile, p_cells, p_cells, p_seed + 101u, 3);
+	const float qy = fbm_noise(p_x, p_y, p_tile, p_cells, p_cells, p_seed + 202u, 3);
+	return fbm_noise(p_x + (qx - 0.5f) * 2.0f * p_warp, p_y + (qy - 0.5f) * 2.0f * p_warp, p_tile, p_cells, p_cells, p_seed, 4);
 }
 
 float frame_distance(const String &p_shape, const Vector2 &p, const Vector2 &c, const Vector2 &h, float r) {
@@ -317,46 +348,65 @@ float frame_distance(const String &p_shape, const Vector2 &p, const Vector2 &c, 
 	return rounded_rect_distance(p, c, h, r);
 }
 
-Color material_color(const String &p_material, const Color &p_base, float x, float y, float d, uint32_t seed) {
-	const float n = tile_noise(x, y, 8, seed);
-	const float fine = tile_noise(x * 2.0f, y * 2.0f, 8, seed + 7);
+// Every layer is built from the periodic fbm above, in three scales —
+// broad swells, a mid texture and a fine grain — so no single period is
+// left for the eye to catch when the tile repeats (B-1311). p_tile is
+// the tile size in px (FRAME_TILE × the generation scale) and p_scale
+// the generation scale itself; lengths below are in scale-1 px.
+Color material_color(const String &p_material, const Color &p_base, float x, float y, float d, uint32_t seed, int p_tile, int p_scale) {
+	const float warp = p_tile * 0.125f;
+	const float grain = value_noise(x, y, p_tile, 128, 128, seed + 7);
 	Color c = p_base;
 	if (p_material == "wood") {
-		const float grain = 0.5f + 0.5f * Math::sin((y + n * 10.0f) * (Math::TAU / 8.0f));
-		c = c.darkened(0.25f * grain + 0.1f * fine);
+		// Rings bent by a warped field, a broad mottle over them, fine grain last.
+		const float bend = fbm_warped(x, y, p_tile, 3, seed + 5, warp);
+		const float ring = 0.5f + 0.5f * Math::sin((y + (bend - 0.5f) * p_tile * 0.35f) * (Math::TAU / (8.0f * p_scale)));
+		const float mottle = fbm_noise(x, y, p_tile, 4, 4, seed + 9);
+		c = c.darkened(0.22f * ring + 0.10f * mottle + 0.05f * grain);
 	} else if (p_material == "metal") {
-		const float streak = tile_noise(x * 0.25f, y * 4.0f, 8, seed + 3);
-		c = c.lightened(0.12f * streak).darkened(0.08f * fine);
+		// Brushed: noise stretched thin along x, a broad mottle and grain over it.
+		const float streak = fbm_noise(x, y, p_tile, 2, 96, seed + 3, 3);
+		const float mottle = fbm_noise(x, y, p_tile, 4, 4, seed + 9, 3);
+		c = c.lightened(0.10f * streak).darkened(0.06f * mottle + 0.05f * grain);
 	} else if (p_material == "parchment") {
-		// Calm, like real paper: broad soft swells (lattice cells of 64 and
-		// 32 px over the tile) and a whisper of fine grain, all at low
-		// contrast. The old recipe (8 px cells, up to ~0.17 darkening) had
-		// a small busy pattern that the tile repeat made obvious. Every
-		// component still wraps with the tile, so the repeat is seamless;
-		// only its scale and contrast changed.
-		const float swell = tile_noise(x, y, 64, seed + 11);
-		const float drift = tile_noise(x, y, 32, seed + 23);
-		c = c.darkened(0.05f * swell + 0.035f * drift + 0.015f * fine);
-		c = c.darkened(0.35f * CLAMP(1.0f + d / 10.0f, 0.0f, 1.0f)); // Burnt edges.
+		// Calm, like real paper: broad soft swells, a warped mid drift, a
+		// whisper of fiber and fine grain, all at low contrast. Every
+		// component wraps with the tile, so the repeat is seamless; the
+		// multi-octave build keeps any one period from standing out.
+		const float swell = fbm_noise(x, y, p_tile, 3, 3, seed + 11, 3);
+		const float drift = fbm_warped(x, y, p_tile, 6, seed + 23, warp);
+		const float fiber = fbm_noise(x, y, p_tile, 96, 12, seed + 31, 2);
+		c = c.darkened(0.045f * swell + 0.030f * drift + 0.008f * fiber + 0.012f * grain);
+		c = c.darkened(0.35f * CLAMP(1.0f + d / (10.0f * p_scale), 0.0f, 1.0f)); // Burnt edges.
 	} else if (p_material == "stone") {
-		c = c.darkened(0.25f * n).lightened(0.08f * fine);
-		if (Math::abs(n - 0.5f) < 0.025f) {
-			c = c.darkened(0.35f); // Cracks.
+		const float n = fbm_warped(x, y, p_tile, 5, seed, warp);
+		c = c.darkened(0.22f * n).lightened(0.05f * grain);
+		const float crack = fbm_noise(x, y, p_tile, 5, 5, seed + 41, 3);
+		if (Math::abs(crack - 0.5f) < 0.03f) {
+			c = c.darkened(0.35f); // Cracks along a warped contour.
 		}
 	} else if (p_material == "glass") {
-		c.a *= (int(y) % 3 == 0) ? 0.8f : 1.0f; // Scan lines.
+		// Scan lines whose period divides the tile, and a faint sheen.
+		const float line = 0.5f + 0.5f * Math::sin(y * (Math::TAU / (4.0f * p_scale)));
+		const float sheen = fbm_noise(x, y, p_tile, 3, 3, seed + 3, 2);
+		c.a *= 0.92f + 0.08f * line;
+		c = c.darkened(0.05f * sheen);
 	} else if (p_material == "halftone") {
-		// Dots on a grid, bigger toward the bottom.
-		const float cell = 6.0f;
+		// Dots on a grid whose cell divides the tile; the radius grows
+		// down one tile period and wraps with the tile.
+		const float cell = p_tile / 32.0f;
 		const Vector2 g(Math::fposmod(x, cell) - cell * 0.5f, Math::fposmod(y, cell) - cell * 0.5f);
-		const float rad = 1.0f + 1.6f * CLAMP((y - 4.0f) / 40.0f, 0.0f, 1.0f);
+		const float ly = Math::fposmod(y, float(p_tile));
+		const float rad = (1.0f + 1.6f * CLAMP((ly - 4.0f * p_scale) / (40.0f * p_scale), 0.0f, 1.0f)) * p_scale;
 		if (g.length() < rad) {
 			c = c.darkened(0.3f);
 		}
 	} else if (p_material == "grime") {
-		c = c.darkened(0.5f * n * n + 0.15f * fine);
-		if (Math::abs(Math::fposmod(x * 0.7f + y * 0.3f + n * 9.0f, 23.0f) - 11.5f) < 0.4f) {
-			c = c.lightened(0.15f); // Scratches.
+		const float n = fbm_warped(x, y, p_tile, 4, seed, warp);
+		c = c.darkened(0.45f * n * n + 0.12f * grain);
+		const float scratch = fbm_noise(x, y, p_tile, 6, 6, seed + 53, 3);
+		if (Math::abs(scratch - 0.5f) < 0.02f) {
+			c = c.lightened(0.15f); // Scratches along a warped contour.
 		}
 	}
 	return c;
@@ -372,13 +422,24 @@ Ref<Image> UZUUI::draw_frame(const Dictionary &p_style) {
 	const Color accent = color_of(p_style.get("accent", Variant()), Color::html("#d9a441"));
 	const String ornament = p_style.get("ornament", "none");
 	const bool pixel = shape == "pixel";
-	const int radius = CLAMP(int(p_style.get("radius", pixel ? 0 : 8)), 0, 48);
-	const int bw = CLAMP(int(p_style.get("border_width", 3)), 0, 16);
-	const int shadow = CLAMP(int(p_style.get("shadow", 6)), 0, 32);
+	// Generation resolution scale (B-1311): 2 renders every length at
+	// twice the px, so frames stay sharp where the UI is scaled up
+	// (high-DPI); the default 1 keeps the old sizes.
+	const int scale = CLAMP(int(p_style.get("scale", 1)), 1, 2);
+	const int tile = FRAME_TILE * scale;
+	const int radius = CLAMP(int(p_style.get("radius", pixel ? 0 : 8)), 0, 48) * scale;
+	const int bw = CLAMP(int(p_style.get("border_width", 3)), 0, 16) * scale;
+	const int shadow = CLAMP(int(p_style.get("shadow", 6)), 0, 32) * scale;
 	const uint32_t seed = uint32_t(int(p_style.get("seed", 1)));
-	const int orn = ornament == "none" ? 0 : 10;
-	const int corner = MAX(MAX(radius, bw * 2), orn) + 2 + (shape == "skew" ? 8 : 0);
-	const int w = 2 * (shadow + corner) + FRAME_TILE;
+	const int orn = ornament == "none" ? 0 : 10 * scale;
+	// The corner the 9-slice keeps must contain the whole ornament: an
+	// ornament sits bw + 3 in from the frame edge and reaches orn px
+	// further. Before B-1311 the corner only reserved MAX(radius, bw*2,
+	// orn), so the outer part of every ornament fell into the edge strips
+	// the 9-slice tiles, and printed as rows of dots across wide panels.
+	const int orn_extent = orn > 0 ? bw + 3 * scale + orn : 0;
+	const int corner = MAX(MAX(radius, bw * 2), orn_extent) + 2 * scale + (shape == "skew" ? 8 * scale : 0);
+	const int w = 2 * (shadow + corner) + tile;
 	const int h = w;
 	const Vector2 center(w * 0.5f, h * 0.5f);
 	const Vector2 half(w * 0.5f - shadow, h * 0.5f - shadow);
@@ -396,9 +457,9 @@ Ref<Image> UZUUI::draw_frame(const Dictionary &p_style) {
 				}
 			}
 			const float inside = pixel ? (d <= 0.0f ? 1.0f : 0.0f) : CLAMP(0.5f - d, 0.0f, 1.0f);
-			Color c = material_color(material, base, p.x, p.y, d, seed);
+			Color c = material_color(material, base, p.x, p.y, d, seed, tile, scale);
 			// Bevel: light from the top, dark at the bottom, just inside the border.
-			if (d > -(bw * 2.0f + 2.0f) && d < -bw && !pixel) {
+			if (d > -(bw * 2.0f + 2.0f * scale) && d < -bw && !pixel) {
 				c = (p.y < center.y) ? c.lightened(0.18f) : c.darkened(0.18f);
 			}
 			if (bw > 0) {
@@ -410,22 +471,26 @@ Ref<Image> UZUUI::draw_frame(const Dictionary &p_style) {
 				c = c.lerp(e, in_border);
 			}
 			if (material == "glass" && d < 0.0f) {
-				c = c.lerp(accent, 0.35f * Math::exp(d / 3.0f)); // Glow just inside the edge.
+				c = c.lerp(accent, 0.35f * Math::exp(d / (3.0f * scale))); // Glow just inside the edge.
 			}
-			// Corner ornaments, in the corner squares the 9-slice keeps.
+			// Corner ornaments, in the corner squares the 9-slice keeps
+			// (the corner above reserves their full extent, B-1311).
 			if (orn > 0 && inside > 0.0f) {
 				const Vector2 q = (p - center).abs();
 				const Vector2 k = Vector2(half.x, half.y) - q; // Distance in from each side.
-				const float kx = k.x - bw - 3.0f;
-				const float ky = k.y - bw - 3.0f;
+				const float kx = k.x - bw - 3.0f * scale;
+				const float ky = k.y - bw - 3.0f * scale;
 				if (kx >= 0.0f && ky >= 0.0f && kx < orn && ky < orn) {
+					// Shape tests in scale-1 units, so scale 2 draws the same ornament at twice the px.
+					const float ux = kx / scale;
+					const float uy = ky / scale;
 					bool mark = false;
 					if (ornament == "rivets" || ornament == "nails") {
-						mark = Vector2(kx - 3.0f, ky - 3.0f).length() < (ornament == "rivets" ? 2.6f : 1.6f);
+						mark = Vector2(ux - 3.0f, uy - 3.0f).length() < (ornament == "rivets" ? 2.6f : 1.6f);
 					} else if (ornament == "brackets") {
-						mark = (kx < 2.0f && ky < orn) || (ky < 2.0f && kx < orn);
+						mark = (ux < 2.0f && uy < 10.0f) || (uy < 2.0f && ux < 10.0f);
 					} else if (ornament == "diamonds") {
-						mark = Math::abs(kx - 4.0f) + Math::abs(ky - 4.0f) < 3.5f;
+						mark = Math::abs(ux - 4.0f) + Math::abs(uy - 4.0f) < 3.5f;
 					}
 					if (mark) {
 						c = ornament == "nails" ? Color(0.15, 0.12, 0.1) : accent.lightened(ornament == "rivets" ? 0.2f : 0.0f);
@@ -460,8 +525,9 @@ Ref<StyleBox> UZUUI::create_frame_style(const Dictionary &p_style) {
 	Ref<StyleBoxTexture> sb;
 	sb.instantiate();
 	sb->set_texture(ImageTexture::create_from_image(img));
-	const int margin = (img->get_width() - FRAME_TILE) / 2;
-	const int shadow = CLAMP(int(p_style.get("shadow", 6)), 0, 32);
+	const int scale = CLAMP(int(p_style.get("scale", 1)), 1, 2);
+	const int margin = (img->get_width() - FRAME_TILE * scale) / 2;
+	const int shadow = CLAMP(int(p_style.get("shadow", 6)), 0, 32) * scale;
 	sb->set_texture_margin_all(margin);
 	sb->set_expand_margin_all(shadow);
 	// The middle repeats, so the texture keeps its scale.

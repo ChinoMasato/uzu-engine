@@ -68,7 +68,8 @@ public:
 	// "material" (wood, metal, parchment, stone, glass, halftone, grime, flat), "shape"
 	// (rounded, chamfer, skew, pixel), "base" and "edge" colors, "accent" (ornaments and
 	// glow), "radius", "border_width", "shadow", "ornament" (none, rivets, nails, brackets,
-	// diamonds), "padding", "seed". The middle of the image repeats, so the texture keeps
+	// diamonds), "padding", "seed", "scale" (1 or 2: generate at twice the resolution, for
+	// high-DPI). The middle of the image repeats, so the texture keeps
 	// its scale at any size.
 	static Ref<Image> draw_frame(const Dictionary &p_style);
 	static Ref<StyleBox> create_frame_style(const Dictionary &p_style);
