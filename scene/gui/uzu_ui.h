@@ -95,7 +95,9 @@ public:
 	// glow), "radius", "border_width", "shadow" (px) or "elevation" (a layout-scale
 	// level), "ornament" (none, rivets, nails, brackets, diamonds), "padding" (px or a
 	// spacing step name), "seed", "scale" (1 or 2: generate at twice the resolution, for
-	// high-DPI). Lengths snap to the layout scale (see get_layout_scale). The middle of
+	// high-DPI), "inner_shadow" / "highlight" / "glow" (0..1 depth layers over the
+	// material, B-1318; all off by default except the glow of glass). Lengths snap to
+	// the layout scale (see get_layout_scale). The middle of
 	// the image repeats, so the texture keeps its scale at any size.
 	static Ref<Image> draw_frame(const Dictionary &p_style);
 	static Ref<StyleBox> create_frame_style(const Dictionary &p_style);

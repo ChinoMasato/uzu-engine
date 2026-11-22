@@ -714,6 +714,152 @@ TEST_CASE("[SceneTree][UZUUI] Frame generation scale: twice the px, same design"
 	CHECK(close(img1b->get_pixel(40, 40), img1->get_pixel(40, 40)));
 }
 
+TEST_CASE("[SceneTree][UZUUI] Frame depth layers: inner shadow, rim highlight, glow") {
+	// The B-1318 layers over the material. A plain frame on mid gray,
+	// so lightening and darkening both have room to show; shadow 0
+	// keeps the geometry simple: the shape spans the whole image.
+	Dictionary plain;
+	plain["material"] = "flat";
+	plain["base"] = "#808080";
+	plain["edge"] = "#404040";
+	plain["accent"] = "#ff2818";
+	plain["radius"] = 8;
+	plain["border_width"] = 4;
+	plain["shadow"] = 0;
+	const Ref<Image> base_img = UZUUI::draw_frame(plain);
+	REQUIRE(base_img.is_valid());
+	const int w = base_img->get_width();
+	const int c = w / 2;
+
+	// All layers at 0 draw the identical image as no keys at all:
+	// the defaults change nothing that already exists.
+	Dictionary zeroed = plain.duplicate();
+	zeroed["inner_shadow"] = 0.0;
+	zeroed["highlight"] = 0.0;
+	zeroed["glow"] = 0.0;
+	const Ref<Image> zero_img = UZUUI::draw_frame(zeroed);
+	REQUIRE(zero_img.is_valid());
+	for (int y = 0; y < w; y += 7) {
+		for (int x = 0; x < w; x += 7) {
+			CHECK(close(zero_img->get_pixel(x, y), base_img->get_pixel(x, y)));
+		}
+	}
+
+	// Inner shadow: the surface just inside the rim is darker, and
+	// only there — the middle of the panel is untouched.
+	Dictionary shaded = plain.duplicate();
+	shaded["inner_shadow"] = 1.0;
+	const Ref<Image> shaded_img = UZUUI::draw_frame(shaded);
+	REQUIRE(shaded_img.is_valid());
+	CHECK(shaded_img->get_pixel(c, 7).get_luminance() < base_img->get_pixel(c, 7).get_luminance() - 0.05f);
+	CHECK(close(shaded_img->get_pixel(c, c), base_img->get_pixel(c, c)));
+
+	// Rim highlight: the top border catches more light than the
+	// bottom border. Without the layer the two are the same.
+	Dictionary lit = plain.duplicate();
+	lit["highlight"] = 1.0;
+	const Ref<Image> lit_img = UZUUI::draw_frame(lit);
+	REQUIRE(lit_img.is_valid());
+	CHECK(lit_img->get_pixel(c, 2).get_luminance() > lit_img->get_pixel(c, w - 3).get_luminance() + 0.03f);
+	CHECK(close(base_img->get_pixel(c, 2), base_img->get_pixel(c, w - 3)));
+
+	// Glow on a material that never had one: the accent bleeds in
+	// from the edge, so a pixel just inside it leans toward the accent.
+	Dictionary glowing = plain.duplicate();
+	glowing["glow"] = 1.0;
+	const Ref<Image> glow_img = UZUUI::draw_frame(glowing);
+	REQUIRE(glow_img.is_valid());
+	const Color g = glow_img->get_pixel(c, 6);
+	CHECK(g.r > g.b + 0.05f);
+	CHECK(Math::abs(base_img->get_pixel(c, 6).r - base_img->get_pixel(c, 6).b) < 0.01f);
+}
+
+TEST_CASE("[SceneTree][UZUUI] Skew frames: no wedge at the tile seams") {
+	// Regression (B-1317's persona shot, fixed in B-1318): a skew
+	// panel's middle is a parallelogram band 3/4 of the texture wide,
+	// shifting with height. Sliced at a full tile, the band did not
+	// cover the sliced middle at every row, and tiling it across a
+	// wide panel left a transparent wedge at every seam. The slice
+	// is now half a tile wide, which the band covers at every row —
+	// and the edge strips' middles lie inside the band too.
+	for (int scale = 1; scale <= 2; scale++) {
+		Dictionary frame = UZUUI::get_world_options("persona")["frame"];
+		frame["scale"] = scale;
+		const Ref<Image> img = UZUUI::draw_frame(frame);
+		REQUIRE(img.is_valid());
+		Ref<StyleBoxTexture> sb = UZUUI::create_frame_style(frame);
+		REQUIRE(sb.is_valid());
+		const int w = img->get_width();
+		const int h = img->get_height();
+		const int mx = int(sb->get_texture_margin(SIDE_LEFT));
+		const int my = int(sb->get_texture_margin(SIDE_TOP));
+		const int shadow = 12 * scale;
+		CHECK(w - 2 * mx == 128 * scale); // The half-tile middle.
+		// The middle itself is fully opaque: tiled across a panel of
+		// any width (900 px and beyond), the center cannot open up.
+		int holes = 0;
+		for (int y = my; y < h - my; y++) {
+			for (int x = mx; x < w - mx; x++) {
+				holes += img->get_pixel(x, y).a <= 0.98f ? 1 : 0;
+			}
+		}
+		CHECK(holes == 0);
+		// No row of the middle band has a gap either: between the
+		// first and last opaque pixel of a row, everything is opaque,
+		// so the strips and the tiled middle meet without a wedge.
+		int gaps = 0;
+		for (int y = my; y < h - my; y++) {
+			int first = -1;
+			int last = -1;
+			for (int x = 0; x < w; x++) {
+				if (img->get_pixel(x, y).a > 0.98f) {
+					if (first < 0) {
+						first = x;
+					}
+					last = x;
+				}
+			}
+			REQUIRE(first >= 0);
+			for (int x = first; x <= last; x++) {
+				gaps += img->get_pixel(x, y).a <= 0.98f ? 1 : 0;
+			}
+		}
+		CHECK(gaps == 0);
+		// The top and bottom strips are covered over the middle's
+		// columns too (their rows just inside the shape's edge).
+		int strip_holes = 0;
+		for (int y = shadow + 2 * scale; y <= my; y++) {
+			for (int x = mx; x < w - mx; x++) {
+				strip_holes += img->get_pixel(x, y).a <= 0.98f ? 1 : 0;
+				strip_holes += img->get_pixel(x, h - 1 - y).a <= 0.98f ? 1 : 0;
+			}
+		}
+		CHECK(strip_holes == 0);
+	}
+	// An fbm material on a skew frame repeats at the sliced period,
+	// so the pattern is seamless across the same seams: deep inside
+	// the frame, one middle-width along is the same pixel.
+	Dictionary wood;
+	wood["material"] = "wood";
+	wood["base"] = "#6b4a2e";
+	wood["edge"] = "#2e1d10";
+	wood["accent"] = "#e6c36a";
+	wood["shape"] = "skew";
+	wood["radius"] = 8;
+	wood["border_width"] = 3;
+	wood["shadow"] = 8;
+	const Ref<Image> wimg = UZUUI::draw_frame(wood);
+	REQUIRE(wimg.is_valid());
+	Ref<StyleBoxTexture> wsb = UZUUI::create_frame_style(wood);
+	REQUIRE(wsb.is_valid());
+	const int ww = wimg->get_width();
+	const int wmx = int(wsb->get_texture_margin(SIDE_LEFT));
+	const int mid = ww / 2;
+	for (int x = wmx; x < wmx + 8; x++) {
+		CHECK(close(wimg->get_pixel(x, mid), wimg->get_pixel(x + (ww - 2 * wmx), mid)));
+	}
+}
+
 TEST_CASE("[SceneTree][UZUUI] World themes and game parts") {
 	const PackedStringArray worlds = UZUUI::get_world_names();
 	CHECK(worlds.size() == 6);

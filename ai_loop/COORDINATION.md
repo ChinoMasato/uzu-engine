@@ -71,6 +71,7 @@
 | Claude Code | Phase 4・Phase 7 | claude/uzu-engine-briefing-rrno7b | B-401／B-402、B-701〜B-713（B-703b を除く）まで完了し ai-native へ統合済み。全テスト 1476 pass | 残りは B-703b（UZUPostEffect、縁の強調と周辺減光） | 2026-11-17 |
 | Codex | B-005（オーナー依頼: 公式ロゴ＋動くロゴ） | agent/b-005-codex | 検証完了。公式素材でアイコン・スプラッシュ・About を更新、円形マークが2.4秒で1周。最新 e4ff456a31 上で editor ビルド＋全1476件 pass、6 SVG/3 PNG 読込成功、実GUIの暗色・明色で回転／停止／再開を確認 | Muse が ai-native へ統合・BACKLOG/LEDGER 反映。記録: iterations/2026-11-17-B-005-codex.md、見本: misc/logo/uzu/preview.gif。B-101 は別ブランチのドラフトを維持 | 2026-11-17 JST |
 | Muse (subagent) | 『灯りの欠片』実プレイ不具合修正 第2弾（問題1〜3＋世界ベイク同梱） | agent/hikari-fix2-20261121 | 完了: 開始は段階生成（最長フレーム 704→302ms）に加え、生成世界を bake_world.gd で .scn 同梱し指紋一致時のみ採用（押下→start 758→191ms、最長 98ms、フォールバックは段階生成）。フォントは 614 グリフに再生成＋ coverage チェック新設。羊皮紙はタイル 128px＋低コントラスト合成に（全テスト 1576/1578、残 fail は既知 UDP 2件）。verify はベイク／フォールバックとも pass | リードがレビュー・統合。記録は iterations/2026-11-21-hikari-fix2.md、撮影は ~/workspace/hikari-fix2-captures/ | 2026-11-21 |
+| Muse (subagent) | B-1318 素材の階層化＋skew 楔抜け修正 | agent/b-1318-muse | 完了: draw_frame に inner_shadow／highlight／glow の3層を追加（スタイルキー制御、既定は従来と画素一致、glass の発光は一般化）。skew は平行四辺形の帯幅（テクスチャの 3/4）がフルタイルに足りないのが楔の原因と特定し、中央を半タイル幅にスライス＋fbm 周期を一致させて解消。全テスト 1594/1596（fail は既知 [UDPServer] 2件のみ）、ゲートは wafu 全項目 pass 維持 | リードがレビュー・統合。記録は iterations/2026-11-22-B-1318-muse.md、撮影は look_samples/b1318/ | 2026-11-22 |
 
 ## 質問・相談
 
