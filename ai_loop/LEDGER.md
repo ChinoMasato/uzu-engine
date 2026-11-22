@@ -265,3 +265,5 @@
 - 2026-11-22 B-1312 タイポグラフィ体系 完了（リード統合）: agent/b-1312-muse を統合。タイプスケール5段（比率1.25、基準＝既存 font_size で互換）、字間・行間・縁取り／影プリセット、JSON の text_style 対応。全テスト 1581/1583、ゲート既存 pass 項目を維持。
 
 - 2026-11-22 B-1314 レイアウト／エレベーション体系 完了（リード統合）: agent/b-1314-muse を統合。余白・角丸・影をスケール化（spacing/radius/elevation L0〜L4、get_layout_scale＋テーマ meta）、JSON のステップ名参照に対応。全7テーマでゲートのスケール適合 pass、全テスト 1582/1584。persona の contrast fail は B-1315 へ。
+
+- 2026-11-22 B-1316 フォントのロケール検証 完了（リード統合）: agent/b-1316-muse を統合。uzu.py font-locale-check（句読点インク上端／本文帯 ≤0.5 で pass）。実測で配布フォント・JP は pass、TC は fail。見本フォント規約を look_samples/README.md に新設。カタログ 243 件。
