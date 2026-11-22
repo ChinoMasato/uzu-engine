@@ -267,3 +267,5 @@
 - 2026-11-22 B-1314 レイアウト／エレベーション体系 完了（リード統合）: agent/b-1314-muse を統合。余白・角丸・影をスケール化（spacing/radius/elevation L0〜L4、get_layout_scale＋テーマ meta）、JSON のステップ名参照に対応。全7テーマでゲートのスケール適合 pass、全テスト 1582/1584。persona の contrast fail は B-1315 へ。
 
 - 2026-11-22 B-1316 フォントのロケール検証 完了（リード統合）: agent/b-1316-muse を統合。uzu.py font-locale-check（句読点インク上端／本文帯 ≤0.5 で pass）。実測で配布フォント・JP は pass、TC は fail。見本フォント規約を look_samples/README.md に新設。カタログ 243 件。
+
+- 2026-11-22 B-1317 UIモーション 完了（リード統合）: agent/b-1317-muse を統合。UZUUIJuice にプリセット5種の統一口と seek/state の検証口を追加、世界観差（persona のオーバーシュート等）をテストで固定。全テスト 1592/1594。persona の skew パネル中央の楔抜けは B-1318 で直す。
