@@ -53,6 +53,7 @@
 #include "scene/resources/style_box_texture.h"
 #include "scene/resources/theme.h"
 #include "scene/scene_string_names.h"
+#include "scene/theme/theme_db.h"
 
 namespace {
 
@@ -111,6 +112,104 @@ Dictionary merged(const Dictionary &p_base, const Variant &p_over) {
 		}
 	}
 	return out;
+}
+
+// ---------------------------------------------------------------------------
+// B-1312: the type scale.
+//
+// Five named text steps on one modular scale, ratio 1.25 (the major third):
+// body is the theme's base font size, heading / title / display step up by
+// the ratio, caption steps down. 1.25 is the smallest classic ratio that
+// keeps five steps clearly apart at game-UI sizes — at 1.125 the steps blur
+// together under ~20 px, at 1.5 the display step outgrows HUD panels. Each
+// step also fixes its line spacing (looser for small text, tighter for
+// display), its letter spacing (a few px of tracking on the steps read at a
+// glance) and a decoration preset (outline + shadow) for the steps that sit
+// on art. create_theme / create_world_theme register each step as a Label
+// type variation, so a label picks its step by name; the JSON builder
+// (ai_loop/ui_tool.gd, "text_style") resolves to the same variation names.
+
+const char *TYPE_STEPS[] = { "display", "title", "heading", "body", "caption" };
+
+String type_variation_name(const String &p_step) {
+	return "UZU" + p_step.capitalize() + "Label";
+}
+
+bool is_type_step(const String &p_step) {
+	for (const char *step : TYPE_STEPS) {
+		if (p_step == step) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// The scale for one base size. Step dictionaries: "size", "line_spacing",
+// "letter_spacing" (px of glyph tracking, applied through a FontVariation),
+// "outline_size" and "shadow_offset" (the decoration preset; its colors are
+// derived from the theme's text color when the scale is applied) and
+// "variation" (the Label type variation carrying the step).
+Dictionary type_scale_for(int p_base_size) {
+	const int base = CLAMP(p_base_size, 8, 96);
+	auto step = [&](const char *p_name, double p_factor, double p_line_factor, double p_track_factor, double p_outline_factor, int p_outline_max, const Vector2i &p_shadow) {
+		Dictionary d;
+		const int size = MAX(1, int(Math::round(base * p_factor)));
+		d["size"] = size;
+		d["line_spacing"] = int(Math::round(size * p_line_factor));
+		d["letter_spacing"] = int(Math::round(size * p_track_factor));
+		d["outline_size"] = CLAMP(int(Math::round(size * p_outline_factor)), 0, p_outline_max);
+		d["shadow_offset"] = p_shadow;
+		d["variation"] = type_variation_name(p_name);
+		return d;
+	};
+	Dictionary scale;
+	scale["display"] = step("display", 1.953125, 0.12, 0.05, 0.10, 6, Vector2i(2, 3)); // 1.25^3
+	scale["title"] = step("title", 1.5625, 0.15, 0.04, 0.07, 4, Vector2i(1, 2)); // 1.25^2
+	scale["heading"] = step("heading", 1.25, 0.20, 0.02, 0.0, 0, Vector2i(0, 1));
+	scale["body"] = step("body", 1.0, 0.30, 0.0, 0.0, 0, Vector2i());
+	scale["caption"] = step("caption", 0.8, 0.30, 0.05, 0.0, 0, Vector2i()); // 1 / 1.25
+	return scale;
+}
+
+// Registers the type scale on a theme: one Label type variation per step,
+// carrying the step's size, line spacing, color, decoration preset and —
+// when the step has tracking and a font is at hand — a FontVariation with
+// the letter spacing. The scale itself is stored in the theme's meta, so
+// tools can read the numbers back off any theme.
+void apply_type_scale(const Ref<Theme> &p_theme, int p_base_size, const Color &p_text, const Ref<Font> &p_font) {
+	const Dictionary scale = type_scale_for(p_base_size);
+	// The decoration shade: dark on light text, light on dark text, so the
+	// outline and shadow always read against the glyphs themselves.
+	const Color shade = p_text.get_luminance() > 0.5f ? Color(0, 0, 0) : Color(1, 1, 1);
+	for (const char *name : TYPE_STEPS) {
+		const Dictionary s = scale[name];
+		const String variation = s["variation"];
+		p_theme->set_type_variation(variation, "Label");
+		p_theme->set_font_size("font_size", variation, int(s["size"]));
+		p_theme->set_constant("line_spacing", variation, int(s["line_spacing"]));
+		// Notes sit one step back from the text they annotate.
+		p_theme->set_color("font_color", variation, String(name) == "caption" ? Color(p_text, 0.7f) : p_text);
+		const int outline = int(s["outline_size"]);
+		p_theme->set_constant("outline_size", variation, outline);
+		if (outline > 0) {
+			p_theme->set_color("font_outline_color", variation, Color(shade, String(name) == "display" ? 0.85f : 0.8f));
+		}
+		const Vector2i shadow = s["shadow_offset"];
+		p_theme->set_constant("shadow_offset_x", variation, shadow.x);
+		p_theme->set_constant("shadow_offset_y", variation, shadow.y);
+		if (shadow != Vector2i()) {
+			p_theme->set_color("font_shadow_color", variation, Color(shade, String(name) == "heading" ? 0.3f : 0.42f));
+		}
+		const int tracking = int(s["letter_spacing"]);
+		if (tracking > 0 && p_font.is_valid()) {
+			Ref<FontVariation> spaced;
+			spaced.instantiate();
+			spaced->set_base_font(p_font);
+			spaced->set_spacing(TextServer::SPACING_GLYPH, tracking);
+			p_theme->set_font("font", variation, spaced);
+		}
+	}
+	p_theme->set_meta("uzu_type_scale", scale);
 }
 
 // ---------------------------------------------------------------------------
@@ -589,6 +688,10 @@ Dictionary UZUUI::get_theme_defaults() {
 	return defaults();
 }
 
+Dictionary UZUUI::get_type_scale(int p_base_size) {
+	return type_scale_for(p_base_size);
+}
+
 Ref<Theme> UZUUI::create_theme(const Dictionary &p_options) {
 	const Dictionary o = merged(defaults(), p_options);
 	const Color accent = color_of(o["accent"], Color::html("#d9a441"));
@@ -600,6 +703,15 @@ Ref<Theme> UZUUI::create_theme(const Dictionary &p_options) {
 	if (font.is_valid()) {
 		theme->set_default_font(font);
 	}
+	// The type scale (B-1312): the base size is the theme's font size, so
+	// the existing single "font_size" option keeps its meaning and the
+	// steps follow it. Letter spacing wraps the caller's font, or the
+	// fallback font when the theme relies on the default.
+	Ref<Font> scale_font = font;
+	if (scale_font.is_null() && ThemeDB::get_singleton()) {
+		scale_font = ThemeDB::get_singleton()->get_fallback_font();
+	}
+	apply_type_scale(theme, int(o.get("font_size", 18)), text, scale_font);
 	// Panels: PanelContainer, TabContainer pages, lists, tooltips.
 	Dictionary panel = merged(Dictionary(defaults()["panel"]), o["panel"]);
 	if (!panel.has("border")) {
@@ -1121,6 +1233,12 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 	theme->set_stylebox("panel", "UZUNameTag", create_frame_style(tag));
 	theme->set_type_variation("UZUNameTagLabel", "Label");
 	theme->set_color("font_color", "UZUNameTagLabel", accent.get_luminance() > 0.55 ? Color(0.08, 0.06, 0.05) : Color(1, 1, 1));
+	// The ribbon's label: the title step of the type scale (B-1312), in the
+	// name tag's contrast color — it sits on the accent, not on a panel.
+	const Dictionary title_step = type_scale_for(int(o["font_size"]))["title"];
+	theme->set_type_variation("UZURibbonLabel", "Label");
+	theme->set_font_size("font_size", "UZURibbonLabel", int(title_step["size"]));
+	theme->set_color("font_color", "UZURibbonLabel", accent.get_luminance() > 0.55 ? Color(0.08, 0.06, 0.05) : Color(1, 1, 1));
 	theme->set_type_variation("UZUTalk", "PanelContainer");
 	theme->set_stylebox("panel", "UZUTalk", panel);
 	// Item slot: a sunken square.
@@ -1204,6 +1322,7 @@ Control *UZUUI::make_talk_window(const String &p_speaker, const String &p_text) 
 	body->set_name("Body");
 	Label *line = memnew(Label);
 	line->set_name("Line");
+	line->set_theme_type_variation("UZUBodyLabel");
 	line->set_text(p_text);
 	line->set_autowrap_mode(TextServer::AUTOWRAP_WORD_SMART);
 	line->set_custom_minimum_size(Size2(320, 48));
@@ -1235,9 +1354,9 @@ Control *UZUUI::make_item_slot(const String &p_label, int p_count) {
 	if (p_count > 0) {
 		Label *count = memnew(Label);
 		count->set_name("Count");
+		count->set_theme_type_variation("UZUCaptionLabel");
 		count->set_text(itos(p_count));
 		count->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_RIGHT);
-		count->add_theme_font_size_override("font_size", 14);
 		box->add_child(count);
 	}
 	slot->add_child(box);
@@ -1250,10 +1369,9 @@ Control *UZUUI::make_ribbon(const String &p_text) {
 	ribbon->set_theme_type_variation("UZURibbon");
 	Label *label = memnew(Label);
 	label->set_name("Title");
-	label->set_theme_type_variation("UZUNameTagLabel");
+	label->set_theme_type_variation("UZURibbonLabel");
 	label->set_text(p_text);
 	label->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_CENTER);
-	label->add_theme_font_size_override("font_size", 22);
 	ribbon->add_child(label);
 	return ribbon;
 }
@@ -1517,6 +1635,17 @@ Control *UZUUI::make_button(const String &p_text) {
 	return b;
 }
 
+Control *UZUUI::make_label(const String &p_text, const String &p_step) {
+	Label *label = memnew(Label);
+	label->set_name("Label");
+	label->set_text(p_text);
+	if (!is_type_step(p_step)) {
+		WARN_PRINT(vformat("UZUUI: unknown type step \"%s\" (display, title, heading, body, caption); using \"body\".", p_step));
+	}
+	label->set_theme_type_variation(type_variation_name(is_type_step(p_step) ? p_step : "body"));
+	return label;
+}
+
 Control *UZUUI::make_bar(double p_value, double p_max) {
 	ProgressBar *bar = memnew(ProgressBar);
 	bar->set_name("Bar");
@@ -1553,11 +1682,12 @@ Control *UZUUI::make_dialog(const String &p_title, const String &p_text, const P
 	box->set_name("Content");
 	Label *title = memnew(Label);
 	title->set_name("Title");
+	title->set_theme_type_variation("UZUTitleLabel");
 	title->set_text(p_title);
-	title->add_theme_font_size_override("font_size", 22);
 	box->add_child(title);
 	Label *text = memnew(Label);
 	text->set_name("Text");
+	text->set_theme_type_variation("UZUBodyLabel");
 	text->set_text(p_text);
 	text->set_autowrap_mode(TextServer::AUTOWRAP_WORD_SMART);
 	text->set_custom_minimum_size(Size2(360, 0));
@@ -1581,6 +1711,8 @@ void UZUUI::_bind_methods() {
 	ClassDB::bind_static_method("UZUUI", D_METHOD("draw_panel", "radius", "top", "bottom", "border", "border_width", "shadow"), &UZUUI::draw_panel);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("create_theme", "options"), &UZUUI::create_theme, DEFVAL(Dictionary()));
 	ClassDB::bind_static_method("UZUUI", D_METHOD("get_theme_defaults"), &UZUUI::get_theme_defaults);
+	ClassDB::bind_static_method("UZUUI", D_METHOD("get_type_scale", "base_size"), &UZUUI::get_type_scale);
+	ClassDB::bind_static_method("UZUUI", D_METHOD("make_label", "text", "step"), &UZUUI::make_label, DEFVAL("body"));
 	ClassDB::bind_static_method("UZUUI", D_METHOD("draw_frame", "style"), &UZUUI::draw_frame);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("create_frame_style", "style"), &UZUUI::create_frame_style);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("get_world_names"), &UZUUI::get_world_names);

@@ -63,6 +63,19 @@ public:
 	// buttons also take "hover" and "pressed" colors).
 	static Ref<Theme> create_theme(const Dictionary &p_options = Dictionary());
 	static Dictionary get_theme_defaults();
+	// The type scale (B-1312): five named text steps — display, title, heading,
+	// body, caption — derived from one base size (the theme's "font_size") by a
+	// fixed ratio of 1.25. Each step is a Dictionary {"size", "line_spacing",
+	// "letter_spacing", "outline_size", "shadow_offset", "variation"}; every
+	// theme carries the steps as Label type variations under the "variation"
+	// names, and the same Dictionary is stored in the theme's "uzu_type_scale"
+	// meta. "letter_spacing" is px of glyph tracking (a FontVariation on the
+	// variation), "outline_size"/"shadow_offset" are the step's decoration
+	// preset (colors derive from the theme's text color).
+	static Dictionary get_type_scale(int p_base_size);
+	// A label in one step of the type scale: the theme it ends up under gives
+	// it the step's size, spacing and decoration. An unknown step is "body".
+	static Control *make_label(const String &p_text, const String &p_step = "body");
 
 	// World UI (B-1307): textured game frames instead of plain app panels. A frame style:
 	// "material" (wood, metal, parchment, stone, glass, halftone, grime, flat), "shape"
