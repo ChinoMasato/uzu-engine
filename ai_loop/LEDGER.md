@@ -269,3 +269,5 @@
 - 2026-11-22 B-1316 フォントのロケール検証 完了（リード統合）: agent/b-1316-muse を統合。uzu.py font-locale-check（句読点インク上端／本文帯 ≤0.5 で pass）。実測で配布フォント・JP は pass、TC は fail。見本フォント規約を look_samples/README.md に新設。カタログ 243 件。
 
 - 2026-11-22 B-1317 UIモーション 完了（リード統合）: agent/b-1317-muse を統合。UZUUIJuice にプリセット5種の統一口と seek/state の検証口を追加、世界観差（persona のオーバーシュート等）をテストで固定。全テスト 1592/1594。persona の skew パネル中央の楔抜けは B-1318 で直す。
+
+- 2026-11-22 B-1318 素材の階層化＋skew楔抜け修正 完了（リード統合）: agent/b-1318-muse を統合。draw_frame に inner_shadow／highlight／glow の3層（既定は従来一致）、skew は半タイルスライスで楔抜けを解消。全テスト 1594/1596。次は最終項目 B-1315（実証画面・ゲート全項目 pass）。
