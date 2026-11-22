@@ -1,0 +1,12 @@
+; B-1313 showcase: every standard control in one screen, for screenshots.
+config_version=5
+
+[application]
+
+config/name="uzu-b1313-showcase"
+run/main_scene="res://main.tscn"
+
+[display]
+
+window/size/viewport_width=1152
+window/size/viewport_height=648

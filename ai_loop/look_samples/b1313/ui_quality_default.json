@@ -1,0 +1,355 @@
+{
+  "format": "uzu-ui-quality/1",
+  "theme": "default",
+  "verdict": "fail",
+  "checks": {
+    "texture_repetition": {
+      "pass": false,
+      "images": [
+        {
+          "image": "default_controls.png",
+          "index": 0.584,
+          "worst_lag_px": [
+            40,
+            0
+          ],
+          "channels": {
+            "luminance": {
+              "peak": 0.4626,
+              "lag_px": [
+                40,
+                0
+              ]
+            },
+            "red_excess": {
+              "peak": 0.584,
+              "lag_px": [
+                40,
+                0
+              ]
+            }
+          },
+          "threshold": 0.3,
+          "lag_band_px": [
+            40,
+            300
+          ],
+          "pass": false
+        }
+      ]
+    },
+    "contrast": {
+      "pass": true,
+      "pairs": [
+        {
+          "pair": "body: Label text on panel",
+          "ratio": 10.195,
+          "min": 4.5,
+          "fg": [
+            0.9569,
+            0.9176,
+            0.8235,
+            1.0
+          ],
+          "bg": [
+            0.0863,
+            0.1176,
+            0.2078,
+            0.898
+          ],
+          "pass": true
+        },
+        {
+          "pair": "heading: Button text on button",
+          "ratio": 9.584,
+          "min": 3.0,
+          "fg": [
+            0.9569,
+            0.9176,
+            0.8235,
+            1.0
+          ],
+          "bg": [
+            0.1725,
+            0.2196,
+            0.3647,
+            1.0
+          ],
+          "pass": true
+        }
+      ],
+      "body_min": 4.5,
+      "heading_min": 3.0
+    },
+    "state_completeness": {
+      "pass": true,
+      "states": {
+        "normal": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "hover": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "pressed": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "disabled": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "focus": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxFlat"
+        }
+      }
+    },
+    "coverage": {
+      "pass": true,
+      "ratio": 1.0,
+      "covered": [
+        "PanelContainer",
+        "Button",
+        "CheckBox",
+        "OptionButton",
+        "HSlider",
+        "VSlider",
+        "LineEdit",
+        "SpinBox",
+        "HScrollBar",
+        "VScrollBar",
+        "PopupMenu",
+        "Tree",
+        "TabContainer",
+        "ItemList",
+        "ProgressBar",
+        "TooltipPanel"
+      ],
+      "missing": []
+    },
+    "scale": {
+      "spacing_off_scale": [
+        {
+          "where": "Button.disabled content_margin",
+          "value": 10
+        },
+        {
+          "where": "Button.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "Button.hover content_margin",
+          "value": 10
+        },
+        {
+          "where": "Button.normal content_margin",
+          "value": 10
+        },
+        {
+          "where": "Button.pressed content_margin",
+          "value": 10
+        },
+        {
+          "where": "CheckBox.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "HScrollBar.scroll_focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "ItemList.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "ItemList.panel content_margin",
+          "value": 14
+        },
+        {
+          "where": "LineEdit.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "OptionButton.disabled content_margin",
+          "value": 10
+        },
+        {
+          "where": "OptionButton.disabled_mirrored content_margin",
+          "value": 10
+        },
+        {
+          "where": "OptionButton.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "OptionButton.hover content_margin",
+          "value": 10
+        },
+        {
+          "where": "OptionButton.hover_mirrored content_margin",
+          "value": 10
+        },
+        {
+          "where": "OptionButton.normal content_margin",
+          "value": 10
+        },
+        {
+          "where": "OptionButton.normal_mirrored content_margin",
+          "value": 10
+        },
+        {
+          "where": "OptionButton.pressed content_margin",
+          "value": 10
+        },
+        {
+          "where": "OptionButton.pressed_mirrored content_margin",
+          "value": 10
+        },
+        {
+          "where": "PanelContainer.panel content_margin",
+          "value": 14
+        },
+        {
+          "where": "PopupMenu.labeled_separator_left content_margin",
+          "value": 0.5
+        },
+        {
+          "where": "PopupMenu.labeled_separator_right content_margin",
+          "value": 0.5
+        },
+        {
+          "where": "PopupMenu.panel content_margin",
+          "value": 14
+        },
+        {
+          "where": "PopupMenu.separator content_margin",
+          "value": 0.5
+        },
+        {
+          "where": "TabContainer.panel content_margin",
+          "value": 14
+        },
+        {
+          "where": "Tree.button_hover content_margin",
+          "value": 10
+        },
+        {
+          "where": "Tree.button_pressed content_margin",
+          "value": 10
+        },
+        {
+          "where": "Tree.cursor content_margin",
+          "value": 2
+        },
+        {
+          "where": "Tree.custom_button content_margin",
+          "value": 10
+        },
+        {
+          "where": "Tree.custom_button_hover content_margin",
+          "value": 10
+        },
+        {
+          "where": "Tree.custom_button_pressed content_margin",
+          "value": 10
+        },
+        {
+          "where": "Tree.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "Tree.panel content_margin",
+          "value": 14
+        },
+        {
+          "where": "Tree.title_button_hover content_margin",
+          "value": 10
+        },
+        {
+          "where": "Tree.title_button_normal content_margin",
+          "value": 10
+        },
+        {
+          "where": "Tree.title_button_pressed content_margin",
+          "value": 10
+        },
+        {
+          "where": "VScrollBar.scroll_focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "options.button.padding",
+          "value": 10
+        },
+        {
+          "where": "options.panel.padding",
+          "value": 14
+        }
+      ],
+      "radius_off_scale": [],
+      "shadow_off_scale": [
+        {
+          "where": "Button.hover expand_margin(shadow)",
+          "value": 3
+        },
+        {
+          "where": "Button.normal expand_margin(shadow)",
+          "value": 3
+        },
+        {
+          "where": "OptionButton.hover expand_margin(shadow)",
+          "value": 3
+        },
+        {
+          "where": "OptionButton.hover_mirrored expand_margin(shadow)",
+          "value": 3
+        },
+        {
+          "where": "OptionButton.normal expand_margin(shadow)",
+          "value": 3
+        },
+        {
+          "where": "OptionButton.normal_mirrored expand_margin(shadow)",
+          "value": 3
+        },
+        {
+          "where": "Tree.button_hover expand_margin(shadow)",
+          "value": 3
+        },
+        {
+          "where": "Tree.custom_button expand_margin(shadow)",
+          "value": 3
+        },
+        {
+          "where": "Tree.custom_button_hover expand_margin(shadow)",
+          "value": 3
+        },
+        {
+          "where": "Tree.title_button_hover expand_margin(shadow)",
+          "value": 3
+        },
+        {
+          "where": "Tree.title_button_normal expand_margin(shadow)",
+          "value": 3
+        },
+        {
+          "where": "options.button.shadow",
+          "value": 3
+        }
+      ],
+      "counts": {
+        "spacing": 99,
+        "radius": 46,
+        "shadow": 19
+      },
+      "pass": false
+    }
+  }
+}

@@ -1,0 +1,419 @@
+{
+  "format": "uzu-ui-quality/1",
+  "theme": "wafu",
+  "verdict": "fail",
+  "checks": {
+    "texture_repetition": {
+      "pass": false,
+      "images": [
+        {
+          "image": "wafu_controls.png",
+          "index": 0.5909,
+          "worst_lag_px": [
+            40,
+            0
+          ],
+          "channels": {
+            "luminance": {
+              "peak": 0.5909,
+              "lag_px": [
+                40,
+                0
+              ]
+            },
+            "red_excess": {
+              "peak": 0.4569,
+              "lag_px": [
+                40,
+                0
+              ]
+            }
+          },
+          "threshold": 0.3,
+          "lag_band_px": [
+            40,
+            300
+          ],
+          "pass": false
+        }
+      ]
+    },
+    "contrast": {
+      "pass": true,
+      "pairs": [
+        {
+          "pair": "body: Label text on panel",
+          "ratio": 11.615,
+          "min": 4.5,
+          "fg": [
+            0.1647,
+            0.102,
+            0.0627,
+            1.0
+          ],
+          "bg": [
+            0.8863,
+            0.8392,
+            0.7294,
+            1.0
+          ],
+          "pass": true
+        },
+        {
+          "pair": "heading: Button text on button",
+          "ratio": 5.306,
+          "min": 3.0,
+          "fg": [
+            0.9843,
+            0.9451,
+            0.8627,
+            1.0
+          ],
+          "bg": [
+            0.7216,
+            0.1961,
+            0.1647,
+            1.0
+          ],
+          "pass": true
+        }
+      ],
+      "body_min": 4.5,
+      "heading_min": 3.0
+    },
+    "state_completeness": {
+      "pass": true,
+      "states": {
+        "normal": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "hover": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "pressed": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "disabled": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "focus": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxFlat"
+        }
+      }
+    },
+    "coverage": {
+      "pass": true,
+      "ratio": 1.0,
+      "covered": [
+        "PanelContainer",
+        "Button",
+        "CheckBox",
+        "OptionButton",
+        "HSlider",
+        "VSlider",
+        "LineEdit",
+        "SpinBox",
+        "HScrollBar",
+        "VScrollBar",
+        "PopupMenu",
+        "Tree",
+        "TabContainer",
+        "ItemList",
+        "ProgressBar",
+        "TooltipPanel"
+      ],
+      "missing": []
+    },
+    "scale": {
+      "spacing_off_scale": [
+        {
+          "where": "Button.disabled content_margin",
+          "value": 14
+        },
+        {
+          "where": "Button.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "Button.hover content_margin",
+          "value": 14
+        },
+        {
+          "where": "Button.normal content_margin",
+          "value": 14
+        },
+        {
+          "where": "Button.pressed content_margin",
+          "value": 14
+        },
+        {
+          "where": "CheckBox.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "HScrollBar.scroll_focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "ItemList.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "ItemList.panel content_margin",
+          "value": 14
+        },
+        {
+          "where": "LineEdit.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "OptionButton.disabled content_margin",
+          "value": 14
+        },
+        {
+          "where": "OptionButton.disabled_mirrored content_margin",
+          "value": 14
+        },
+        {
+          "where": "OptionButton.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "OptionButton.hover content_margin",
+          "value": 14
+        },
+        {
+          "where": "OptionButton.hover_mirrored content_margin",
+          "value": 14
+        },
+        {
+          "where": "OptionButton.normal content_margin",
+          "value": 14
+        },
+        {
+          "where": "OptionButton.normal_mirrored content_margin",
+          "value": 14
+        },
+        {
+          "where": "OptionButton.pressed content_margin",
+          "value": 14
+        },
+        {
+          "where": "OptionButton.pressed_mirrored content_margin",
+          "value": 14
+        },
+        {
+          "where": "PanelContainer.panel content_margin",
+          "value": 14
+        },
+        {
+          "where": "PopupMenu.labeled_separator_left content_margin",
+          "value": 0.5
+        },
+        {
+          "where": "PopupMenu.labeled_separator_right content_margin",
+          "value": 0.5
+        },
+        {
+          "where": "PopupMenu.panel content_margin",
+          "value": 14
+        },
+        {
+          "where": "PopupMenu.separator content_margin",
+          "value": 0.5
+        },
+        {
+          "where": "TabContainer.panel content_margin",
+          "value": 14
+        },
+        {
+          "where": "TabContainer.tab_hovered content_margin",
+          "value": 14
+        },
+        {
+          "where": "TabContainer.tab_selected content_margin",
+          "value": 14
+        },
+        {
+          "where": "TabContainer.tab_unselected content_margin",
+          "value": 14
+        },
+        {
+          "where": "Tree.button_hover content_margin",
+          "value": 14
+        },
+        {
+          "where": "Tree.button_pressed content_margin",
+          "value": 14
+        },
+        {
+          "where": "Tree.cursor content_margin",
+          "value": 2
+        },
+        {
+          "where": "Tree.custom_button content_margin",
+          "value": 14
+        },
+        {
+          "where": "Tree.custom_button_hover content_margin",
+          "value": 14
+        },
+        {
+          "where": "Tree.custom_button_pressed content_margin",
+          "value": 14
+        },
+        {
+          "where": "Tree.focus content_margin",
+          "value": 2
+        },
+        {
+          "where": "Tree.panel content_margin",
+          "value": 14
+        },
+        {
+          "where": "Tree.title_button_hover content_margin",
+          "value": 14
+        },
+        {
+          "where": "Tree.title_button_normal content_margin",
+          "value": 14
+        },
+        {
+          "where": "Tree.title_button_pressed content_margin",
+          "value": 14
+        },
+        {
+          "where": "UZUNameTag.panel content_margin",
+          "value": 6
+        },
+        {
+          "where": "UZURibbon.panel content_margin",
+          "value": 10
+        },
+        {
+          "where": "UZUSlot.panel content_margin",
+          "value": 6
+        },
+        {
+          "where": "UZUTalk.panel content_margin",
+          "value": 14
+        },
+        {
+          "where": "VScrollBar.scroll_focus content_margin",
+          "value": 2
+        }
+      ],
+      "radius_off_scale": [],
+      "shadow_off_scale": [
+        {
+          "where": "Button.hover expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "Button.normal expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "ItemList.panel expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "OptionButton.hover expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "OptionButton.hover_mirrored expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "OptionButton.normal expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "OptionButton.normal_mirrored expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "PanelContainer.panel expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "PopupMenu.panel expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "TabContainer.panel expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "TabContainer.tab_selected expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "TabContainer.tab_unselected expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "TooltipPanel.panel expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "Tree.button_hover expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "Tree.custom_button expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "Tree.custom_button_hover expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "Tree.panel expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "Tree.title_button_hover expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "Tree.title_button_normal expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "UZUNameTag.panel expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "UZURibbon.panel expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "UZUTalk.panel expand_margin(shadow)",
+          "value": 6
+        },
+        {
+          "where": "options.frame.shadow",
+          "value": 6
+        }
+      ],
+      "counts": {
+        "spacing": 103,
+        "radius": 46,
+        "shadow": 23
+      },
+      "pass": false
+    }
+  }
+}
