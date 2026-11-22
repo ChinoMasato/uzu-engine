@@ -35,6 +35,13 @@
           "align": "center"
          },
          {
+          "type": "Label",
+          "text": "CONFIG",
+          "text_style": "caption",
+          "font_color": "#ffe14d",
+          "align": "center"
+         },
+         {
           "type": "HBox",
           "separation": "m",
           "children": [
@@ -156,7 +163,8 @@
       ]
      }
     ],
-    "motion": "appear"
+    "motion": "appear",
+    "rotation": 1.0
    }
   ]
  }

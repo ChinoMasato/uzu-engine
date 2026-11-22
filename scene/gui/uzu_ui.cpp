@@ -1567,6 +1567,10 @@ Dictionary UZUUI::get_world_options(const String &p_world) {
 		set(frame, "shape", "skew"), set(frame, "border_width", 4), set(frame, "shadow", 12);
 		set(frame, "inner_shadow", 0.3), set(frame, "highlight", 0.3);
 		set(button, "material", "flat"), set(button, "base", "#111111"), set(button, "edge", "#ffffff"), set(button, "shape", "skew"), set(button, "border_width", 3), set(button, "shadow", 8);
+		// Hover and focus invert the bar to the signal red (B-1320):
+		// the reference menu's selected item is a red slash, not a
+		// slightly lighter black one.
+		set(button, "invert", "#e60012"), set(button, "invert_text", "#ffffff");
 		set(o, "text", "#ffffff"), set(o, "button_text", "#ffffff"), set(o, "accent", "#ffe14d"), set(o, "fill", "#ffe14d");
 	} else if (p_world == "pixel") {
 		set(frame, "material", "flat"), set(frame, "base", "#1b1f3a"), set(frame, "edge", "#f4f4f4"), set(frame, "accent", "#f4b41a");
@@ -1639,8 +1643,21 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 	Dictionary state = button.duplicate();
 	const Color bbase = color_of(button["base"], Color(0.2, 0.2, 0.3));
 	state["base"] = bbase.lightened(0.18);
-	const Ref<StyleBox> wbtn_hover = create_frame_style(state);
+	Ref<StyleBox> wbtn_hover = create_frame_style(state);
 	theme->set_stylebox("hover", "Button", wbtn_hover);
+	// A world whose button names an "invert" color (B-1320, persona)
+	// flips the bar to that color on hover instead of merely
+	// lightening it; the same inverted frame serves as the focus box
+	// below, since the focus style is drawn over the normal one and
+	// the flip is exactly what focus must say.
+	Ref<StyleBox> wbtn_invert;
+	if (button.has("invert")) {
+		Dictionary inv = button.duplicate();
+		inv["base"] = color_of(button["invert"], bbase);
+		wbtn_invert = create_frame_style(inv);
+		wbtn_hover = wbtn_invert;
+		theme->set_stylebox("hover", "Button", wbtn_hover);
+	}
 	state["base"] = bbase.darkened(0.25);
 	state["shadow"] = 0;
 	const Ref<StyleBox> wbtn_pressed = create_frame_style(state);
@@ -1651,6 +1668,12 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 	const Color btext = color_of(o["button_text"], Color(1, 1, 1));
 	for (const char *name : { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color" }) {
 		theme->set_color(name, "Button", btext);
+	}
+	if (wbtn_invert.is_valid()) {
+		const Color itext = color_of(button.get("invert_text", Variant()), btext);
+		theme->set_color("font_hover_color", "Button", itext);
+		theme->set_color("font_hover_pressed_color", "Button", itext);
+		theme->set_color("font_focus_color", "Button", itext);
 	}
 	// Tabs use the button frames.
 	theme->set_stylebox("tab_selected", "TabContainer", create_frame_style(button));
@@ -1700,7 +1723,11 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 	style_touch_parts(theme, accent, text, panel_bg,
 			color_of(button["base"], Color(0.2, 0.2, 0.3)),
 			color_of(button.get("edge", Variant()), accent), btext);
-	theme->set_stylebox("focus", "Button", focus_box(accent, button_radius));
+	if (wbtn_invert.is_valid()) {
+		theme->set_stylebox("focus", "Button", wbtn_invert);
+	} else {
+		theme->set_stylebox("focus", "Button", focus_box(accent, button_radius));
+	}
 	theme->set_stylebox("focus", "ItemList", focus_box(accent, int(frame.get("radius", 8))));
 	theme->set_stylebox("cursor", "ItemList", flat_box(Color(0, 0, 0, 0), 4, 0, accent, 1));
 	theme->set_stylebox("cursor_unfocused", "ItemList", flat_box(Color(0, 0, 0, 0), 4, 0, Color(accent, 0.4), 1));
@@ -2011,12 +2038,21 @@ Dictionary UZUUI::get_backdrop_options(const String &p_world) {
 		// black under-band, like a manga page cut.
 		set(o, "base", "#0b0508"), set(o, "mottle", 0.5), set(o, "seed", 7);
 		set(o, "band", "#e60012"), set(o, "band_y", 0.60), set(o, "band_h", 118), set(o, "band_halftone", true);
+		set(o, "band_slope", 0.30);
 		set(o, "band_under", "#030203"), set(o, "band_under_h", 22);
 		set(o, "line", "#ffffff"), set(o, "vignette", 0.35);
+		// B-1320: a deep-red counter-slash crossing the main band and a
+		// scatter of white sparkles in the upper field -- the reference's
+		// layered graphic depth, black / deep red / signal red / white.
+		set(o, "band2", "#8f000c"), set(o, "band2_y", 0.34), set(o, "band2_h", 44), set(o, "band2_slope", -0.30);
+		set(o, "stars", 9), set(o, "star", "#ffffff");
 	} else if (p_world == "wafu") {
 		// A dark plaster wall with a lantern-warm pool of light.
 		set(o, "base", "#17120d"), set(o, "mottle", 0.8), set(o, "seed", 3);
 		set(o, "glow", "#3a2812"), set(o, "glow_pos", Vector2(0.5, 0.62)), set(o, "glow_strength", 0.5);
+		// A second, fainter light high to the right, like a distant
+		// lamp through paper (B-1320, a light touch).
+		set(o, "glow2", "#2e2113"), set(o, "glow2_pos", Vector2(0.82, 0.14)), set(o, "glow2_strength", 0.4);
 		set(o, "vignette", 0.6);
 	} else if (p_world == "fantasy") {
 		set(o, "base", "#10130c"), set(o, "mottle", 0.7), set(o, "seed", 5);
@@ -2067,6 +2103,41 @@ Ref<Image> UZUUI::draw_backdrop(const Dictionary &p_style) {
 	const Color glow = color_of(p_style.get("glow", Variant()), Color());
 	const Vector2 glow_pos = Vector2(p_style.get("glow_pos", Vector2(0.5, 0.5)));
 	const float glow_strength = CLAMP(float(p_style.get("glow_strength", 0.5)), 0.0f, 1.0f);
+	const float band_slope = CLAMP(float(p_style.get("band_slope", 0.22)), -1.0f, 1.0f);
+	const bool has_band2 = p_style.has("band2");
+	const Color band2 = color_of(p_style.get("band2", Variant()), Color());
+	const float band2_y = CLAMP(float(p_style.get("band2_y", 0.3)), 0.0f, 1.0f) * size.y;
+	const float band2_h = CLAMP(float(p_style.get("band2_h", 48)), 0.0f, float(size.y));
+	const float band2_slope = CLAMP(float(p_style.get("band2_slope", -0.22)), -1.0f, 1.0f);
+	const bool band2_halftone = bool(p_style.get("band2_halftone", false));
+	const bool has_glow2 = p_style.has("glow2");
+	const Color glow2 = color_of(p_style.get("glow2", Variant()), Color());
+	const Vector2 glow2_pos = Vector2(p_style.get("glow2_pos", Vector2(0.5, 0.5)));
+	const float glow2_strength = CLAMP(float(p_style.get("glow2_strength", 0.5)), 0.0f, 1.0f);
+	// Four-point sparkles over the upper field (B-1320), placed by a
+	// small LCG on the style's seed: the same style always draws the
+	// same sky, and no world's composition depends on a runtime RNG.
+	struct Sparkle {
+		Vector2 c;
+		float r = 0.0f;
+	};
+	Vector<Sparkle> sparkles;
+	const Color star_color = color_of(p_style.get("star", Variant()), Color(1, 1, 1));
+	{
+		const int star_count = CLAMP(int(p_style.get("stars", 0)), 0, 32);
+		uint32_t rng = seed * 2654435761u + 1013904223u;
+		for (int i = 0; i < star_count; i++) {
+			auto next01 = [&rng]() {
+				rng = rng * 1664525u + 1013904223u;
+				return float((rng >> 8) & 0xFFFFFF) / float(0x1000000);
+			};
+			Sparkle s;
+			s.c = Vector2((0.05f + 0.9f * next01()) * size.x, (0.04f + 0.44f * next01()) * size.y);
+			const float u = next01();
+			s.r = 7.0f + 17.0f * u * u;
+			sparkles.push_back(s);
+		}
+	}
 	const float vignette = CLAMP(float(p_style.get("vignette", 0.0)), 0.0f, 1.0f);
 	Ref<Image> img = Image::create_empty(size.x, size.y, false, Image::FORMAT_RGBA8);
 	for (int y = 0; y < size.y; y++) {
@@ -2087,10 +2158,15 @@ Ref<Image> UZUUI::draw_backdrop(const Dictionary &p_style) {
 				const float f = CLAMP(1.0f - rel.length() * 2.2f, 0.0f, 1.0f);
 				c = c.lerp(glow, glow_strength * 0.6f * f * f);
 			}
+			if (has_glow2) {
+				const Vector2 rel = Vector2((x - glow2_pos.x * size.x) / size.x, (y - glow2_pos.y * size.y) / size.y);
+				const float f = CLAMP(1.0f - rel.length() * 2.2f, 0.0f, 1.0f);
+				c = c.lerp(glow2, glow2_strength * 0.6f * f * f);
+			}
 			if (has_band || has_line) {
 				// The band's coordinate: it rises to the right, the
 				// graphic slant of the persona composition.
-				const float s = (y - band_y) + (x - size.x * 0.5f) * 0.22f;
+				const float s = (y - band_y) + (x - size.x * 0.5f) * band_slope;
 				if (has_band && Math::abs(s) < band_h * 0.5f) {
 					c = band_halftone ? material_color("halftone", band, x, y, 0.0f, seed, 256, 1) : band;
 				} else if (has_under && s >= band_h * 0.5f && s < band_h * 0.5f + under_h) {
@@ -2098,6 +2174,35 @@ Ref<Image> UZUUI::draw_backdrop(const Dictionary &p_style) {
 				}
 				if (has_line && s <= -band_h * 0.5f && s > -band_h * 0.5f - 3.0f) {
 					c = line;
+				}
+			}
+			if (has_band2) {
+				// The counter-slash (B-1320): its own slope, drawn over
+				// the first band, so two diagonals cross and the field
+				// gains a layer.
+				const float s2 = (y - band2_y) + (x - size.x * 0.5f) * band2_slope;
+				if (Math::abs(s2) < band2_h * 0.5f) {
+					c = band2_halftone ? material_color("halftone", band2, x, y, 0.0f, seed, 256, 1) : band2;
+				}
+			}
+			for (const Sparkle &sp : sparkles) {
+				const Vector2 d = Vector2(x, y) - sp.c;
+				if (Math::abs(d.x) > sp.r || Math::abs(d.y) > sp.r) {
+					continue;
+				}
+				const float len = d.length() / sp.r;
+				if (len >= 1.0f) {
+					continue;
+				}
+				// The sparkle's radius at this angle: full on the four
+				// points, pinched hard toward the diagonals -- a wide
+				// pinch is what makes it read as a sparkle and not a
+				// four-petalled flower.
+				const float t = Math::abs(Math::cos(2.0 * Math::atan2(d.y, d.x)));
+				const float edge = 0.14f + 0.86f * Math::pow(t, 2.2f);
+				const float a = CLAMP((edge - len) / 0.10f, 0.0f, 1.0f);
+				if (a > 0.0f) {
+					c = c.lerp(star_color, a);
 				}
 			}
 			if (vignette > 0.0f) {

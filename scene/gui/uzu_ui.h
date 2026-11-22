@@ -128,9 +128,15 @@ public:
 	// A backdrop style: "size" (Vector2i, default 1152×648), "base",
 	// "mottle" (0..1 fbm variation over the base), "band" (a diagonal
 	// band's color; absent = no band), "band_y" (0..1 center), "band_h"
-	// (px), "band_halftone" (dots on the band), "line" (a thin line
+	// (px), "band_halftone" (dots on the band), "band_slope" (the
+	// band's rise per px, default 0.22), "band2" (a second band's
+	// color, drawn over the first) with "band2_y" / "band2_h" /
+	// "band2_slope" / "band2_halftone", "line" (a thin line
 	// color along the band's upper edge), "glow" (a soft radial glow's
-	// color), "glow_pos" (0..1), "glow_strength", "vignette" (0..1
+	// color), "glow_pos" (0..1), "glow_strength", a second glow
+	// "glow2" / "glow2_pos" / "glow2_strength", "stars" (a count of
+	// four-point sparkles scattered over the upper field, B-1320) and
+	// "star" (their color), "vignette" (0..1
 	// edge darkening), "seed". get_backdrop_options returns a world's
 	// composition; make_backdrop builds it as a full-rect TextureRect
 	// (mouse-transparent, aspect-covered) ready to add first in a screen.

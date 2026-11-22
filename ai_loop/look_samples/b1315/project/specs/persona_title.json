@@ -8,69 +8,119 @@
   "type": "Screen",
   "children": [
    {
-    "type": "VBox",
-    "anchor": "center",
+    "type": "Label",
+    "name": "Logo",
+    "text": "真夜中クエスト",
+    "font_size": 92,
+    "rotation": -4,
+    "outline_size": 14,
+    "outline_color": "#000000",
+    "shadow_color": "#e60012",
+    "shadow_offset": [
+     10,
+     10
+    ],
+    "anchor": "top_left",
     "offset": [
-     0,
-     -30
+     64,
+     56
     ],
     "size": [
-     520,
-     430
-    ],
-    "separation": "l",
-    "children": [
-     {
-      "type": "Label",
-      "text": "真夜中クエスト",
-      "text_style": "display",
-      "align": "center"
-     },
-     {
-      "type": "Label",
-      "text": "MIDNIGHT QUEST ― 真夜中の図書館を取り戻せ",
-      "text_style": "caption",
-      "align": "center"
-     },
-     {
-      "type": "Spacer",
-      "min_size": [
-       0,
-       24
-      ]
-     },
-     {
-      "type": "Button",
-      "text": "はじめから",
-      "min_size": [
-       0,
-       56
-      ]
-     },
-     {
-      "type": "Button",
-      "text": "つづきから",
-      "min_size": [
-       0,
-       56
-      ]
-     },
-     {
-      "type": "Button",
-      "text": "せってい",
-      "min_size": [
-       0,
-       56
-      ]
-     },
-     {
-      "type": "Label",
-      "text": "U.ZU Engine sample",
-      "text_style": "caption",
-      "align": "center"
-     }
+     860,
+     140
     ],
     "motion": "appear"
+   },
+   {
+    "type": "Label",
+    "text": "MIDNIGHT QUEST",
+    "text_style": "caption",
+    "font_size": 30,
+    "font_color": "#ffe14d",
+    "rotation": -4,
+    "anchor": "top_left",
+    "offset": [
+     74,
+     202
+    ],
+    "size": [
+     500,
+     44
+    ]
+   },
+   {
+    "type": "Label",
+    "text": "真夜中の図書館を取り戻せ",
+    "text_style": "body",
+    "anchor": "top_left",
+    "offset": [
+     76,
+     252
+    ],
+    "size": [
+     560,
+     32
+    ]
+   },
+   {
+    "type": "Button",
+    "text": "はじめから",
+    "rotation": -2,
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     64,
+     196
+    ],
+    "size": [
+     460,
+     58
+    ]
+   },
+   {
+    "type": "Button",
+    "text": "つづきから",
+    "rotation": -2,
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     92,
+     128
+    ],
+    "size": [
+     460,
+     58
+    ]
+   },
+   {
+    "type": "Button",
+    "text": "せってい",
+    "rotation": -2,
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     120,
+     60
+    ],
+    "size": [
+     460,
+     58
+    ]
+   },
+   {
+    "type": "Label",
+    "text": "U.ZU Engine sample",
+    "text_style": "caption",
+    "align": "right",
+    "anchor": "bottom_right",
+    "offset": [
+     28,
+     20
+    ],
+    "size": [
+     300,
+     24
+    ]
    }
   ]
  }

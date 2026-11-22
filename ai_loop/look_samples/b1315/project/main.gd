@@ -1,18 +1,33 @@
 extends Control
-## B-1315 showcase driver: shows one sample screen (built from a JSON
-## spec by ai_loop/ui_tool.gd into screens/), the empty-panel sheet for
-## the texture measurement, or the kit touch parts in a HUD corner.
+## B-1315 showcase driver, grown into the stage director (B-1320):
+## shows one sample screen (built from a JSON spec by ai_loop/ui_tool.gd
+## into screens/) dressed with the world's backdrop (B-1319) and a
+## decoration layer (deco_layer.gd), or the empty-panel sheet for the
+## texture measurement, or the kit touch parts in a HUD corner.
 ## World and screen come from the environment (uzu.py look does not
 ## forward user args to the scene):
 ##   UZU_B1315_WORLD = persona | wafu        (default persona)
 ##   UZU_B1315_SCREEN = title | menu | settings | hud | talk | sheet | touch
 ##   UZU_B1315_FRAME_OUT = where the sheet mode saves the frame PNG
+##   UZU_B1315_FOCUS = 1: after the opening, focus the first button
+##        (a still then shows the focused state -- persona's red flip)
+##   UZU_B1315_FLOW = 1: run the choreography reel -- the title opens
+##        with a staggered slash-in, focus walks the menu, a press
+##        transitions to the pause menu, more focus play, then the
+##        talk screen. Recorded with --write-movie for the owner.
 ## The font is the checked JP font of the B-1316 rule (look_samples/README.md).
 
 const FONT := preload("res://art/game_font.ttf")
+const DecoLayer := preload("res://deco_layer.gd")
+
+const RED := Color(0.902, 0.0, 0.071)
+const YELLOW := Color(1.0, 0.882, 0.302)
 
 var world := "persona"
 var screen := "title"
+var _current: Control
+var _deco_back: Control
+var _deco_front: Control
 
 
 func _ready() -> void:
@@ -25,21 +40,250 @@ func _ready() -> void:
 	theme = UZUUI.create_world_theme(world, {"font": FONT})
 
 	# The world's backdrop composition (B-1319): a generated graphic
-	# field, not a flat color — persona gets its red diagonal halftone
+	# field, not a flat color -- persona gets its red diagonal halftone
 	# band, wafu a mottled dark wall with a warm glow.
 	add_child(UZUUI.make_backdrop(world))
 
 	if screen == "sheet":
 		_sheet()
-	elif screen == "touch":
+		return
+	if screen == "touch":
 		_touch()
-	else:
-		var packed := load("res://screens/%s_%s.tscn" % [world, screen]) as PackedScene
-		if packed == null:
-			push_error("b1315 showcase: no built screen %s_%s (run uzu.py ui on its spec first)" % [world, screen])
-			return
-		add_child(packed.instantiate())
+		return
 
+	_deco_back = DecoLayer.new()
+	_deco_back.font = FONT
+	add_child(_deco_back)
+	_current = _make_screen(screen)
+	if _current == null:
+		return
+	add_child(_current)
+	_deco_front = DecoLayer.new()
+	_deco_front.font = FONT
+	add_child(_deco_front)
+	_dress(screen)
+
+	if OS.get_environment("UZU_B1315_FLOW") == "1":
+		_flow()
+	elif OS.get_environment("UZU_B1315_FOCUS") == "1":
+		_settle_focus()
+
+
+func _make_screen(name: String) -> Control:
+	var packed := load("res://screens/%s_%s.tscn" % [world, name]) as PackedScene
+	if packed == null:
+		push_error("b1315 showcase: no built screen %s_%s (run uzu.py ui on its spec first)" % [world, name])
+		return null
+	return packed.instantiate()
+
+
+## The decoration recipes: a back layer (a huge tilted word, rings,
+## slashes -- the mid-ground the panels sit on) and a front layer
+## (sparkles that breathe over everything). Persona dresses heavily;
+## wafu gets one faint enso ring and nothing else (B-1320).
+func _dress(name: String) -> void:
+	var back: Array = []
+	var front: Array = []
+	if world == "persona":
+		match name:
+			"title":
+				back = [
+					{"kind": "word", "text": "MIDNIGHT", "at": Vector2(600, 300), "size": 140, "angle": -8.0, "color": Color(RED, 0.10)},
+					{"kind": "ring", "at": Vector2(1022, 478), "r": 56.0, "width": 7.0, "color": Color(RED, 0.85)},
+					{"kind": "slash", "at": Vector2(985, 148), "len": 210.0, "h": 13.0, "angle": -12.0, "color": RED},
+					{"kind": "slash", "at": Vector2(1015, 182), "len": 130.0, "h": 13.0, "angle": -12.0, "color": Color(1, 1, 1, 0.9)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(140, 300), "r": 15.0, "color": Color.WHITE, "pulse": true},
+					{"kind": "sparkle", "at": Vector2(1006, 88), "r": 24.0, "color": Color.WHITE, "pulse": true, "phase": 1.3},
+					{"kind": "sparkle", "at": Vector2(884, 540), "r": 13.0, "color": Color(1, 1, 1, 0.8)},
+				]
+			"menu":
+				back = [
+					{"kind": "word", "text": "PAUSE", "at": Vector2(576, 330), "size": 250, "angle": -8.0, "color": Color(RED, 0.13)},
+					{"kind": "slash", "at": Vector2(150, 120), "len": 150.0, "h": 10.0, "angle": -12.0, "color": Color(1, 1, 1, 0.5)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(952, 120), "r": 18.0, "color": Color.WHITE, "pulse": true},
+					{"kind": "sparkle", "at": Vector2(210, 540), "r": 13.0, "color": Color(1, 1, 1, 0.8)},
+				]
+			"settings":
+				back = [
+					{"kind": "word", "text": "CONFIG", "at": Vector2(810, 555), "size": 200, "angle": -8.0, "color": Color(RED, 0.12)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(140, 110), "r": 15.0, "color": Color.WHITE, "pulse": true},
+				]
+			"hud":
+				back = [
+					{"kind": "word", "text": "QUEST", "at": Vector2(700, 380), "size": 150, "angle": -6.0, "color": Color(RED, 0.10)},
+					{"kind": "slash", "at": Vector2(170, 330), "len": 170.0, "h": 11.0, "angle": -12.0, "color": Color(RED, 0.8)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(560, 120), "r": 13.0, "color": Color(1, 1, 1, 0.7)},
+				]
+			"talk":
+				back = [
+					{"kind": "word", "text": "CHAPTER", "at": Vector2(280, 200), "size": 110, "angle": -6.0, "color": Color(RED, 0.10)},
+					{"kind": "ring", "at": Vector2(118, 128), "r": 46.0, "width": 8.0, "color": Color(0.561, 0.0, 0.047, 0.8)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(905, 64), "r": 16.0, "color": Color.WHITE, "pulse": true},
+					{"kind": "sparkle", "at": Vector2(1120, 400), "r": 12.0, "color": Color(1, 1, 1, 0.8)},
+				]
+	elif world == "wafu":
+		back = [
+			{"kind": "ring", "at": Vector2(990, 150), "r": 88.0, "width": 11.0, "gap": 0.5, "color": Color(0.937, 0.886, 0.769, 0.10)},
+		]
+	_deco_back.set_items(back)
+	_deco_front.set_items(front)
+
+
+# ------------------------------------------------------------------ motion
+
+## The screen's actors, in reading order: the logo, the ribbon, the
+## talk window, the top-level panels, and every button.
+func _actors(scr: Control) -> Array:
+	var found: Array = []
+	var stack: Array = [scr]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for child in n.get_children():
+			stack.push_back(child)
+		if not n is Control or n == scr:
+			continue
+		var c := n as Control
+		var is_actor := c is BaseButton \
+			or (c is PanelContainer and c.get_parent() == scr) \
+			or c.name in ["Logo", "Talk", "Ribbon"]
+		if is_actor:
+			found.append(c)
+	found.sort_custom(func(a: Control, b: Control) -> bool:
+		var pa := a.get_global_rect().position
+		var pb := b.get_global_rect().position
+		return pa.y < pb.y - 4.0 or (absf(pa.y - pb.y) <= 4.0 and pa.x < pb.x))
+	return found
+
+
+func _buttons(scr: Control) -> Array:
+	var out: Array = []
+	var stack: Array = [scr]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for child in n.get_children():
+			stack.push_back(child)
+		if n is BaseButton:
+			out.append(n)
+	out.sort_custom(func(a: Control, b: Control) -> bool:
+		var pa := a.get_global_rect().position
+		var pb := b.get_global_rect().position
+		return pa.y < pb.y - 4.0 or (absf(pa.y - pb.y) <= 4.0 and pa.x < pb.x))
+	return out
+
+
+## The opening choreography: whatever the world's own opening played
+## is cancelled back to the natural state, the value_change motions
+## are replayed as declared, and the actors slash in one by one.
+func _choreograph(scr: Control, frames_first := true) -> void:
+	if frames_first:
+		await get_tree().process_frame
+		await get_tree().process_frame
+	UZUUIJuice.cancel_all()
+	# Declared value changes (the gauges) run as specified.
+	var stack: Array = [scr]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for child in n.get_children():
+			stack.push_back(child)
+		if n is Control and n.has_meta("uzu_motion"):
+			var meta: Dictionary = n.get_meta("uzu_motion")
+			if str(meta.get("preset", "")) == "value_change":
+				var options: Dictionary = meta.duplicate()
+				options.erase("preset")
+				options["world"] = world
+				UZUUIJuice.play_motion(n, "value_change", options)
+	var actors := _actors(scr)
+	for i in actors.size():
+		if i > 0:
+			await get_tree().create_timer(0.07).timeout
+		UZUUIJuice.play_motion(actors[i], "appear", {"world": world})
+
+
+func _focus_button(scr: Control, idx: int) -> void:
+	var btns := _buttons(scr)
+	if btns.is_empty():
+		return
+	var b: BaseButton = btns[clampi(idx, 0, btns.size() - 1)]
+	b.grab_focus()
+	UZUUIJuice.play_motion(b, "hover", {"world": world})
+
+
+func _press_button(scr: Control, idx: int) -> void:
+	var btns := _buttons(scr)
+	if btns.is_empty():
+		return
+	var b: BaseButton = btns[clampi(idx, 0, btns.size() - 1)]
+	UZUUIJuice.play_motion(b, "press", {"world": world})
+	b.pressed.emit()
+
+
+func _goto(next: String) -> void:
+	var old := _current
+	var scr := _make_screen(next)
+	if scr == null:
+		return
+	add_child(scr)
+	move_child(scr, old.get_index())
+	_current = scr
+	_dress(next)
+	# The new screen's own opening is superseded by the transition and
+	# the choreography below; its world motion node must not open it.
+	var wm := scr.find_child("WorldMotion", true, false)
+	if wm:
+		wm.set("open_on_ready", false)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	UZUUIJuice.cancel_all()
+	UZUUIJuice.transition(old, scr, 0.28, "ease_in", 1.0)
+	await get_tree().create_timer(0.34).timeout
+	old.queue_free()
+	await _choreograph(scr, false)
+
+
+func _settle_focus() -> void:
+	await get_tree().create_timer(0.6).timeout
+	_focus_button(_current, 0)
+
+
+## The reel (UZU_B1315_FLOW=1): title opening, focus play, a press
+## into the pause menu, more focus play, a press back into the talk
+## screen. Timed in movie seconds under --write-movie --fixed-fps.
+func _flow() -> void:
+	await _choreograph(_current)
+	await get_tree().create_timer(0.5).timeout
+	_focus_button(_current, 0)
+	await get_tree().create_timer(0.9).timeout
+	_focus_button(_current, 1)
+	await get_tree().create_timer(0.9).timeout
+	_focus_button(_current, 0)
+	await get_tree().create_timer(0.8).timeout
+	_press_button(_current, 0)
+	await get_tree().create_timer(0.25).timeout
+	await _goto("menu")
+	await get_tree().create_timer(0.6).timeout
+	_focus_button(_current, 0)
+	await get_tree().create_timer(0.9).timeout
+	_focus_button(_current, 1)
+	await get_tree().create_timer(0.9).timeout
+	_focus_button(_current, 0)
+	await get_tree().create_timer(0.8).timeout
+	_press_button(_current, 0)
+	await get_tree().create_timer(0.25).timeout
+	await _goto("talk")
+	await get_tree().create_timer(2.4).timeout
+
+
+# ------------------------------------------------------------------ modes
 
 func _sheet() -> void:
 	# One empty panel, wide enough that the frame's middle tiles several

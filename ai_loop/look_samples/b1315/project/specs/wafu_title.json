@@ -30,7 +30,16 @@
       "type": "Label",
       "text": "― 祠の灯りを取り戻す小さな冒険 ―",
       "text_style": "caption",
-      "align": "center"
+      "align": "center",
+      "font_color": "#efe2c4"
+     },
+     {
+      "type": "Color",
+      "color": "#b8322a",
+      "min_size": [
+       0,
+       3
+      ]
      },
      {
       "type": "Spacer",
@@ -67,10 +76,37 @@
       "type": "Label",
       "text": "U.ZU Engine sample",
       "text_style": "caption",
-      "align": "center"
+      "align": "center",
+      "font_color": "#efe2c4"
      }
     ],
     "motion": "appear"
+   },
+   {
+    "type": "Panel",
+    "style": {
+     "bg": "#b8322a",
+     "radius": 4,
+     "padding": 4
+    },
+    "anchor": "top_right",
+    "offset": [
+     48,
+     44
+    ],
+    "size": [
+     52,
+     52
+    ],
+    "children": [
+     {
+      "type": "Label",
+      "text": "灯",
+      "font_size": 28,
+      "font_color": "#fbf1dc",
+      "align": "center"
+     }
+    ]
    }
   ]
  }

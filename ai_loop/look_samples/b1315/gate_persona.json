@@ -165,7 +165,7 @@
         "focus": {
           "present": true,
           "pass": true,
-          "class": "StyleBoxFlat"
+          "class": "StyleBoxTexture"
         }
       }
     },
@@ -198,8 +198,8 @@
       "shadow_off_scale": [],
       "counts": {
         "spacing": 115,
-        "radius": 44,
-        "shadow": 24
+        "radius": 43,
+        "shadow": 25
       },
       "pass": true
     },
