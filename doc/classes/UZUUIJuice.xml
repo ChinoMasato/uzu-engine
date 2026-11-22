@@ -82,10 +82,23 @@
 				Returns how many animations are running.
 			</description>
 		</method>
+		<method name="get_animation_state" qualifiers="static">
+			<return type="Dictionary" />
+			<param index="0" name="control" type="Control" />
+			<description>
+				Returns the running animation of [param control] as data, for probes and tests: [code]animating[/code], [code]motion[/code] (the B-1317 preset name; legacy animations report their event name), [code]curve[/code], [code]elapsed[/code], [code]duration[/code], [code]progress[/code] (the possibly step-quantized time, 0 to 1) and [code]value[/code] (the curve at that time). The driven state itself (scale, modulate) is read from the control. Just [code]{"animating": false}[/code] when idle.
+			</description>
+		</method>
 		<method name="get_event_log" qualifiers="static">
 			<return type="Array" />
 			<description>
-				Returns the event log: one dictionary per animation start and finish, with [code]event[/code] ([code]open[/code], [code]close[/code], [code]hover[/code], [code]count_up[/code], [code]transition[/code]), [code]phase[/code] ([code]start[/code] or [code]end[/code]), [code]preset[/code] and [code]target[/code] (the control's name). Self-verifying play (and tests) read this to confirm UI events fired. Capped at the newest 256 entries.
+				Returns the event log: one dictionary per animation start and finish, with [code]event[/code] ([code]open[/code], [code]close[/code], [code]hover[/code], [code]count_up[/code], [code]transition[/code], and the B-1317 motions [code]appear[/code], [code]disappear[/code], [code]press[/code], [code]value_change[/code]), [code]phase[/code] ([code]start[/code] or [code]end[/code]), [code]preset[/code] and [code]target[/code] (the control's name). Self-verifying play (and tests) read this to confirm UI events fired. Capped at the newest 256 entries.
+			</description>
+		</method>
+		<method name="get_motion_names" qualifiers="static">
+			<return type="PackedStringArray" />
+			<description>
+				Returns the motion presets of [method play_motion] (B-1317): [code]appear[/code], [code]disappear[/code], [code]hover[/code], [code]press[/code], [code]value_change[/code]. These name what a control does; [method get_preset_names] names the curves it moves through.
 			</description>
 		</method>
 		<method name="get_preset" qualifiers="static">
@@ -142,6 +155,23 @@
 			<param index="1" name="level" type="int" default="2" />
 			<description>
 				The overshoot curve at a strength level: 1 is soft, 2 is the classic back curve, 3 is sharp (the persona world's snap). Pure math.
+			</description>
+		</method>
+		<method name="play_motion" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="control" type="Control" />
+			<param index="1" name="motion" type="String" />
+			<param index="2" name="options" type="Dictionary" default="{}" />
+			<description>
+				Plays one motion preset (see [method get_motion_names]) on [param control], in one call. [param options] may carry [code]world[/code] (a UZUUI world name: duration, curve, strength and steps come from the world's motion, so persona is fast with a big overshoot and pixel steps frame by frame; [code]value_change[/code] takes twice the world's duration), [code]curve[/code] (a curve name, overriding the world's), [code]duration[/code], [code]strength[/code], [code]steps[/code], and [code]to[/code] / [code]from[/code] (the [code]value_change[/code] endpoints; [code]from[/code] defaults to the current value, [code]to[/code] to a Range's max). Returns [code]false[/code] for an unknown motion, world or curve, and for [code]value_change[/code] on a control holding no value.
+			</description>
+		</method>
+		<method name="seek_animation" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="control" type="Control" />
+			<param index="1" name="time" type="float" />
+			<description>
+				Sets the animation's clock to [param time] seconds and applies that exact state at once, so a probe or a test can sample any moment without waiting in real time. At or past the duration the animation finishes, with the exact end state. Returns [code]false[/code] when [param control] is not animating.
 			</description>
 		</method>
 		<method name="transition" qualifiers="static">

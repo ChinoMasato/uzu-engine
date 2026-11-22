@@ -34,6 +34,13 @@ extends SceneTree
 ##          instead; "padding" and a box's "separation" take a step name ("xs" | "s" | "m" |
 ##          "l" | "xl" | "xxl" = 4 | 8 | 12 | 16 | 24 | 32) instead of a number. Raw numbers
 ##          still work everywhere (the kit snaps them to the scale).
+##   Motion (B-1317): any node may carry "motion": a UZUUIJuice motion preset name
+##          ("appear" | "disappear" | "hover" | "press" | "value_change") or an object
+##          {"preset": name, "duration": seconds, "strength": 0..3, "from": n, "to": n}
+##          ("to" is the value_change target). The spec is validated here and stored as
+##          the node's "uzu_motion" metadata; on a world-themed screen the UZUUIWorld
+##          node plays it with that world's motion when the screen opens. Without a
+##          world theme the metadata is saved but nothing plays it.
 ##   Label / RichText / Button: "text";  Bar: "value", "max", "show_percent"
 ##   Label: "text_style" names a step of the theme's type scale (B-1312: display | title |
 ##          heading | body | caption) instead of a raw "font_size"; the theme gives the
@@ -51,7 +58,8 @@ const TYPES := {
 	"Tabs": "TabContainer", "List": "ItemList",
 	"Gauge": "", "Talk": "", "Slot": "", "Ribbon": "", "Separator": "",
 }
-const COMMON := ["type", "name", "children", "anchor", "offset", "size", "min_size", "expand", "visible", "tooltip", "style", "font_size", "font_color", "align"]
+const COMMON := ["type", "name", "children", "anchor", "offset", "size", "min_size", "expand", "visible", "tooltip", "style", "font_size", "font_color", "align", "motion"]
+const MOTION_KEYS := ["preset", "duration", "strength", "from", "to"]
 const EXTRA := {
 	"Label": ["text", "text_style"], "RichText": ["text"], "Button": ["text"], "Bar": ["value", "max", "show_percent"],
 	"VBox": ["separation"], "HBox": ["separation"], "Grid": ["separation", "columns"], "Margin": ["padding"],
@@ -113,6 +121,50 @@ func _spacing(where: String, v, fallback := 0) -> int:
 		return int(v)
 	_err(where, "needs a step name (%s) or a number" % ", ".join(SPACING_STEPS.keys()))
 	return fallback
+
+
+## A motion spec (B-1317): a preset name, or an object with a "preset" and
+## numeric overrides. Returns the normalized dictionary stored as the node's
+## "uzu_motion" metadata (empty when invalid; the error is recorded).
+func _motion(where: String, v) -> Dictionary:
+	var names := UZUUIJuice.get_motion_names()
+	if v is String:
+		if not names.has(v):
+			_err(where, "needs one of %s" % ", ".join(names))
+			return {}
+		return {"preset": v}
+	if not v is Dictionary:
+		_err(where, "needs a preset name (%s) or an object" % ", ".join(names))
+		return {}
+	var out := {}
+	for key in v:
+		if not key in MOTION_KEYS:
+			_err(where, "unknown key '%s' (allowed: %s)" % [key, ", ".join(MOTION_KEYS)])
+		elif key == "preset":
+			if not names.has(str(v[key])):
+				_err(where + ".preset", "needs one of %s" % ", ".join(names))
+			else:
+				out["preset"] = str(v[key])
+		elif key == "duration":
+			if not (v[key] is int or v[key] is float) or float(v[key]) < 0.01 or float(v[key]) > 10.0:
+				_err(where + ".duration", "needs a number of seconds between 0.01 and 10")
+			else:
+				out["duration"] = float(v[key])
+		elif key == "strength":
+			if not (v[key] is int or v[key] is float) or float(v[key]) < 0.0 or float(v[key]) > 3.0:
+				_err(where + ".strength", "needs a number between 0 and 3")
+			else:
+				out["strength"] = float(v[key])
+		else:  # "from" / "to": plain numbers (the value_change endpoints).
+			if not (v[key] is int or v[key] is float):
+				_err(where + "." + key, "needs a number")
+			else:
+				out[key] = float(v[key])
+	if not out.has("preset"):
+		if not v.has("preset"):
+			_err(where, "an object motion needs a \"preset\"")
+		return {}
+	return out
 
 
 ## A panel style through UZUUI (B-1302): a gradient ("top"/"bottom") or a flat "bg",
@@ -339,6 +391,11 @@ func _node(where: String, d, parent: Control, owner_root: Control) -> Control:
 		c.visible = bool(d.visible)
 	if d.has("tooltip"):
 		c.tooltip_text = str(d.tooltip)
+	if d.has("motion"):
+		var motion := _motion(where + ".motion", d.motion)
+		if not motion.is_empty():
+			c.set_meta("uzu_motion", motion)
+			counts["Motion"] = counts.get("Motion", 0) + 1
 	if parent:
 		parent.add_child(c, true)
 		c.owner = owner_root

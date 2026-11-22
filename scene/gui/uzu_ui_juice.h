@@ -98,6 +98,35 @@ public:
 	// unknown world.
 	static bool apply_world_motion(Control *p_control, const String &p_world, bool p_open = true);
 
+	// The motion presets (B-1317): what a control does, as opposed to the
+	// curves above, which are how it moves. "appear" (fade in while
+	// growing through the curve), "disappear" (fade and shrink out, then
+	// hide), "hover" (a swell and a brighten, back to the exact start),
+	// "press" (a dip below the base scale and back), "value_change" (a
+	// Range's value -- a gauge, a bar -- or a Label's number, interpolated
+	// from where it is to a target through the curve).
+	static PackedStringArray get_motion_names();
+	// Plays one motion preset on p_control, in one call. p_options:
+	// "world" (a UZUUI world name: duration, curve, strength and steps
+	// come from UZUUI::get_world_motion(), so persona is fast with a big
+	// overshoot and pixel steps frame by frame; value_change takes twice
+	// the world's duration), "curve" (a curve name, overriding the
+	// world's), "duration", "strength", "steps", and "to" / "from" (the
+	// value_change endpoints; "from" defaults to the current value, "to"
+	// to a Range's max). Returns false for an unknown motion, world or
+	// curve, and for value_change on a control holding no value.
+	static bool play_motion(Control *p_control, const String &p_motion, const Dictionary &p_options = Dictionary());
+	// The running animation of p_control as data, for probes and tests:
+	// {"animating", "motion", "curve", "elapsed", "duration", "progress",
+	// "value"} -- progress is the (possibly step-quantized) time 0..1 and
+	// value the curve at it; the driven state itself (scale, modulate) is
+	// read from the control. Just {"animating": false} when idle.
+	static Dictionary get_animation_state(Control *p_control);
+	// Sets the animation's clock to p_time seconds and applies that exact
+	// state at once; at or past the duration the animation finishes, with
+	// the exact end state. Returns false when p_control is not animating.
+	static bool seek_animation(Control *p_control, double p_time);
+
 	static bool is_animating(Control *p_control);
 	static int get_active_animation_count();
 	// Stops the control's animation, restoring exactly what was captured.

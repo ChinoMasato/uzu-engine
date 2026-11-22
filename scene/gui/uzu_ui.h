@@ -132,7 +132,8 @@ public:
 
 // The motion of a world UI (B-1307 stage 2), as a node saved with the screen. When the
 // screen starts it gives the frames (panels, buttons, tabs) the world's moving decoration,
-// opens the top-level panels with the world's motion (UZUUIJuice), makes buttons swell on
+// opens the top-level panels with the world's motion (UZUUIJuice), plays the motion a
+// spec named for a control (its "uzu_motion" metadata, B-1317), makes buttons swell on
 // hover, and while it runs it sways ribbons and blinks the talk window's next mark. So a
 // world UI is never still. Its counts are in get_stats() for self-verifying play.
 class UZUUIWorld : public Node {
@@ -164,7 +165,9 @@ public:
 	bool is_ambient() const;
 
 	// Decorates the parent Control's tree now (also done when the node becomes ready).
-	// Returns {"panels", "buttons", "opened", "ribbons", "next_marks"}.
+	// Returns {"panels", "buttons", "opened", "motions", "ribbons", "next_marks"};
+	// "motions" counts the controls whose "uzu_motion" metadata (the "motion"
+	// key of ai_loop/ui_tool.gd, B-1317) was played with this world's motion.
 	Dictionary decorate();
 	// Advances the ambient motion (ribbon sway, next-mark blink) by p_delta seconds;
 	// called every frame, and directly by tests.
