@@ -84,7 +84,7 @@ Dictionary defaults() {
 	panel["radius"] = 12;
 	panel["border_width"] = 2;
 	panel["shadow"] = 8;
-	panel["padding"] = 14;
+	panel["padding"] = 12; // The layout scale (B-1314): spacing steps only.
 	d["panel"] = panel;
 	Dictionary button;
 	button["top"] = Color::html("#34416a");
@@ -93,8 +93,8 @@ Dictionary defaults() {
 	button["pressed"] = Color::html("#1a2238");
 	button["radius"] = 8;
 	button["border_width"] = 1;
-	button["shadow"] = 3;
-	button["padding"] = 10;
+	button["shadow"] = 4; // Elevation level 1 (B-1314).
+	button["padding"] = 8;
 	d["button"] = button;
 	Dictionary bar;
 	bar["bg"] = Color(0, 0, 0, 0.5);
@@ -213,6 +213,112 @@ void apply_type_scale(const Ref<Theme> &p_theme, int p_base_size, const Color &p
 }
 
 // ---------------------------------------------------------------------------
+// B-1314: the layout scale.
+//
+// Spacing, corner radii and shadows come from fixed scales, never from
+// numbers invented per part (audit item 6: the kit's paddings were
+// 14 / 10 / 6 and its shadows 6 / 3, a fresh guess in every part). The
+// spacing scale is the gate's set (B-1310): tight steps through the sizes
+// parts are actually spaced by, then the wide steps a HUD needs. Shadows
+// are five elevation levels; a level is a triple of size, drop and
+// opacity — the size is also the blur reach, because both panel and
+// frame drawing soften the shadow over its own size, and the drop is a
+// fixed 0.35 of the size. The scale rides in every theme's "uzu_layout"
+// meta (the "uzu_type_scale" pattern of B-1312) and is readable through
+// UZUUI::get_layout_scale(), so tools work from the same numbers.
+
+const int SPACING_SCALE[] = { 0, 4, 8, 12, 16, 24, 32, 48, 64 };
+const int RADIUS_SCALE[] = { 0, 2, 4, 6, 8, 12, 16, 24, 32 };
+const int ELEVATION_SIZE[] = { 0, 4, 8, 12, 16 };
+const float ELEVATION_ALPHA[] = { 0.0f, 0.45f, 0.45f, 0.5f, 0.5f };
+const float ELEVATION_DROP = 0.35f; // The shadow's downward drop, per px of size.
+
+// Snapping: the nearest step, ties to the smaller step (the kit's
+// existing convention, from snap_radius below) — except shadows, where
+// ties go to the larger step so a shadow never thins into invisibility.
+int snap_spacing(int p_value) {
+	int best = SPACING_SCALE[0];
+	for (int v : SPACING_SCALE) {
+		if (Math::abs(v - p_value) < Math::abs(best - p_value)) {
+			best = v;
+		}
+	}
+	return best;
+}
+
+int snap_shadow_size(int p_value) {
+	int best = ELEVATION_SIZE[0];
+	for (int v : ELEVATION_SIZE) {
+		if (Math::abs(v - p_value) <= Math::abs(best - p_value)) {
+			best = v;
+		}
+	}
+	return best;
+}
+
+int elevation_of_size(int p_size) {
+	for (int i = 0; i < 5; i++) {
+		if (ELEVATION_SIZE[i] == p_size) {
+			return i;
+		}
+	}
+	return 0;
+}
+
+// Named spacing steps, for specs that would rather say "m" than 12 (the
+// JSON builder accepts the same names; see ai_loop/ui_tool.gd).
+int spacing_step_value(const String &p_name) {
+	if (p_name == "xs") {
+		return 4;
+	}
+	if (p_name == "s") {
+		return 8;
+	}
+	if (p_name == "m") {
+		return 12;
+	}
+	if (p_name == "l") {
+		return 16;
+	}
+	if (p_name == "xl") {
+		return 24;
+	}
+	if (p_name == "xxl") {
+		return 32;
+	}
+	return -1;
+}
+
+Dictionary layout_scale() {
+	Dictionary d;
+	Array spacing;
+	for (int v : SPACING_SCALE) {
+		spacing.push_back(v);
+	}
+	d["spacing"] = spacing;
+	Array radius;
+	for (int v : RADIUS_SCALE) {
+		radius.push_back(v);
+	}
+	d["radius"] = radius;
+	Dictionary steps;
+	for (const char *name : { "xs", "s", "m", "l", "xl", "xxl" }) {
+		steps[name] = spacing_step_value(name);
+	}
+	d["spacing_steps"] = steps;
+	Dictionary elevation;
+	for (int i = 0; i < 5; i++) {
+		Dictionary level;
+		level["shadow"] = ELEVATION_SIZE[i];
+		level["offset_y"] = int(Math::round(ELEVATION_SIZE[i] * ELEVATION_DROP));
+		level["alpha"] = ELEVATION_ALPHA[i];
+		elevation[itos(i)] = level;
+	}
+	d["elevation"] = elevation;
+	return d;
+}
+
+// ---------------------------------------------------------------------------
 // B-1313: full theme coverage and visible focus.
 //
 // The helpers below style the standard controls the first themes left to
@@ -224,14 +330,49 @@ void apply_type_scale(const Ref<Theme> &p_theme, int p_base_size, const Color &p
 // The gate's radius scale (B-1310); flat boxes snap to it so the new parts
 // do not add off-scale values of their own.
 int snap_radius(int p_radius) {
-	static const int SCALE[] = { 0, 2, 4, 6, 8, 12, 16, 24, 32 };
-	int best = SCALE[0];
-	for (int v : SCALE) {
+	int best = RADIUS_SCALE[0];
+	for (int v : RADIUS_SCALE) {
 		if (Math::abs(v - p_radius) < Math::abs(best - p_radius)) {
 			best = v;
 		}
 	}
 	return best;
+}
+
+// A style's content padding, on the spacing scale: a px number (snapped)
+// or a step name ("xs".."xxl"). p_default is the caller's own default,
+// already on the scale.
+float style_padding(const Dictionary &p_style, int p_default) {
+	if (!p_style.has("padding")) {
+		return p_default;
+	}
+	const Variant v = p_style["padding"];
+	if (v.get_type() == Variant::STRING) {
+		const int step = spacing_step_value(v);
+		return step >= 0 ? step : p_default;
+	}
+	return snap_spacing(int(Math::round(double(v))));
+}
+
+// A style's shadow, as an elevation step: an explicit "shadow" size
+// (snapped to a level) wins; otherwise "elevation" names the level;
+// otherwise the caller's default size. The alpha is the level's.
+struct ShadowSpec {
+	int size = 0;
+	float alpha = 0.0f;
+};
+
+ShadowSpec style_shadow(const Dictionary &p_style, int p_default_size) {
+	int size = p_default_size;
+	if (p_style.has("shadow")) {
+		size = snap_shadow_size(int(p_style.get("shadow", p_default_size)));
+	} else if (p_style.has("elevation")) {
+		size = ELEVATION_SIZE[CLAMP(int(p_style.get("elevation", 0)), 0, 4)];
+	}
+	ShadowSpec out;
+	out.size = size;
+	out.alpha = ELEVATION_ALPHA[elevation_of_size(size)];
+	return out;
 }
 
 Ref<StyleBoxFlat> flat_box(const Color &p_bg, int p_radius, float p_padding, const Color &p_border = Color(0, 0, 0, 0), int p_border_width = 0) {
@@ -253,6 +394,8 @@ Ref<StyleBoxFlat> focus_box(const Color &p_accent, int p_radius) {
 	Ref<StyleBoxFlat> sb;
 	sb.instantiate();
 	sb->set_draw_center(false);
+	sb->set_content_margin_all(0); // No content padding: without this the
+	// box reports its border width (2) as the margin, off the spacing scale.
 	sb->set_border_width_all(2);
 	sb->set_border_color(p_accent);
 	sb->set_corner_radius_all(snap_radius(p_radius));
@@ -543,6 +686,8 @@ void style_extended_controls(const Ref<Theme> &p_theme,
 	separator.instantiate();
 	separator->set_color(Color(p_text, 0.3f));
 	separator->set_thickness(1);
+	separator->set_content_margin_all(0); // Same reason as the focus ring:
+	// the line otherwise reports half its thickness as a content margin.
 	p_theme->set_stylebox("separator", "PopupMenu", separator);
 	p_theme->set_stylebox("labeled_separator_left", "PopupMenu", separator);
 	p_theme->set_stylebox("labeled_separator_right", "PopupMenu", separator);
@@ -619,7 +764,12 @@ void style_extended_controls(const Ref<Theme> &p_theme,
 
 } // namespace
 
-Ref<Image> UZUUI::draw_panel(int p_radius, const Color &p_top, const Color &p_bottom, const Color &p_border, int p_border_width, int p_shadow) {
+namespace {
+
+// draw_panel with the shadow's opacity as a parameter: the public
+// function keeps the opacity panels have always had (0.45), the style
+// layer passes the elevation level's (B-1314).
+Ref<Image> draw_panel_impl(int p_radius, const Color &p_top, const Color &p_bottom, const Color &p_border, int p_border_width, int p_shadow, float p_shadow_alpha) {
 	const int radius = CLAMP(p_radius, 0, 64);
 	const int border = CLAMP(p_border_width, 0, 16);
 	const int shadow = CLAMP(p_shadow, 0, 32);
@@ -650,7 +800,7 @@ Ref<Image> UZUUI::draw_panel(int p_radius, const Color &p_top, const Color &p_bo
 			if (shadow > 0 && inside < 1.0f) {
 				const float ds = rounded_rect_distance(p - Vector2(0, drop), center, half, radius);
 				const float s = 1.0f - CLAMP(ds / shadow, 0.0f, 1.0f);
-				const float sa = 0.45f * s * s;
+				const float sa = p_shadow_alpha * s * s;
 				// Over-composite the fill onto the shadow.
 				const float a = c.a + sa * (1.0f - c.a);
 				if (a > 0.0f) {
@@ -663,21 +813,30 @@ Ref<Image> UZUUI::draw_panel(int p_radius, const Color &p_top, const Color &p_bo
 	return img;
 }
 
+} // namespace
+
+Ref<Image> UZUUI::draw_panel(int p_radius, const Color &p_top, const Color &p_bottom, const Color &p_border, int p_border_width, int p_shadow) {
+	return draw_panel_impl(p_radius, p_top, p_bottom, p_border, p_border_width, p_shadow, 0.45f);
+}
+
 Ref<StyleBox> UZUUI::create_panel_style(const Dictionary &p_style) {
 	const Color bg = color_of(p_style.get("bg", Variant()), Color(0.08, 0.1, 0.17, 0.87));
 	const Color top = color_of(p_style.get("top", Variant()), bg);
 	const Color bottom = color_of(p_style.get("bottom", Variant()), p_style.has("top") ? top : bg);
-	const int radius = p_style.get("radius", 10);
+	// Every length the style emits is on the layout scale (B-1314): the
+	// radius snaps to the radius scale, the shadow is an elevation step,
+	// the padding a spacing step (a number, snapped, or a step name).
+	const int radius = snap_radius(int(p_style.get("radius", 8)));
 	const int border_width = p_style.get("border_width", p_style.has("border") ? 2 : 0);
 	const Color border = color_of(p_style.get("border", Variant()), Color(0, 0, 0, 0));
-	const int shadow = p_style.get("shadow", 0);
-	const float padding = p_style.get("padding", 10);
-	Ref<Image> img = draw_panel(radius, top, bottom, border, border_width, shadow);
+	const ShadowSpec shadow = style_shadow(p_style, 0);
+	const float padding = style_padding(p_style, 8);
+	Ref<Image> img = draw_panel_impl(radius, top, bottom, border, border_width, shadow.size, shadow.alpha);
 	Ref<StyleBoxTexture> sb;
 	sb.instantiate();
 	sb->set_texture(ImageTexture::create_from_image(img));
-	const int s = CLAMP(shadow, 0, 32);
-	const int corner = MAX(CLAMP(radius, 0, 64), CLAMP(border_width, 0, 16)) + 1;
+	const int s = shadow.size;
+	const int corner = MAX(radius, CLAMP(border_width, 0, 16)) + 1;
 	sb->set_texture_margin_all(s + corner);
 	sb->set_expand_margin_all(s); // The shadow is drawn outside the control's rect.
 	sb->set_content_margin_all(padding);
@@ -686,6 +845,10 @@ Ref<StyleBox> UZUUI::create_panel_style(const Dictionary &p_style) {
 
 Dictionary UZUUI::get_theme_defaults() {
 	return defaults();
+}
+
+Dictionary UZUUI::get_layout_scale() {
+	return layout_scale();
 }
 
 Dictionary UZUUI::get_type_scale(int p_base_size) {
@@ -712,6 +875,9 @@ Ref<Theme> UZUUI::create_theme(const Dictionary &p_options) {
 		scale_font = ThemeDB::get_singleton()->get_fallback_font();
 	}
 	apply_type_scale(theme, int(o.get("font_size", 18)), text, scale_font);
+	// The layout scale (B-1314) rides along the same way, so a tool
+	// holding any theme can read the numbers its spacing came from.
+	theme->set_meta("uzu_layout", layout_scale());
 	// Panels: PanelContainer, TabContainer pages, lists, tooltips.
 	Dictionary panel = merged(Dictionary(defaults()["panel"]), o["panel"]);
 	if (!panel.has("border")) {
@@ -769,7 +935,7 @@ Ref<Theme> UZUUI::create_theme(const Dictionary &p_options) {
 	Ref<StyleBoxFlat> bar_bg;
 	bar_bg.instantiate();
 	bar_bg->set_bg_color(color_of(bar["bg"], Color(0, 0, 0, 0.5)));
-	bar_bg->set_corner_radius_all(bar["radius"]);
+	bar_bg->set_corner_radius_all(snap_radius(int(bar.get("radius", 6))));
 	theme->set_stylebox("background", "ProgressBar", bar_bg);
 	Ref<StyleBoxFlat> fill = bar_bg->duplicate();
 	fill->set_bg_color(color_of(bar.get("fill", Variant()), accent));
@@ -798,7 +964,7 @@ Ref<Theme> UZUUI::create_theme(const Dictionary &p_options) {
 	theme->set_color("font_selected_color", "ItemList", text);
 	theme->set_color("font_hovered_color", "ItemList", text);
 	theme->set_constant("separation", "VBoxContainer", 8);
-	theme->set_constant("separation", "HBoxContainer", 10);
+	theme->set_constant("separation", "HBoxContainer", 8); // Was 10, off the spacing scale.
 	// Every remaining standard control (B-1313): the input field is the
 	// panel sunk — its gradient flipped and darkened, no shadow.
 	Dictionary field = panel.duplicate();
@@ -951,7 +1117,14 @@ Color material_color(const String &p_material, const Color &p_base, float x, flo
 
 } // namespace
 
-Ref<Image> UZUUI::draw_frame(const Dictionary &p_style) {
+namespace {
+
+// draw_frame with the soft shadow's opacity as a parameter: the public
+// function keeps the opacity frames have always had (0.5), the style
+// layer passes the elevation level's (B-1314). The hard offset shadow of
+// the halftone / pixel materials keeps its own 0.85 — that flatness is
+// the material's trait, not an elevation value.
+Ref<Image> draw_frame_impl(const Dictionary &p_style, float p_shadow_alpha) {
 	const String material = p_style.get("material", "flat");
 	const String shape = p_style.get("shape", "rounded");
 	const Color base = color_of(p_style.get("base", Variant()), Color(0.12, 0.14, 0.22, 0.94));
@@ -1044,7 +1217,7 @@ Ref<Image> UZUUI::draw_frame(const Dictionary &p_style) {
 				} else {
 					const float ds = frame_distance(shape, p - Vector2(0, shadow * 0.35f), center, half, radius);
 					const float t = 1.0f - CLAMP(ds / shadow, 0.0f, 1.0f);
-					sa = 0.5f * t * t;
+					sa = p_shadow_alpha * t * t;
 				}
 				const float a = c.a + sa * (1.0f - c.a);
 				if (a > 0.0f) {
@@ -1057,21 +1230,37 @@ Ref<Image> UZUUI::draw_frame(const Dictionary &p_style) {
 	return img;
 }
 
+} // namespace
+
+Ref<Image> UZUUI::draw_frame(const Dictionary &p_style) {
+	return draw_frame_impl(p_style, 0.5f);
+}
+
 Ref<StyleBox> UZUUI::create_frame_style(const Dictionary &p_style) {
-	const Ref<Image> img = draw_frame(p_style);
+	// Every length the style emits is on the layout scale (B-1314), the
+	// same discipline as create_panel_style: the shadow resolves to an
+	// elevation step (the kit default is level 2), the radius snaps, the
+	// padding is a spacing step. The resolved values go into the style
+	// the frame is drawn from, so the drawing and the margins agree.
+	Dictionary style = p_style.duplicate();
+	const ShadowSpec shadow = style_shadow(style, ELEVATION_SIZE[2]);
+	style["shadow"] = shadow.size;
+	if (style.has("radius")) {
+		style["radius"] = snap_radius(int(style["radius"]));
+	}
+	const Ref<Image> img = draw_frame_impl(style, shadow.alpha);
 	Ref<StyleBoxTexture> sb;
 	sb.instantiate();
 	sb->set_texture(ImageTexture::create_from_image(img));
-	const int scale = CLAMP(int(p_style.get("scale", 1)), 1, 2);
+	const int scale = CLAMP(int(style.get("scale", 1)), 1, 2);
 	const int margin = (img->get_width() - FRAME_TILE * scale) / 2;
-	const int shadow = CLAMP(int(p_style.get("shadow", 6)), 0, 32) * scale;
 	sb->set_texture_margin_all(margin);
-	sb->set_expand_margin_all(shadow);
+	sb->set_expand_margin_all(shadow.size * scale);
 	// The middle repeats, so the texture keeps its scale.
 	sb->set_h_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE_FIT);
 	sb->set_v_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE_FIT);
-	sb->set_content_margin_all(float(p_style.get("padding", 14)));
-	if (String(p_style.get("shape", "")) == "pixel") {
+	sb->set_content_margin_all(style_padding(style, 12));
+	if (String(style.get("shape", "")) == "pixel") {
 		sb->set_texture(ImageTexture::create_from_image(img));
 	}
 	return sb;
@@ -1088,33 +1277,33 @@ Dictionary UZUUI::get_world_options(const String &p_world) {
 	auto set = [](Dictionary &d, const char *k, const Variant &v) { d[k] = v; };
 	if (p_world == "fantasy") {
 		set(frame, "material", "wood"), set(frame, "base", "#6b4a2e"), set(frame, "edge", "#2e1d10"), set(frame, "accent", "#e6c36a");
-		set(frame, "ornament", "brackets"), set(frame, "radius", 10), set(frame, "border_width", 3), set(frame, "shadow", 8);
+		set(frame, "ornament", "brackets"), set(frame, "radius", 8), set(frame, "border_width", 3), set(frame, "shadow", 8);
 		set(button, "material", "parchment"), set(button, "base", "#e8d6a8"), set(button, "edge", "#5a3d22"), set(button, "radius", 6);
 		set(o, "text", "#f6e7c8"), set(o, "button_text", "#3a2614"), set(o, "accent", "#e6c36a"), set(o, "fill", "#d94a3a");
 	} else if (p_world == "wafu") {
 		set(frame, "material", "parchment"), set(frame, "base", "#efe2c4"), set(frame, "edge", "#3b2416"), set(frame, "accent", "#b8322a");
-		set(frame, "ornament", "diamonds"), set(frame, "radius", 2), set(frame, "border_width", 3), set(frame, "shadow", 6);
+		set(frame, "ornament", "diamonds"), set(frame, "radius", 2), set(frame, "border_width", 3), set(frame, "shadow", 8);
 		set(button, "material", "flat"), set(button, "base", "#b8322a"), set(button, "edge", "#3b1410"), set(button, "radius", 2);
 		set(o, "text", "#2a1a10"), set(o, "button_text", "#fbf1dc"), set(o, "accent", "#b8322a"), set(o, "fill", "#b8322a");
 	} else if (p_world == "sf") {
 		set(frame, "material", "glass"), set(frame, "base", "#07141ee6"), set(frame, "edge", "#38e1ff"), set(frame, "accent", "#38e1ff");
-		set(frame, "shape", "chamfer"), set(frame, "radius", 12), set(frame, "border_width", 2), set(frame, "shadow", 10);
+		set(frame, "shape", "chamfer"), set(frame, "radius", 12), set(frame, "border_width", 2), set(frame, "shadow", 12);
 		set(button, "material", "glass"), set(button, "base", "#0e2a3aee"), set(button, "accent", "#38e1ff"), set(button, "shape", "chamfer"), set(button, "radius", 8);
 		set(o, "text", "#d8f6ff"), set(o, "button_text", "#d8f6ff"), set(o, "accent", "#38e1ff"), set(o, "fill", "#38e1ff");
 	} else if (p_world == "horror") {
 		set(frame, "material", "grime"), set(frame, "base", "#2a1414"), set(frame, "edge", "#090404"), set(frame, "accent", "#8a1010");
-		set(frame, "ornament", "nails"), set(frame, "radius", 1), set(frame, "border_width", 3), set(frame, "shadow", 12);
-		set(button, "material", "grime"), set(button, "base", "#3a1a1a"), set(button, "edge", "#0b0505"), set(button, "radius", 1);
+		set(frame, "ornament", "nails"), set(frame, "radius", 0), set(frame, "border_width", 3), set(frame, "shadow", 12);
+		set(button, "material", "grime"), set(button, "base", "#3a1a1a"), set(button, "edge", "#0b0505"), set(button, "radius", 0);
 		set(o, "text", "#e8d8d0"), set(o, "button_text", "#e8d8d0"), set(o, "accent", "#a01818"), set(o, "fill", "#8a1010");
 	} else if (p_world == "persona") {
 		set(frame, "material", "halftone"), set(frame, "base", "#e8212b"), set(frame, "edge", "#111111"), set(frame, "accent", "#ffffff");
-		set(frame, "shape", "skew"), set(frame, "border_width", 4), set(frame, "shadow", 10);
-		set(button, "material", "flat"), set(button, "base", "#111111"), set(button, "edge", "#ffffff"), set(button, "shape", "skew"), set(button, "border_width", 3), set(button, "shadow", 6);
+		set(frame, "shape", "skew"), set(frame, "border_width", 4), set(frame, "shadow", 12);
+		set(button, "material", "flat"), set(button, "base", "#111111"), set(button, "edge", "#ffffff"), set(button, "shape", "skew"), set(button, "border_width", 3), set(button, "shadow", 8);
 		set(o, "text", "#ffffff"), set(o, "button_text", "#ffffff"), set(o, "accent", "#ffe14d"), set(o, "fill", "#ffe14d");
 	} else if (p_world == "pixel") {
 		set(frame, "material", "flat"), set(frame, "base", "#1b1f3a"), set(frame, "edge", "#f4f4f4"), set(frame, "accent", "#f4b41a");
 		set(frame, "shape", "pixel"), set(frame, "border_width", 3), set(frame, "shadow", 4);
-		set(button, "material", "flat"), set(button, "base", "#3b4a8c"), set(button, "edge", "#f4f4f4"), set(button, "shape", "pixel"), set(button, "border_width", 3), set(button, "shadow", 3);
+		set(button, "material", "flat"), set(button, "base", "#3b4a8c"), set(button, "edge", "#f4f4f4"), set(button, "shape", "pixel"), set(button, "border_width", 3), set(button, "shadow", 4);
 		set(o, "text", "#f4f4f4"), set(o, "button_text", "#f4f4f4"), set(o, "accent", "#f4b41a"), set(o, "fill", "#5bd46a");
 	} else {
 		ERR_FAIL_V_MSG(Dictionary(), vformat("UZUUI: unknown world \"%s\" (see get_world_names).", p_world));
@@ -1228,7 +1417,7 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 	Dictionary tag = button.duplicate();
 	tag["base"] = accent;
 	tag["ornament"] = "none";
-	tag["padding"] = 6;
+	tag["padding"] = 4; // Spacing scale (was 6).
 	theme->set_type_variation("UZUNameTag", "PanelContainer");
 	theme->set_stylebox("panel", "UZUNameTag", create_frame_style(tag));
 	theme->set_type_variation("UZUNameTagLabel", "Label");
@@ -1246,12 +1435,12 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 	slot["base"] = color_of(frame["base"], Color(0.1, 0.1, 0.1)).darkened(0.35);
 	slot["ornament"] = "none";
 	slot["shadow"] = 0;
-	slot["padding"] = 6;
+	slot["padding"] = 4; // Spacing scale (was 6).
 	theme->set_type_variation("UZUSlot", "PanelContainer");
 	theme->set_stylebox("panel", "UZUSlot", create_frame_style(slot));
 	// Ribbon heading: the accent, wider padding.
 	Dictionary ribbon = tag.duplicate();
-	ribbon["padding"] = 10;
+	ribbon["padding"] = 8; // Spacing scale (was 10).
 	ribbon["shape"] = String(frame.get("shape", "rounded")) == "pixel" ? "pixel" : "chamfer";
 	ribbon["radius"] = 10;
 	theme->set_type_variation("UZURibbon", "PanelContainer");
@@ -1711,6 +1900,7 @@ void UZUUI::_bind_methods() {
 	ClassDB::bind_static_method("UZUUI", D_METHOD("draw_panel", "radius", "top", "bottom", "border", "border_width", "shadow"), &UZUUI::draw_panel);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("create_theme", "options"), &UZUUI::create_theme, DEFVAL(Dictionary()));
 	ClassDB::bind_static_method("UZUUI", D_METHOD("get_theme_defaults"), &UZUUI::get_theme_defaults);
+	ClassDB::bind_static_method("UZUUI", D_METHOD("get_layout_scale"), &UZUUI::get_layout_scale);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("get_type_scale", "base_size"), &UZUUI::get_type_scale);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_label", "text", "step"), &UZUUI::make_label, DEFVAL("body"));
 	ClassDB::bind_static_method("UZUUI", D_METHOD("draw_frame", "style"), &UZUUI::draw_frame);

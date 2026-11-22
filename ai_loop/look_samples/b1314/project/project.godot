@@ -1,0 +1,22 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section header between []
+;   param=value ; assign a value to an editor property
+
+; B-1314 showcase: the B-1313 controls screen re-shot after the layout
+; scale migration, plus a wafu world-UI screen (world.tscn) matching the
+; B-1311 talk-window sample.
+config_version=5
+
+[application]
+
+config/name="uzu-b1314-showcase"
+run/main_scene="res://main.tscn"
+
+[display]
+
+window/size/viewport_width=1152
+window/size/viewport_height=648

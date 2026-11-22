@@ -1,0 +1,118 @@
+{
+  "format": "uzu-ui-quality/1",
+  "theme": "fantasy",
+  "verdict": "fail",
+  "checks": {
+    "texture_repetition": {
+      "pass": false,
+      "reason": "no screenshot given"
+    },
+    "contrast": {
+      "pass": true,
+      "pairs": [
+        {
+          "pair": "body: Label text on panel",
+          "ratio": 9.439,
+          "min": 4.5,
+          "fg": [
+            0.9647,
+            0.9059,
+            0.7843,
+            1.0
+          ],
+          "bg": [
+            0.298,
+            0.2039,
+            0.1294,
+            1.0
+          ],
+          "pass": true
+        },
+        {
+          "pair": "heading: Button text on button",
+          "ratio": 8.919,
+          "min": 3.0,
+          "fg": [
+            0.2275,
+            0.149,
+            0.0784,
+            1.0
+          ],
+          "bg": [
+            0.8627,
+            0.7961,
+            0.6235,
+            1.0
+          ],
+          "pass": true
+        }
+      ],
+      "body_min": 4.5,
+      "heading_min": 3.0
+    },
+    "state_completeness": {
+      "pass": true,
+      "states": {
+        "normal": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "hover": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "pressed": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "disabled": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "focus": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxFlat"
+        }
+      }
+    },
+    "coverage": {
+      "pass": true,
+      "ratio": 1.0,
+      "covered": [
+        "PanelContainer",
+        "Button",
+        "CheckBox",
+        "OptionButton",
+        "HSlider",
+        "VSlider",
+        "LineEdit",
+        "SpinBox",
+        "HScrollBar",
+        "VScrollBar",
+        "PopupMenu",
+        "Tree",
+        "TabContainer",
+        "ItemList",
+        "ProgressBar",
+        "TooltipPanel"
+      ],
+      "missing": []
+    },
+    "scale": {
+      "spacing_off_scale": [],
+      "radius_off_scale": [],
+      "shadow_off_scale": [],
+      "counts": {
+        "spacing": 100,
+        "radius": 46,
+        "shadow": 23
+      },
+      "pass": true
+    }
+  }
+}

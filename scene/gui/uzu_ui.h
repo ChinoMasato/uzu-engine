@@ -54,7 +54,9 @@ protected:
 
 public:
 	// A panel style. Keys: "bg" (a color, or "top"/"bottom" for a gradient), "radius",
-	// "border", "border_width", "shadow" (px), "padding". Colors are Color or "#rrggbb[aa]".
+	// "border", "border_width", "shadow" (px) or "elevation" (a layout-scale level),
+	// "padding" (px or a spacing step name). Colors are Color or "#rrggbb[aa]".
+	// Lengths snap to the layout scale (see get_layout_scale).
 	static Ref<StyleBox> create_panel_style(const Dictionary &p_style);
 	// The 9-slice image behind a panel style (exposed for tests and tools).
 	static Ref<Image> draw_panel(int p_radius, const Color &p_top, const Color &p_bottom, const Color &p_border, int p_border_width, int p_shadow);
@@ -63,6 +65,16 @@ public:
 	// buttons also take "hover" and "pressed" colors).
 	static Ref<Theme> create_theme(const Dictionary &p_options = Dictionary());
 	static Dictionary get_theme_defaults();
+	// The layout scale (B-1314): the spacing steps, corner radii and
+	// elevation levels every length in a theme comes from. "spacing" and
+	// "radius" are Arrays of px; "spacing_steps" maps the step names
+	// ("xs", "s", "m", "l", "xl", "xxl") specs can use instead of numbers;
+	// "elevation" maps a level ("0".."4") to its shadow triple {"shadow",
+	// "offset_y", "alpha"}. Style dictionaries take "elevation" next to
+	// "shadow", and a "padding" step name next to a number; off-scale
+	// numbers snap to the nearest step. The same Dictionary is stored in
+	// every theme's "uzu_layout" meta.
+	static Dictionary get_layout_scale();
 	// The type scale (B-1312): five named text steps — display, title, heading,
 	// body, caption — derived from one base size (the theme's "font_size") by a
 	// fixed ratio of 1.25. Each step is a Dictionary {"size", "line_spacing",
@@ -80,10 +92,11 @@ public:
 	// World UI (B-1307): textured game frames instead of plain app panels. A frame style:
 	// "material" (wood, metal, parchment, stone, glass, halftone, grime, flat), "shape"
 	// (rounded, chamfer, skew, pixel), "base" and "edge" colors, "accent" (ornaments and
-	// glow), "radius", "border_width", "shadow", "ornament" (none, rivets, nails, brackets,
-	// diamonds), "padding", "seed", "scale" (1 or 2: generate at twice the resolution, for
-	// high-DPI). The middle of the image repeats, so the texture keeps
-	// its scale at any size.
+	// glow), "radius", "border_width", "shadow" (px) or "elevation" (a layout-scale
+	// level), "ornament" (none, rivets, nails, brackets, diamonds), "padding" (px or a
+	// spacing step name), "seed", "scale" (1 or 2: generate at twice the resolution, for
+	// high-DPI). Lengths snap to the layout scale (see get_layout_scale). The middle of
+	// the image repeats, so the texture keeps its scale at any size.
 	static Ref<Image> draw_frame(const Dictionary &p_style);
 	static Ref<StyleBox> create_frame_style(const Dictionary &p_style);
 	// World themes: fantasy, wafu, sf, horror, persona, pixel. One name switches the

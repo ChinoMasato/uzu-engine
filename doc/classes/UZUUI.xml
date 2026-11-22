@@ -22,7 +22,7 @@
 			<return type="StyleBox" />
 			<param index="0" name="style" type="Dictionary" />
 			<description>
-				Returns a 9-slice style from [method draw_frame]. Its middle repeats, so the texture keeps its scale at any size. The shadow is drawn outside the control's rectangle.
+				Returns a 9-slice style from [method draw_frame]. Its middle repeats, so the texture keeps its scale at any size. The shadow is drawn outside the control's rectangle. Lengths follow the layout scale (see [method get_layout_scale]): [code]shadow[/code] snaps to an elevation level (or name the level with [code]elevation[/code]), [code]radius[/code] snaps to the radius scale, and [code]padding[/code] is a spacing step — a number, snapped, or a step name ([code]"xs"[/code], [code]"s"[/code], [code]"m"[/code], [code]"l"[/code], [code]"xl"[/code], [code]"xxl"[/code]).
 			</description>
 		</method>
 		<method name="create_panel_style" qualifiers="static">
@@ -31,10 +31,10 @@
 			<description>
 				Returns a panel style. Keys (colors are [Color] or [code]"#rrggbb[aa]"[/code]):
 				- [code]bg[/code], or [code]top[/code] and [code]bottom[/code] for a vertical gradient.
-				- [code]radius[/code]: the corner radius.
+				- [code]radius[/code]: the corner radius (snapped to the layout scale's radius steps).
 				- [code]border[/code] and [code]border_width[/code].
-				- [code]shadow[/code]: the shadow size, drawn outside the control's rectangle.
-				- [code]padding[/code]: the content margin.
+				- [code]shadow[/code]: the shadow size, drawn outside the control's rectangle; snapped to an elevation level of the layout scale. [code]elevation[/code] (0 to 4) names the level instead.
+				- [code]padding[/code]: the content margin; a spacing step of the layout scale, as a number (snapped) or a step name ([code]"xs"[/code] to [code]"xxl"[/code]).
 			</description>
 		</method>
 		<method name="create_theme" qualifiers="static">
@@ -88,6 +88,12 @@
 			<param index="5" name="shadow" type="int" />
 			<description>
 				Draws the 9-slice image of a panel. This is what [method create_panel_style] uses.
+			</description>
+		</method>
+		<method name="get_layout_scale" qualifiers="static">
+			<return type="Dictionary" />
+			<description>
+				Returns the layout scale every length in a theme comes from: [code]spacing[/code] (content margins and separations, in px), [code]radius[/code] (corner radii), [code]spacing_steps[/code] (the step names [code]"xs"[/code] to [code]"xxl"[/code] and their px), and [code]elevation[/code] (levels [code]"0"[/code] to [code]"4"[/code], each a shadow triple of [code]shadow[/code] size, [code]offset_y[/code] drop and [code]alpha[/code]). The same Dictionary is stored in every theme's [code]uzu_layout[/code] metadata.
 			</description>
 		</method>
 		<method name="get_theme_defaults" qualifiers="static">
