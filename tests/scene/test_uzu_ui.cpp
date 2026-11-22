@@ -44,6 +44,7 @@ TEST_FORCE_LINK(test_uzu_ui)
 #include "scene/gui/uzu_ui_juice.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/window.h"
+#include "scene/resources/image_texture.h"
 #include "scene/resources/material.h"
 #include "scene/resources/style_box.h"
 #include "scene/resources/style_box_flat.h"
@@ -157,13 +158,18 @@ TEST_CASE("[SceneTree][UZUUI] Theme completeness: every standard control styled,
 			const Ref<StyleBox> focus = theme->get_stylebox("scroll_focus", cls);
 			CHECK_MESSAGE(Object::cast_to<StyleBoxEmpty>(focus.ptr()) == nullptr, cls);
 		}
-		// The Button focus ring: an unfilled accent border, not the
-		// normal box reused (the gate requires it to be distinguishable).
-		Ref<StyleBoxFlat> ring = theme->get_stylebox("focus", "Button");
-		REQUIRE(ring.is_valid());
-		CHECK_FALSE(ring->is_draw_center_enabled());
-		CHECK(ring->get_border_width(SIDE_LEFT) == 2);
-		CHECK(theme->get_stylebox("focus", "Button") != theme->get_stylebox("normal", "Button"));
+		// The Button focus: a real box, not the normal box reused (the
+		// gate requires it to be distinguishable). Most worlds get the
+		// accent ring -- an unfilled border; a world whose buttons
+		// invert (persona, B-1320) gets the flipped frame instead.
+		const Ref<StyleBox> focus_btn = theme->get_stylebox("focus", "Button");
+		REQUIRE(focus_btn.is_valid());
+		CHECK(focus_btn != theme->get_stylebox("normal", "Button"));
+		Ref<StyleBoxFlat> ring = focus_btn;
+		if (ring.is_valid()) {
+			CHECK_FALSE(ring->is_draw_center_enabled());
+			CHECK(ring->get_border_width(SIDE_LEFT) == 2);
+		}
 		// Drawn icons: check marks, arrows, knobs, ticks.
 		for (const char *item : { "checked/CheckBox", "unchecked/CheckBox", "radio_checked/CheckBox", "radio_unchecked/CheckBox",
 					 "arrow/OptionButton", "grabber/HSlider", "grabber_highlight/HSlider", "grabber_disabled/HSlider", "tick/HSlider",
@@ -1059,6 +1065,61 @@ TEST_CASE("[SceneTree][UZUUI] Backdrops: every world composes, none is flat (B-1
 	REQUIRE(bd != nullptr);
 	CHECK(bd->get_mouse_filter() == Control::MOUSE_FILTER_IGNORE);
 	memdelete(bd);
+}
+
+TEST_CASE("[SceneTree][UZUUI] Backdrop accents and persona button inversion (B-1320)") {
+	// The counter-slash: at the canvas centre the persona backdrop is
+	// band2's deep red, where the main band does not reach.
+	const Ref<Image> persona = UZUUI::draw_backdrop(UZUUI::get_backdrop_options("persona"));
+	REQUIRE(persona.is_valid());
+	const Color mid = persona->get_pixel(576, 220);
+	CHECK(mid.r > 0.4f);
+	CHECK(mid.g < 0.05f);
+	CHECK(mid.b < 0.1f);
+	// The sparkles: near-white pixels in the upper field, in a region
+	// the band's white rule cannot reach (on the right it stays low).
+	int whites = 0;
+	for (int y = 20; y < 194; y += 2) {
+		for (int x = 400; x < 1094; x += 2) {
+			const Color c = persona->get_pixel(x, y);
+			whites += (c.r > 0.9f && c.g > 0.9f && c.b > 0.9f) ? 1 : 0;
+		}
+	}
+	CHECK(whites > 30);
+	// The second glow is a real light: the same style without it is
+	// black at its centre.
+	Dictionary g;
+	g["base"] = "#000000";
+	g["mottle"] = 0.0;
+	g["glow2"] = "#ffffff";
+	g["glow2_pos"] = Vector2(0.5, 0.5);
+	g["glow2_strength"] = 1.0;
+	const Ref<Image> lit = UZUUI::draw_backdrop(g);
+	REQUIRE(lit.is_valid());
+	CHECK(lit->get_pixel(576, 324).r > 0.2f);
+	g.erase("glow2");
+	const Ref<Image> unlit = UZUUI::draw_backdrop(g);
+	REQUIRE(unlit.is_valid());
+	CHECK(unlit->get_pixel(576, 324).r < 0.01f);
+	// Persona buttons invert on hover and focus: the hover frame's
+	// centre is the signal red, and the focus box is that same frame,
+	// not the accent ring. Wafu keeps the ring.
+	const Ref<Theme> ptheme = UZUUI::create_world_theme("persona");
+	REQUIRE(ptheme.is_valid());
+	const Ref<StyleBoxTexture> hover = ptheme->get_stylebox("hover", "Button");
+	REQUIRE(hover.is_valid());
+	const Ref<ImageTexture> htex = hover->get_texture();
+	REQUIRE(htex.is_valid());
+	const Ref<Image> himg = htex->get_image();
+	REQUIRE(himg.is_valid());
+	const Color hc = himg->get_pixel(himg->get_width() / 2, himg->get_height() / 2);
+	CHECK(hc.r > 0.5f);
+	CHECK(hc.g < 0.2f);
+	CHECK(ptheme->get_stylebox("focus", "Button")->get_class() == "StyleBoxTexture");
+	CHECK(ptheme->get_color("font_hover_color", "Button") == Color(1, 1, 1));
+	const Ref<Theme> wtheme = UZUUI::create_world_theme("wafu");
+	REQUIRE(wtheme.is_valid());
+	CHECK(wtheme->get_stylebox("focus", "Button")->get_class() == "StyleBoxFlat");
 }
 
 TEST_CASE("[SceneTree][UZUUI] World themes and game parts") {

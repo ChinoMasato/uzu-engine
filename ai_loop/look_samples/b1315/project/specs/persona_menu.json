@@ -36,6 +36,13 @@
          },
          {
           "type": "Label",
+          "text": "PAUSE",
+          "text_style": "caption",
+          "font_color": "#ffe14d",
+          "align": "center"
+         },
+         {
+          "type": "Label",
           "text": "ユウキ　Lv.12",
           "text_style": "body"
          },
@@ -138,7 +145,8 @@
       ]
      }
     ],
-    "motion": "appear"
+    "motion": "appear",
+    "rotation": -1.2
    }
   ]
  }

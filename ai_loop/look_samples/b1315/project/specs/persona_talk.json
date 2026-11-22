@@ -21,6 +21,23 @@
     ]
    },
    {
+    "type": "Label",
+    "text": "CHAPTER 1",
+    "text_style": "caption",
+    "font_color": "#ffe14d",
+    "align": "center",
+    "rotation": -3,
+    "anchor": "top",
+    "offset": [
+     0,
+     94
+    ],
+    "size": [
+     440,
+     24
+    ]
+   },
+   {
     "type": "Talk",
     "speaker": "謎の声",
     "text": "真夜中まであと少し。欠片は三つ、図書館のどこかに眠っている。急げ、夜が明ける前に。",

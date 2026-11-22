@@ -45,6 +45,11 @@ extends SceneTree
 ##          the node's "uzu_motion" metadata; on a world-themed screen the UZUUIWorld
 ##          node plays it with that world's motion when the screen opens. Without a
 ##          world theme the metadata is saved but nothing plays it.
+##   Common (B-1320): "rotation" tilts a node by that many degrees (a
+##          free-placed node pivots on its centre; a node inside a container
+##          pivots on its top-left). Label also takes "outline_size" /
+##          "outline_color" and a hard drop shadow, "shadow_color" with
+##          "shadow_offset" ([x, y]) -- the logo treatment of a title.
 ##   Label / RichText / Button: "text";  Bar: "value", "max", "show_percent"
 ##   Label: "text_style" names a step of the theme's type scale (B-1312: display | title |
 ##          heading | body | caption) instead of a raw "font_size"; the theme gives the
@@ -64,10 +69,10 @@ const TYPES := {
 	"Gauge": "", "Talk": "", "Slot": "", "Ribbon": "", "Separator": "",
 	"Stick": "", "TouchButton": "",
 }
-const COMMON := ["type", "name", "children", "anchor", "offset", "size", "min_size", "expand", "visible", "tooltip", "style", "font_size", "font_color", "align", "motion"]
+const COMMON := ["type", "name", "children", "anchor", "offset", "size", "min_size", "expand", "visible", "tooltip", "style", "font_size", "font_color", "align", "motion", "rotation"]
 const MOTION_KEYS := ["preset", "duration", "strength", "from", "to"]
 const EXTRA := {
-	"Label": ["text", "text_style"], "RichText": ["text"], "Button": ["text"], "Bar": ["value", "max", "show_percent"],
+	"Label": ["text", "text_style", "outline_size", "outline_color", "shadow_color", "shadow_offset"], "RichText": ["text"], "Button": ["text"], "Bar": ["value", "max", "show_percent"],
 	"VBox": ["separation"], "HBox": ["separation"], "Grid": ["separation", "columns"], "Margin": ["padding"],
 	"Image": ["texture", "stretch"], "Color": ["color"], "List": ["items"],
 	"Gauge": ["value", "max", "segments"], "Talk": ["speaker", "text"], "Slot": ["text", "count"], "Ribbon": ["text"],
@@ -323,6 +328,16 @@ func _node(where: String, d, parent: Control, owner_root: Control) -> Control:
 	match type:
 		"Label":
 			c.text = str(d.get("text", ""))
+			if d.has("outline_size"):
+				c.add_theme_constant_override("outline_size", int(d.outline_size))
+			if d.has("outline_color"):
+				c.add_theme_color_override("font_outline_color", _color(where + ".outline_color", d.outline_color))
+			if d.has("shadow_color"):
+				c.add_theme_color_override("font_shadow_color", _color(where + ".shadow_color", d.shadow_color))
+			if d.has("shadow_offset"):
+				var so := _vec2(where + ".shadow_offset", d.shadow_offset)
+				c.add_theme_constant_override("shadow_offset_x", int(so.x))
+				c.add_theme_constant_override("shadow_offset_y", int(so.y))
 			if d.has("text_style"):
 				var step := str(d.text_style)
 				if not step in ["display", "title", "heading", "body", "caption"]:
@@ -421,6 +436,16 @@ func _node(where: String, d, parent: Control, owner_root: Control) -> Control:
 		if not motion.is_empty():
 			c.set_meta("uzu_motion", motion)
 			counts["Motion"] = counts.get("Motion", 0) + 1
+	if d.has("rotation"):
+		# A tilted part (B-1320): free-placed nodes pivot on their
+		# centre; a node inside a container pivots on its top-left,
+		# since its laid-out size is not known at build time.
+		if not (d.rotation is int or d.rotation is float):
+			_err(where + ".rotation", "needs a number of degrees")
+		else:
+			c.rotation_degrees = float(d.rotation)
+			if parent and not parent is Container:
+				c.pivot_offset = c.size * 0.5
 	if parent:
 		parent.add_child(c, true)
 		c.owner = owner_root

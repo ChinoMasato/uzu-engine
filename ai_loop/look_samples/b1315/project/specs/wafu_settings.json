@@ -26,6 +26,14 @@
         "align": "center"
        },
        {
+        "type": "Color",
+        "color": "#b8322a",
+        "min_size": [
+         0,
+         3
+        ]
+       },
+       {
         "type": "HBox",
         "separation": "m",
         "children": [
