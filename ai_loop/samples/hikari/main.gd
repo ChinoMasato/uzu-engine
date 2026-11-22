@@ -96,7 +96,7 @@ var nearest_interactable: Dictionary = {}
 var ui_root: Control
 var hud_panel: PanelContainer
 var hud_shards: Label
-var hud_gauge: ProgressBar
+var hud_shard_icons: Array[TextureRect] = [] # One shard icon per shard (B-1315).
 var hud_objective: Label
 var help_label: Label
 var prompt_panel: PanelContainer
@@ -772,11 +772,11 @@ func _collect_shard(it: Dictionary) -> void:
 		(it["sparkles"] as Node).queue_free()
 	stage_target = stages[mini(shards, 3)].duplicate()
 	hud_shards.text = "%d / 3" % shards
+	var icon := hud_shard_icons[shards - 1]
+	icon.modulate = Color.WHITE # Collected: the shard lights up.
 	if juice_enabled:
-		UZUUIJuice.count_up(hud_gauge, shards - 1, shards, 0.6, "ease_in")
+		UZUUIJuice.play_motion(icon, "press")
 		UZUUIJuice.hover_pulse(hud_panel, 0.6, 0.25)
-	else:
-		hud_gauge.value = shards
 	if shards >= 3:
 		_set_objective("祠のランタンに欠片を戻そう")
 	else:
@@ -873,10 +873,23 @@ func _build_ui() -> void:
 	row.add_theme_constant_override("separation", 10)
 	hud_box.add_child(row)
 	row.add_child(_label("灯りの欠片", 20))
-	hud_gauge = UZUUI.make_gauge(0, 3, 3) as ProgressBar
-	hud_gauge.name = "ShardGauge"
-	hud_gauge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(hud_gauge)
+	# Shard icons, not a segmented gauge (B-1315): the gauge's segments
+	# rendered as tofu blocks in the subset font. Each icon is the shard
+	# sprite itself, dimmed until collected.
+	var icons := HBoxContainer.new()
+	icons.name = "ShardIcons"
+	icons.add_theme_constant_override("separation", 4)
+	icons.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(icons)
+	var shard_tex := load("res://art/shard.png") as Texture2D
+	for i in 3:
+		var icon := TextureRect.new()
+		icon.texture = shard_tex
+		icon.custom_minimum_size = Vector2(24, 24)
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.modulate = Color(0.3, 0.3, 0.3, 0.6) # Not collected yet: a dim silhouette.
+		icons.add_child(icon)
+		hud_shard_icons.append(icon)
 	hud_shards = _label("0 / 3", 20)
 	row.add_child(hud_shards)
 	hud_objective = _label("", 17)

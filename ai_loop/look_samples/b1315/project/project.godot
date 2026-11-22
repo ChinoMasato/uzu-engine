@@ -1,0 +1,24 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section]
+;   param=value ; assign a value to an editor property
+
+; B-1315 showcase: the AAA sample screens (title / menu / settings / HUD /
+; talk) in two worlds, persona raised to its reference level and wafu,
+; built from JSON specs by ai_loop/ui_tool.gd into screens/. The driver
+; (main.gd) picks world and screen from the environment. See
+; ai_loop/iterations/2026-11-22-B-1315-muse.md.
+config_version=5
+
+[application]
+
+config/name="uzu-b1315-showcase"
+run/main_scene="res://main.tscn"
+
+[display]
+
+window/size/viewport_width=1152
+window/size/viewport_height=648

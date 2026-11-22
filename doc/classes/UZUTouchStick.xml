@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="UZUTouchStick" inherits="Control" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+		A virtual analog stick for touch layouts, drawn from the UZUUI theme's colours.
+	</brief_description>
+	<description>
+		[UZUTouchStick] is the touch part of the UZUUI kit (see [method UZUUI.make_touch_stick]): a disc and a knob drawn from the theme colours registered under the [code]UZUTouchStick[/code] type variation ([code]base_color[/code], [code]ring_color[/code], [code]knob_color[/code], [code]knob_ring_color[/code]), so a world theme restyles it like every other part. A finger (or the mouse) drags the knob; the stick reports an analog [member value] with a [member deadzone] applied, through [signal value_changed]. It deliberately does not touch the input map: feeding engine actions from the value is the game's job, so the same part serves any control scheme.
+		The pointer surface is public ([method press_at], [method drag_to], [method release]) as well as wired to GUI input, so an AI player or a test can drive the stick exactly the way a finger does, in local coordinates.
+		[b]Note:[/b] This class is specific to U.ZU Engine.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="drag_to">
+			<return type="void" />
+			<param index="0" name="local_position" type="Vector2" />
+			<description>
+				Moves the knob to a local position while a press is active (see [method press_at]); does nothing when no press is active.
+			</description>
+		</method>
+		<method name="get_knob_offset">
+			<return type="Vector2" />
+			<description>
+				Returns where the knob sits, in px from the centre — the drawn state, for tests and AI verification.
+			</description>
+		</method>
+		<method name="press_at">
+			<return type="void" />
+			<param index="0" name="local_position" type="Vector2" />
+			<description>
+				Begins a press at a local position and moves the knob there, the way a touch or mouse press inside the stick does.
+			</description>
+		</method>
+		<method name="release">
+			<return type="void" />
+			<description>
+				Ends any active press: the value and the knob return to the centre and [signal released] is emitted.
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="released">
+			<description>
+				Emitted when a press ends and the stick returns to the centre.
+			</description>
+		</signal>
+		<signal name="value_changed">
+			<param index="0" name="value" type="Vector2" />
+			<description>
+				Emitted when the stick's analog value changes (drags and releases).
+			</description>
+		</signal>
+	</signals>
+	<members>
+		<member name="deadzone" type="float" setter="set_deadzone" getter="get_deadzone" default="0.22">
+			The fraction of the knob's travel that reports a zero value, rescaled so the rest of the travel still reaches 1.0.
+		</member>
+		<member name="value" type="Vector2" setter="set_value" getter="get_value" default="Vector2(0, 0)">
+			The analog value: a vector of length at most 1. Setting it moves the knob to match; drags update it with the [member deadzone] applied.
+		</member>
+	</members>
+</class>

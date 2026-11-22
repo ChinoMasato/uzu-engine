@@ -349,13 +349,32 @@ static void _apply_entry(const UZUUIJuiceEntry &p_entry) {
 			c->set_scale(p_entry.base_scale * f);
 		} break;
 		case UI_VALUE: {
-			const double num = p_entry.value_from + (p_entry.value_to - p_entry.value_from) * v;
+			// The value never passes its target (B-1315, owner rule).
+			// An overshooting curve used to drive the value past "to":
+			// a gauge aimed at 90 of 100 filled to the track's end
+			// before settling back. The overshoot is still felt -- as
+			// light and size, the way UI_HOVER already expresses it --
+			// while the fill itself stops at the mark.
+			const double vc = CLAMP(v, 0.0, 1.0);
+			const double over = Math::abs(v - vc); // The curve's excess, either side.
+			const double num = p_entry.value_from + (p_entry.value_to - p_entry.value_from) * vc;
 			if (Range *range = Object::cast_to<Range>(c)) {
-				range->set_value(num); // The range clamps to its own min/max.
+				range->set_value(num);
 			} else if (Label *label = Object::cast_to<Label>(c)) {
-				const double lo = MIN(p_entry.value_from, p_entry.value_to);
-				const double hi = MAX(p_entry.value_from, p_entry.value_to);
-				label->set_text(String::num_int64(int64_t(Math::round(CLAMP(num, lo, hi)))));
+				label->set_text(String::num_int64(int64_t(Math::round(num))));
+			}
+			if (over > 0.001) {
+				c->set_pivot_offset(c->get_size() * 0.5f);
+				c->set_scale(p_entry.base_scale * (1.0 + 0.06 * over));
+				Color m = p_entry.base_modulate;
+				const float brighten = float(1.0 + 0.35 * over);
+				m.r *= brighten;
+				m.g *= brighten;
+				m.b *= brighten;
+				c->set_modulate(m);
+			} else {
+				c->set_scale(p_entry.base_scale);
+				c->set_modulate(p_entry.base_modulate);
 			}
 		} break;
 		case UI_COUNT: {

@@ -378,7 +378,12 @@ TEST_CASE("[SceneTree][UZUUIJuice] Value change: a gauge interpolates from its c
 	memdelete(bar);
 }
 
-TEST_CASE("[SceneTree][UZUUIJuice] Value change: persona overshoots the target, then lands on it") {
+TEST_CASE("[SceneTree][UZUUIJuice] Value change: persona's overshoot is light and size, never value") {
+	// B-1315 (owner rule): the fill must not pass its target -- a gauge
+	// aimed at 90 of 100 used to fill to the track's end mid-animation.
+	// The overshoot curve's excess now shows as brightness and scale
+	// while the value stops at the mark. (This replaces the B-1317 pin
+	// "the value overshoots, then lands", which fixed the old drawing.)
 	UZUUIJuice::cancel_all();
 	ProgressBar *bar = memnew(ProgressBar);
 	bar->set_min(0);
@@ -389,9 +394,13 @@ TEST_CASE("[SceneTree][UZUUIJuice] Value change: persona overshoots the target, 
 	options["to"] = 100.0;
 	CHECK(UZUUIJuice::play_motion(bar, "value_change", options));
 	CHECK(UZUUIJuice::seek_animation(bar, 0.36 * 0.7)); // t = 0.7 of the doubled duration.
-	CHECK(bar->get_value() > 100.0);
+	CHECK(bar->get_value() == doctest::Approx(100.0)); // At the mark, not past it.
+	CHECK(bar->get_modulate().r > 1.0f); // The excess is light...
+	CHECK(bar->get_scale().x > 1.0f); // ...and size.
 	CHECK(UZUUIJuice::seek_animation(bar, 0.36));
 	CHECK(bar->get_value() == doctest::Approx(100.0));
+	CHECK(bar->get_modulate() == Color(1, 1, 1, 1)); // Settled: base state restored.
+	CHECK(bar->get_scale() == Vector2(1, 1));
 	memdelete(bar);
 }
 

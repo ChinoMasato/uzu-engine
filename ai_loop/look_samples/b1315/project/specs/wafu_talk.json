@@ -1,0 +1,40 @@
+{
+ "scene": "res://screens/wafu_talk.tscn",
+ "theme": {
+  "world": "wafu",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Ribbon",
+    "text": "第壱章　消えた灯り",
+    "anchor": "top",
+    "offset": [
+     0,
+     28
+    ],
+    "size": [
+     440,
+     54
+    ]
+   },
+   {
+    "type": "Talk",
+    "speaker": "村の長老",
+    "text": "祠のランタンが消えてしまった。夕暮れまでに、灯りの欠片を三つ集めてきておくれ。",
+    "anchor": "bottom_wide",
+    "offset": [
+     48,
+     36
+    ],
+    "size": [
+     1056,
+     190
+    ],
+    "motion": "appear"
+   }
+  ]
+ }
+}

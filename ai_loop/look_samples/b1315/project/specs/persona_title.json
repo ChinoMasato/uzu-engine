@@ -1,0 +1,77 @@
+{
+ "scene": "res://screens/persona_title.tscn",
+ "theme": {
+  "world": "persona",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "VBox",
+    "anchor": "center",
+    "offset": [
+     0,
+     -30
+    ],
+    "size": [
+     520,
+     430
+    ],
+    "separation": "l",
+    "children": [
+     {
+      "type": "Label",
+      "text": "真夜中クエスト",
+      "text_style": "display",
+      "align": "center"
+     },
+     {
+      "type": "Label",
+      "text": "MIDNIGHT QUEST ― 真夜中の図書館を取り戻せ",
+      "text_style": "caption",
+      "align": "center"
+     },
+     {
+      "type": "Spacer",
+      "min_size": [
+       0,
+       24
+      ]
+     },
+     {
+      "type": "Button",
+      "text": "はじめから",
+      "min_size": [
+       0,
+       56
+      ]
+     },
+     {
+      "type": "Button",
+      "text": "つづきから",
+      "min_size": [
+       0,
+       56
+      ]
+     },
+     {
+      "type": "Button",
+      "text": "せってい",
+      "min_size": [
+       0,
+       56
+      ]
+     },
+     {
+      "type": "Label",
+      "text": "U.ZU Engine sample",
+      "text_style": "caption",
+      "align": "center"
+     }
+    ],
+    "motion": "appear"
+   }
+  ]
+ }
+}

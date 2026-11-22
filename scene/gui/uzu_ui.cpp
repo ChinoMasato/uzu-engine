@@ -42,6 +42,7 @@
 #include "scene/gui/progress_bar.h"
 #include "scene/gui/tab_container.h"
 #include "scene/gui/texture_rect.h"
+#include "scene/gui/uzu_touch.h"
 #include "scene/gui/uzu_ui_juice.h"
 #include "scene/resources/font.h"
 #include "scene/resources/image_texture.h"
@@ -547,6 +548,149 @@ Ref<ImageTexture> make_empty_icon() {
 	return ImageTexture::create_from_image(Image::create_empty(16, 16, false, Image::FORMAT_RGBA8));
 }
 
+// WCAG relative luminance and the quality gate's contrast ratio (B-1310,
+// ai_loop/ui_quality.py), mirrored so a colour can be solved against the
+// same numbers the gate will measure: a translucent colour is composited
+// over black and over white and the worse ratio wins.
+float wcag_luminance(const Color &p_c) {
+	auto lin = [](float v) {
+		return v <= 0.04045f ? v / 12.92f : Math::pow((v + 0.055f) / 1.055f, 2.4f);
+	};
+	return 0.2126f * lin(p_c.r) + 0.7152f * lin(p_c.g) + 0.0722f * lin(p_c.b);
+}
+
+float gate_contrast(const Color &p_fg, const Color &p_bg) {
+	float worst = 1e9f;
+	for (int i = 0; i < 2; i++) {
+		const Color base = i == 0 ? Color(0, 0, 0) : Color(1, 1, 1);
+		auto over = [&](const Color &c) {
+			return Color(c.r * c.a + base.r * (1.0f - c.a), c.g * c.a + base.g * (1.0f - c.a), c.b * c.a + base.b * (1.0f - c.a));
+		};
+		const float back = wcag_luminance(over(p_bg));
+		const float fore = wcag_luminance(over(p_fg));
+		const float ratio = (MAX(fore, back) + 0.05f) / (MIN(fore, back) + 0.05f);
+		worst = MIN(worst, ratio);
+	}
+	return worst;
+}
+
+// The colour a panel stylebox actually paints its middle with: the
+// centre pixel of its texture, or a flat box's colour. The groove
+// solver and the quality gate must agree on this sample -- solving
+// against the *option* colour instead underestimates how dark a wood
+// or parchment centre renders (B-1315: fantasy scored 1.59 that way).
+Color stylebox_center_color(const Ref<StyleBox> &p_sb, const Color &p_fallback) {
+	const Ref<StyleBoxTexture> tex = p_sb;
+	if (tex.is_valid() && tex->get_texture().is_valid()) {
+		const Ref<Image> img = tex->get_texture()->get_image();
+		if (img.is_valid() && img->get_width() > 0 && img->get_height() > 0) {
+			return img->get_pixel(img->get_width() / 2, img->get_height() / 2);
+		}
+	}
+	const Ref<StyleBoxFlat> flat = p_sb;
+	if (flat.is_valid()) {
+		return flat->get_bg_color();
+	}
+	return p_fallback;
+}
+
+// The slider groove colour, solved rather than picked (B-1315; the B-1313
+// styling left the groove at a contrast of 1.0-1.8 against the panel in
+// most themes, so the track all but vanished). The search walks mixes of
+// the field colour toward black and toward white and keeps the mix the
+// gate's own contrast function scores best against the panel and against
+// the accent fill, preferring the smallest change once both targets are
+// met. Targets sit above the gate's 2.0 thresholds, so the centre colours
+// the probe samples from real frames keep their margin.
+Color solve_groove_color(const Color &p_field, const Color &p_panel, const Color &p_fill) {
+	Color best = p_field;
+	best.a = 1.0f;
+	float best_score = -1e9f;
+	for (int dir = 0; dir < 2; dir++) {
+		const Color target = dir == 0 ? Color(0, 0, 0) : Color(1, 1, 1);
+		for (int i = 0; i <= 50; i++) {
+			const float t = i * 0.02f;
+			Color cand = p_field.lerp(target, t);
+			cand.a = 1.0f;
+			const float met = MIN(gate_contrast(cand, p_panel) / 2.3f, gate_contrast(p_fill, cand) / 2.2f);
+			const float score = MIN(met, 1.0f) * 100.0f - t;
+			if (score > best_score) {
+				best_score = score;
+				best = cand;
+			}
+		}
+	}
+	return best;
+}
+
+// A round pad face for the touch button: a filled disc with a rim, lit
+// from above like the slider knob. At 96 px it 9-slices to any pad size
+// without the rim thinning; the focus state is the rim alone.
+Ref<ImageTexture> make_disc_texture(const Color &p_fill, const Color &p_rim, bool p_ring_only) {
+	const int s = 96;
+	Ref<Image> img = Image::create_empty(s, s, false, Image::FORMAT_RGBA8);
+	const Vector2 c(s * 0.5f, s * 0.5f);
+	for (int y = 0; y < s; y++) {
+		for (int x = 0; x < s; x++) {
+			const Vector2 p(x + 0.5f, y + 0.5f);
+			const float d = (p - c).length() - (s * 0.5f - 2.0f); // <= 0 inside the disc.
+			Color col(0, 0, 0, 0);
+			if (d <= 0.0f) {
+				const float aa = CLAMP(-d, 0.0f, 1.0f); // One px of edge softening.
+				if (p_ring_only) {
+					if (d > -6.0f) {
+						col = Color(p_rim, p_rim.a * aa);
+					}
+				} else if (d > -4.0f) {
+					col = Color(p_rim, p_rim.a * aa);
+				} else {
+					col = p_fill.lightened(0.10f * (1.0f - p.y / s));
+					col.a *= aa;
+				}
+			}
+			img->set_pixel(x, y, col);
+		}
+	}
+	return ImageTexture::create_from_image(img);
+}
+
+Ref<StyleBoxTexture> disc_box(const Color &p_fill, const Color &p_rim, bool p_ring_only) {
+	Ref<StyleBoxTexture> sb;
+	sb.instantiate();
+	sb->set_texture(make_disc_texture(p_fill, p_rim, p_ring_only));
+	sb->set_texture_margin_all(32);
+	sb->set_content_margin_all(8); // The spacing scale (B-1314).
+	return sb;
+}
+
+// The touch parts of the kit (B-1315): the stick reads its colours from
+// the "UZUTouchStick" theme type, the pad button is a Button type
+// variation carrying drawn discs, so both follow the theme that styles
+// everything else instead of being hand-drawn per game.
+void style_touch_parts(const Ref<Theme> &p_theme, const Color &p_accent, const Color &p_text,
+		const Color &p_panel_bg, const Color &p_disc_fill, const Color &p_disc_rim, const Color &p_disc_text) {
+	// No type variation for the stick: UZUTouchStick is a built-in class,
+	// and a variation may not carry a built-in class's name -- the theme
+	// items live under the class name itself, which is where the class
+	// looks them up.
+	p_theme->set_color("base_color", "UZUTouchStick", Color(p_panel_bg, 0.55f));
+	p_theme->set_color("ring_color", "UZUTouchStick", Color(p_accent, 0.9f));
+	p_theme->set_color("knob_color", "UZUTouchStick", Color(p_accent, 0.9f));
+	p_theme->set_color("knob_ring_color", "UZUTouchStick", Color(p_text, 0.85f));
+	p_theme->set_type_variation("UZUTouchButton", "Button");
+	p_theme->set_stylebox("normal", "UZUTouchButton", disc_box(p_disc_fill, p_disc_rim, false));
+	p_theme->set_stylebox("hover", "UZUTouchButton", disc_box(p_disc_fill.lightened(0.18f), p_disc_rim, false));
+	p_theme->set_stylebox("pressed", "UZUTouchButton", disc_box(p_disc_fill.darkened(0.25f), p_disc_rim, false));
+	Color disabled_fill = p_disc_fill;
+	disabled_fill.a *= 0.5f;
+	p_theme->set_stylebox("disabled", "UZUTouchButton", disc_box(disabled_fill, Color(p_disc_rim, 0.4f), false));
+	p_theme->set_stylebox("focus", "UZUTouchButton", disc_box(Color(0, 0, 0, 0), p_accent, true));
+	for (const char *name : { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color" }) {
+		p_theme->set_color(name, "UZUTouchButton", p_disc_text);
+	}
+	p_theme->set_color("font_disabled_color", "UZUTouchButton", Color(p_disc_text, 0.4f));
+}
+
 // Styles every standard control create_theme / create_world_theme used to
 // leave at the default Godot look, from boxes and colors the caller built
 // in its own idiom (procedural panels for create_theme, world frames for
@@ -556,7 +700,8 @@ void style_extended_controls(const Ref<Theme> &p_theme,
 		const Ref<StyleBox> &p_panel_box, const Ref<StyleBox> &p_field_box,
 		const Ref<StyleBox> &p_button_normal, const Ref<StyleBox> &p_button_hover,
 		const Ref<StyleBox> &p_button_pressed, const Ref<StyleBox> &p_button_disabled,
-		const Color &p_accent, const Color &p_text, const Color &p_field_bg, int p_radius) {
+		const Color &p_accent, const Color &p_text, const Color &p_field_bg, int p_radius,
+		const Color &p_panel_bg) {
 	const Color dim = Color(p_text, 0.45f);
 	const Color faint = Color(p_text, 0.08f);
 	const Ref<StyleBox> focus = focus_box(p_accent, p_radius);
@@ -605,9 +750,16 @@ void style_extended_controls(const Ref<Theme> &p_theme,
 	p_theme->set_constant("h_separation", "OptionButton", 4);
 	p_theme->set_constant("arrow_margin", "OptionButton", 4);
 
-	// Sliders: a groove in the field color, the travelled part in the
-	// accent, a drawn knob.
-	const Ref<StyleBox> groove = flat_box(p_field_bg, 4, 0, Color(p_accent, 0.4f), 1);
+	// Sliders: a groove whose colour is solved against the panel and
+	// the fill (B-1315), the travelled part in the accent, a drawn knob.
+	Ref<StyleBoxFlat> groove_flat;
+	groove_flat.instantiate();
+	groove_flat->set_bg_color(solve_groove_color(p_field_bg, p_panel_bg, p_accent));
+	groove_flat->set_corner_radius_all(4);
+	groove_flat->set_border_color(Color(p_text, 0.35f));
+	groove_flat->set_border_width_all(1);
+	groove_flat->set_content_margin_all(4); // A track thick enough to read; on the spacing scale.
+	const Ref<StyleBox> groove = groove_flat;
 	const Ref<StyleBox> groove_fill = flat_box(p_accent, 4, 0);
 	const Ref<StyleBox> groove_fill_hi = flat_box(p_accent.lightened(0.2f), 4, 0);
 	for (const char *cls : { "HSlider", "VSlider" }) {
@@ -973,8 +1125,13 @@ Ref<Theme> UZUUI::create_theme(const Dictionary &p_options) {
 	field["padding"] = 8;
 	field["shadow"] = 0;
 	const Color field_bg = color_of(field["bottom"], Color::html("#10162a"));
+	const Color panel_bg = stylebox_center_color(panel_style,
+			color_of(panel["top"], Color::html("#1d2740")).lerp(color_of(panel["bottom"], Color::html("#10162a")), 0.5f));
 	style_extended_controls(theme, panel_style, create_panel_style(field), btn_normal, btn_hover, btn_pressed, btn_disabled,
-			accent, text, field_bg, int(button.get("radius", 8)));
+			accent, text, field_bg, int(button.get("radius", 8)), panel_bg);
+	style_touch_parts(theme, accent, text, panel_bg,
+			color_of(button.get("top", Variant()), color_of(button.get("bg", Variant()), accent)),
+			accent, text);
 	return theme;
 }
 
@@ -1034,6 +1191,10 @@ float fbm_warped(float p_x, float p_y, int p_tile, int p_cells, uint32_t p_seed,
 	return fbm_noise(p_x + (qx - 0.5f) * 2.0f * p_warp, p_y + (qy - 0.5f) * 2.0f * p_warp, p_tile, p_cells, p_cells, p_seed, 4);
 }
 
+// A skew parallelogram's lean: x shifts by this much per unit of y
+// (frame_distance). Across a tile the edge travels slope × height.
+static const float FRAME_SKEW_SLOPE = 0.25f;
+
 float frame_distance(const String &p_shape, const Vector2 &p, const Vector2 &c, const Vector2 &h, float r) {
 	if (p_shape == "chamfer") {
 		const Vector2 q = (p - c).abs();
@@ -1041,8 +1202,8 @@ float frame_distance(const String &p_shape, const Vector2 &p, const Vector2 &c, 
 	}
 	if (p_shape == "skew") {
 		// A parallelogram leaning right: x shifts with height.
-		const Vector2 q(p.x - (p.y - c.y) * 0.25f, p.y);
-		return rounded_rect_distance(q, c, Vector2(h.x - h.y * 0.25f, h.y), 0.0f);
+		const Vector2 q(p.x - (p.y - c.y) * FRAME_SKEW_SLOPE, p.y);
+		return rounded_rect_distance(q, c, Vector2(h.x - h.y * FRAME_SKEW_SLOPE, h.y), 0.0f);
 	}
 	if (p_shape == "pixel") {
 		const Vector2 q = (p - c).abs() - h;
@@ -1266,6 +1427,23 @@ Ref<Image> draw_frame_impl(const Dictionary &p_style, float p_shadow_alpha) {
 
 } // namespace
 
+Dictionary UZUUI::get_skew_safe_margins(const Dictionary &p_style) {
+	Dictionary out;
+	out["slope"] = 0.0;
+	out["travel"] = 0.0;
+	if (String(p_style.get("shape", "")) != "skew") {
+		return out;
+	}
+	// The tile's height sets the travel: the 9-slice corners draw at
+	// native size and the middle band keeps its pattern's travel when
+	// stretched, so the edge's total travel is the tile's, whatever
+	// height the panel is drawn at.
+	const Ref<Image> img = draw_frame(p_style);
+	out["slope"] = double(FRAME_SKEW_SLOPE);
+	out["travel"] = double(FRAME_SKEW_SLOPE) * img->get_height();
+	return out;
+}
+
 Ref<Image> UZUUI::draw_frame(const Dictionary &p_style) {
 	return draw_frame_impl(p_style, 0.5f);
 }
@@ -1308,8 +1486,19 @@ Ref<StyleBox> UZUUI::create_frame_style(const Dictionary &p_style) {
 	}
 	sb->set_expand_margin_all(shadow.size * scale);
 	// The middle repeats, so the texture keeps its scale.
-	sb->set_h_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE_FIT);
-	sb->set_v_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE_FIT);
+	if (String(style.get("material", "")) == "halftone") {
+		// A printed dot grid must keep its exact cell: TILE_FIT rescales
+		// the tile to fit the panel, and the resampling beats against
+		// the grid into a moire whose period wanders off the cell
+		// (measured in B-1315: autocorrelation peaks at 23 / 54 px on a
+		// panel whose cell is 8 px). Tiling at native size and clipping
+		// the last cell keeps the grid pure, like print.
+		sb->set_h_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE);
+		sb->set_v_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE);
+	} else {
+		sb->set_h_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE_FIT);
+		sb->set_v_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE_FIT);
+	}
 	sb->set_content_margin_all(style_padding(style, 12));
 	if (String(style.get("shape", "")) == "pixel") {
 		sb->set_texture(ImageTexture::create_from_image(img));
@@ -1350,7 +1539,11 @@ Dictionary UZUUI::get_world_options(const String &p_world) {
 		set(button, "material", "grime"), set(button, "base", "#3a1a1a"), set(button, "edge", "#0b0505"), set(button, "radius", 0);
 		set(o, "text", "#e8d8d0"), set(o, "button_text", "#e8d8d0"), set(o, "accent", "#a01818"), set(o, "fill", "#8a1010");
 	} else if (p_world == "persona") {
-		set(frame, "material", "halftone"), set(frame, "base", "#e8212b"), set(frame, "edge", "#111111"), set(frame, "accent", "#ffffff");
+		// The red is the reference work's own (#e60012): the earlier
+		// #e8212b put white body text at a contrast of 4.48 against it,
+		// just under the gate's 4.5 (B-1315). The deeper red passes at
+		// 4.80 and reads harder against the pure-black edge.
+		set(frame, "material", "halftone"), set(frame, "base", "#e60012"), set(frame, "edge", "#000000"), set(frame, "accent", "#ffffff");
 		set(frame, "shape", "skew"), set(frame, "border_width", 4), set(frame, "shadow", 12);
 		set(frame, "inner_shadow", 0.3), set(frame, "highlight", 0.3);
 		set(button, "material", "flat"), set(button, "base", "#111111"), set(button, "edge", "#ffffff"), set(button, "shape", "skew"), set(button, "border_width", 3), set(button, "shadow", 8);
@@ -1462,17 +1655,49 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 	field_frame["shadow"] = 0;
 	field_frame["padding"] = 8;
 	const int button_radius = int(button.get("radius", 8));
+	const Color panel_bg = stylebox_center_color(panel, color_of(frame["base"], Color(0.1, 0.1, 0.14)));
 	style_extended_controls(theme, panel, create_frame_style(field_frame), wbtn_normal, wbtn_hover, wbtn_pressed, wbtn_disabled,
-			accent, text, color_of(field_frame["base"], Color(0.07, 0.07, 0.1)), button_radius);
+			accent, text, color_of(field_frame["base"], Color(0.07, 0.07, 0.1)), button_radius,
+			panel_bg);
+	if (String(button.get("shape", "rounded")) == "skew") {
+		// An OptionButton's label starts at the box's left edge, where a
+		// skew frame's top-left notch cuts the shape away: the text sat
+		// half outside the black, crossed by the border (B-1315 persona
+		// settings capture). Deepen the option button's left margin so
+		// the label starts inside the shape at its rows. Buttons centre
+		// their text and do not need it.
+		static const char *option_states[] = { "normal", "hover", "pressed", "disabled",
+			"normal_mirrored", "hover_mirrored", "pressed_mirrored", "disabled_mirrored" };
+		for (const char *state : option_states) {
+			Ref<StyleBox> ob = theme->get_stylebox(state, "OptionButton");
+			if (ob.is_valid()) {
+				ob = ob->duplicate();
+				ob->set_content_margin(SIDE_LEFT, 64);
+				theme->set_stylebox(state, "OptionButton", ob);
+			}
+		}
+	}
+	style_touch_parts(theme, accent, text, panel_bg,
+			color_of(button["base"], Color(0.2, 0.2, 0.3)),
+			color_of(button.get("edge", Variant()), accent), btext);
 	theme->set_stylebox("focus", "Button", focus_box(accent, button_radius));
 	theme->set_stylebox("focus", "ItemList", focus_box(accent, int(frame.get("radius", 8))));
 	theme->set_stylebox("cursor", "ItemList", flat_box(Color(0, 0, 0, 0), 4, 0, accent, 1));
 	theme->set_stylebox("cursor_unfocused", "ItemList", flat_box(Color(0, 0, 0, 0), 4, 0, Color(accent, 0.4), 1));
-	// Name tag: a small frame of the accent color.
+	// Name tag: a small frame of the accent color. A skew frame cannot
+	// live at this size -- the parallelogram's travel is wider than the
+	// tag, and its nine-patch margins exceed the tag on both axes, so
+	// the drawn body collapsed to a sliver and the speaker's name sat
+	// half outside it (B-1315 persona talk capture). Like the ribbon,
+	// the tag falls back to a chamfer when the world's part shape is
+	// skew; other worlds keep their shape.
 	Dictionary tag = button.duplicate();
 	tag["base"] = accent;
 	tag["ornament"] = "none";
 	tag["padding"] = 4; // Spacing scale (was 6).
+	if (String(button.get("shape", "rounded")) == "skew") {
+		tag["shape"] = "chamfer";
+	}
 	theme->set_type_variation("UZUNameTag", "PanelContainer");
 	theme->set_stylebox("panel", "UZUNameTag", create_frame_style(tag));
 	theme->set_type_variation("UZUNameTagLabel", "Label");
@@ -1483,8 +1708,23 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 	theme->set_type_variation("UZURibbonLabel", "Label");
 	theme->set_font_size("font_size", "UZURibbonLabel", int(title_step["size"]));
 	theme->set_color("font_color", "UZURibbonLabel", accent.get_luminance() > 0.55 ? Color(0.08, 0.06, 0.05) : Color(1, 1, 1));
+	// Talk window: the shared panel style, except that a skew frame leans
+	// across the window's text rows -- the body is inset to the widest
+	// on-scale margin so the text block clears the slant at its own rows
+	// (B-1315 containment; the gate's probe measures the real boundary
+	// scanned from the frame texture). The top margin grows too: the
+	// parallelogram's right edge sits furthest left at the top rows
+	// (its inset there exceeds the 64 the sides can give), so the text
+	// block starts lower, at rows where the flat side margins clear it.
+	Ref<StyleBox> talk_panel = panel;
+	if (String(frame.get("shape", "rounded")) == "skew") {
+		talk_panel = panel->duplicate();
+		talk_panel->set_content_margin(SIDE_LEFT, 64);
+		talk_panel->set_content_margin(SIDE_RIGHT, 64);
+		talk_panel->set_content_margin(SIDE_TOP, 32);
+	}
 	theme->set_type_variation("UZUTalk", "PanelContainer");
-	theme->set_stylebox("panel", "UZUTalk", panel);
+	theme->set_stylebox("panel", "UZUTalk", talk_panel);
 	// Item slot: a sunken square.
 	Dictionary slot = frame.duplicate();
 	slot["base"] = color_of(frame["base"], Color(0.1, 0.1, 0.1)).darkened(0.35);
@@ -1895,6 +2135,21 @@ Control *UZUUI::make_button(const String &p_text) {
 	return b;
 }
 
+Control *UZUUI::make_touch_stick() {
+	UZUTouchStick *stick = memnew(UZUTouchStick);
+	stick->set_name("TouchStick");
+	return stick;
+}
+
+Control *UZUUI::make_touch_button(const String &p_text) {
+	Button *b = memnew(Button);
+	b->set_name("TouchButton");
+	b->set_theme_type_variation("UZUTouchButton");
+	b->set_text(p_text);
+	b->set_custom_minimum_size(Size2(104, 104));
+	return b;
+}
+
 Control *UZUUI::make_label(const String &p_text, const String &p_step) {
 	Label *label = memnew(Label);
 	label->set_name("Label");
@@ -1974,6 +2229,7 @@ void UZUUI::_bind_methods() {
 	ClassDB::bind_static_method("UZUUI", D_METHOD("get_layout_scale"), &UZUUI::get_layout_scale);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("get_type_scale", "base_size"), &UZUUI::get_type_scale);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_label", "text", "step"), &UZUUI::make_label, DEFVAL("body"));
+	ClassDB::bind_static_method("UZUUI", D_METHOD("get_skew_safe_margins", "style"), &UZUUI::get_skew_safe_margins);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("draw_frame", "style"), &UZUUI::draw_frame);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("create_frame_style", "style"), &UZUUI::create_frame_style);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("get_world_names"), &UZUUI::get_world_names);
@@ -1986,6 +2242,8 @@ void UZUUI::_bind_methods() {
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_ribbon", "text"), &UZUUI::make_ribbon);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_separator"), &UZUUI::make_separator);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("create_world_material", "world"), &UZUUI::create_world_material);
+	ClassDB::bind_static_method("UZUUI", D_METHOD("make_touch_stick"), &UZUUI::make_touch_stick);
+	ClassDB::bind_static_method("UZUUI", D_METHOD("make_touch_button", "text"), &UZUUI::make_touch_button);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_panel", "content"), &UZUUI::make_panel, DEFVAL(Variant()));
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_button", "text"), &UZUUI::make_button);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_bar", "value", "max"), &UZUUI::make_bar, DEFVAL(100.0));

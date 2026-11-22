@@ -123,6 +123,20 @@ public:
 	// unknown world.
 	static Ref<ShaderMaterial> create_world_material(const String &p_world);
 
+	// The skew frame's slant, for layouts that must stay inside the
+	// parallelogram (B-1315): {"slope", "travel"} -- across the frame
+	// tile the edge travels travel px horizontally, so content whose
+	// bottom row sits at fraction f of the panel height needs travel*f
+	// of extra left inset (and travel*(1-f') on the right at its top
+	// row f'). Zeroes for any other shape.
+	static Dictionary get_skew_safe_margins(const Dictionary &p_style);
+
+	// Touch parts (B-1315), styled by the theme's "UZUTouchStick" colours
+	// and "UZUTouchButton" variation, so a touch layout follows the world
+	// like every other part instead of being hand-drawn per game.
+	static Control *make_touch_stick();
+	static Control *make_touch_button(const String &p_text);
+
 	// Parts. Each returns a new Control, not yet added anywhere.
 	static Control *make_panel(Control *p_content = nullptr);
 	static Control *make_button(const String &p_text);

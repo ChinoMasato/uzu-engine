@@ -12,6 +12,7 @@ const TYPES: Array[String] = [
 	"LineEdit", "SpinBox", "HScrollBar", "VScrollBar", "PopupMenu", "Tree",
 	"TabContainer", "ItemList", "ProgressBar", "TooltipPanel", "TooltipLabel",
 	"Label", "RichTextLabel", "UZUNameTag", "UZUTalk", "UZUSlot", "UZURibbon", "UZUGauge",
+	"UZUTouchStick", "UZUTouchButton",
 ]
 
 
@@ -19,7 +20,7 @@ func _col(c: Color) -> Array:
 	return [c.r, c.g, c.b, c.a]
 
 
-func _stylebox(sb: StyleBox) -> Dictionary:
+func _stylebox(sb: StyleBox, with_alpha: bool = false) -> Dictionary:
 	var d: Dictionary = {"class": sb.get_class()}
 	d["content_margins"] = [
 		sb.get_margin(SIDE_LEFT), sb.get_margin(SIDE_TOP),
@@ -55,6 +56,26 @@ func _stylebox(sb: StyleBox) -> Dictionary:
 				# The centre of the 9-slice tile is the panel fill.
 				d["center_color"] = _col(img.get_pixel(img.get_width() / 2, img.get_height() / 2))
 				d["texture_size"] = [img.get_width(), img.get_height()]
+				if with_alpha:
+					# Frame coverage (B-1315): the alpha of the centre
+					# slice -- the part of the texture that repeats. A
+					# wedge-shaped hole (B-1318) is an alpha hole here.
+					var ml := int(t.texture_margin_left)
+					var mt := int(t.texture_margin_top)
+					var mr := int(t.texture_margin_right)
+					var mb := int(t.texture_margin_bottom)
+					var amin := 1.0
+					var asum := 0.0
+					var n := 0
+					for y in range(mt, img.get_height() - mb):
+						for x in range(ml, img.get_width() - mr):
+							var a := img.get_pixel(x, y).a
+							amin = minf(amin, a)
+							asum += a
+							n += 1
+					if n > 0:
+						d["center_alpha_min"] = amin
+						d["center_alpha_mean"] = asum / n
 	return d
 
 
@@ -64,7 +85,8 @@ func _theme_dump(theme: Theme) -> Dictionary:
 		var td: Dictionary = {}
 		var styleboxes: Dictionary = {}
 		for name in theme.get_stylebox_list(type_name):
-			styleboxes[name] = _stylebox(theme.get_stylebox(name, type_name))
+			styleboxes[name] = _stylebox(theme.get_stylebox(name, type_name),
+					type_name == "PanelContainer" and name == "panel")
 		if not styleboxes.is_empty():
 			td["styleboxes"] = styleboxes
 		var colors: Dictionary = {}
