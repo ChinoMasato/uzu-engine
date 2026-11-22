@@ -183,6 +183,71 @@ TEST_CASE("[SceneTree][UZUUI] Theme completeness: every standard control styled,
 	}
 }
 
+TEST_CASE("[SceneTree][UZUUI] Type scale: five steps on every theme, decoration presets") {
+	// B-1312: the scale itself — five steps, strictly growing, each step
+	// the one below times the 1.25 ratio (within integer rounding), and
+	// body is the base size the caller asked for.
+	const Dictionary scale = UZUUI::get_type_scale(18);
+	int prev = 0;
+	for (const char *name : { "caption", "body", "heading", "title", "display" }) {
+		const Dictionary s = scale[name];
+		const int size = int(s["size"]);
+		CHECK(size > prev);
+		if (prev > 0) {
+			CHECK(double(size) / prev > 1.15);
+			CHECK(double(size) / prev < 1.35);
+		}
+		prev = size;
+		CHECK(String(s["variation"]) == "UZU" + String(name).capitalize() + "Label");
+	}
+	CHECK(int(Dictionary(scale["body"])["size"]) == 18);
+	CHECK(int(Dictionary(scale["body"])["line_spacing"]) >= 3); // Body text breathes.
+	CHECK(int(Dictionary(scale["display"])["letter_spacing"]) > 0); // Display is tracked.
+	CHECK(int(Dictionary(scale["display"])["outline_size"]) > 0);
+	CHECK(int(Dictionary(scale["body"])["outline_size"]) == 0);
+
+	// Every theme carries all five steps as Label variations whose items
+	// match the scale, and the scale rides along in the theme's meta.
+	auto check_theme = [](const Ref<Theme> &theme, int base) {
+		REQUIRE(theme->has_meta("uzu_type_scale"));
+		const Dictionary s = theme->get_meta("uzu_type_scale");
+		for (const char *name : { "display", "title", "heading", "body", "caption" }) {
+			const Dictionary step = s[name];
+			const String variation = step["variation"];
+			CHECK(theme->get_font_size("font_size", variation) == int(step["size"]));
+			CHECK(theme->get_constant("line_spacing", variation) == int(step["line_spacing"]));
+		}
+		CHECK(int(Dictionary(s["body"])["size"]) == base);
+		// Decoration presets: display and title are outlined and shadowed,
+		// body is plain, and captions sit back (dimmer than body text).
+		CHECK(theme->get_constant("outline_size", "UZUDisplayLabel") > 0);
+		CHECK(theme->get_constant("outline_size", "UZUTitleLabel") > 0);
+		CHECK(theme->get_constant("outline_size", "UZUBodyLabel") == 0);
+		CHECK(theme->get_constant("shadow_offset_y", "UZUDisplayLabel") > 0);
+		CHECK(theme->get_constant("shadow_offset_y", "UZUBodyLabel") == 0);
+		CHECK(theme->get_color("font_color", "UZUCaptionLabel").a < theme->get_color("font_color", "UZUBodyLabel").a);
+		// Tracked steps carry a spaced font (the letter spacing is real,
+		// not just a number in the scale).
+		if (int(Dictionary(s["display"])["letter_spacing"]) > 0) {
+			CHECK(theme->has_font("font", "UZUDisplayLabel"));
+		}
+	};
+	check_theme(UZUUI::create_theme(Dictionary()), 18);
+	Dictionary big;
+	big["font_size"] = 20; // The existing single size option is the scale's base.
+	check_theme(UZUUI::create_theme(big), 20);
+	for (const String &world : UZUUI::get_world_names()) {
+		check_theme(UZUUI::create_world_theme(world), world == "pixel" ? 16 : 19);
+	}
+	// make_label picks the step's variation; the default step is body.
+	Control *title = UZUUI::make_label("Title", "title");
+	CHECK(Object::cast_to<Label>(title)->get_theme_type_variation() == "UZUTitleLabel");
+	Control *plain = UZUUI::make_label("Plain");
+	CHECK(Object::cast_to<Label>(plain)->get_theme_type_variation() == "UZUBodyLabel");
+	memdelete(title);
+	memdelete(plain);
+}
+
 TEST_CASE("[SceneTree][UZUUI] Parts") {
 	Control *button = UZUUI::make_button("Start");
 	CHECK(Object::cast_to<Button>(button)->get_text() == "Start");

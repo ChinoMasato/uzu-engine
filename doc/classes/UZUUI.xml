@@ -44,7 +44,7 @@
 				Returns a theme for the common controls. All keys are optional (see [method get_theme_defaults]):
 				- [code]accent[/code]: borders and the bar fill.
 				- [code]text[/code]: the text color.
-				- [code]font[/code] (a [Font]) and [code]font_size[/code].
+				- [code]font[/code] (a [Font]) and [code]font_size[/code] (also the base size of the type scale; see [method get_type_scale]).
 				- [code]panel[/code], [code]button[/code] and [code]bar[/code]: style dictionaries as in [method create_panel_style]. Buttons also take [code]hover[/code] and [code]pressed[/code] colors; bars take [code]fill[/code].
 			</description>
 		</method>
@@ -94,6 +94,13 @@
 			<return type="Dictionary" />
 			<description>
 				Returns the default options of [method create_theme].
+			</description>
+		</method>
+		<method name="get_type_scale" qualifiers="static">
+			<return type="Dictionary" />
+			<param index="0" name="base_size" type="int" />
+			<description>
+				Returns the type scale for a base font size: five named text steps — [code]display[/code], [code]title[/code], [code]heading[/code], [code]body[/code], [code]caption[/code] — on a modular scale with ratio 1.25 ([code]body[/code] is the base size itself). Each step is a Dictionary with [code]size[/code], [code]line_spacing[/code], [code]letter_spacing[/code] (pixels of glyph tracking), [code]outline_size[/code] and [code]shadow_offset[/code] (the step's decoration preset), and [code]variation[/code]: the [Label] type variation every theme created by [method create_theme] and [method create_world_theme] carries for the step. The same Dictionary is stored in the theme's [code]uzu_type_scale[/code] metadata.
 			</description>
 		</method>
 		<method name="get_world_motion" qualifiers="static">
@@ -155,6 +162,14 @@
 			<param index="1" name="count" type="int" default="0" />
 			<description>
 				Returns a square, sunken item slot with a label, and a count in the corner when [param count] is above 0.
+			</description>
+		</method>
+		<method name="make_label" qualifiers="static">
+			<return type="Control" />
+			<param index="0" name="text" type="String" />
+			<param index="1" name="step" type="String" default="&quot;body&quot;" />
+			<description>
+				Returns a [Label] in one step of the type scale ([code]display[/code], [code]title[/code], [code]heading[/code], [code]body[/code] or [code]caption[/code]; see [method get_type_scale]): the label carries the step's type variation, so the theme it ends up under gives it the step's size, line and letter spacing, and decoration. An unknown step is treated as [code]body[/code].
 			</description>
 		</method>
 		<method name="make_list" qualifiers="static">

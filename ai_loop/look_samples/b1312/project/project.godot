@@ -1,0 +1,13 @@
+; B-1312 showcase: the type scale (display / title / heading / body / caption)
+; in one screen, for screenshots.
+config_version=5
+
+[application]
+
+config/name="uzu-b1312-showcase"
+run/main_scene="res://main.tscn"
+
+[display]
+
+window/size/viewport_width=1152
+window/size/viewport_height=648

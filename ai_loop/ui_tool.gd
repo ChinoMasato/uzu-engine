@@ -30,6 +30,10 @@ extends SceneTree
 ##          top/bottom gradient, radius, border, border_width, shadow, padding), "font_size",
 ##          "font_color", "align" (left | center | right)
 ##   Label / RichText / Button: "text";  Bar: "value", "max", "show_percent"
+##   Label: "text_style" names a step of the theme's type scale (B-1312: display | title |
+##          heading | body | caption) instead of a raw "font_size"; the theme gives the
+##          label that step's size, line/letter spacing and decoration. A numeric
+##          "font_size" still wins when both are given.
 ##   VBox / HBox / Grid: "separation", Grid "columns";  Margin: "padding" (n or [l, t, r, b])
 ##   Image: "texture" (res://), "stretch" (keep | cover | scale);  Color: "color"
 ## Prints "UI_RESULT {json}" with what was built.
@@ -44,7 +48,7 @@ const TYPES := {
 }
 const COMMON := ["type", "name", "children", "anchor", "offset", "size", "min_size", "expand", "visible", "tooltip", "style", "font_size", "font_color", "align"]
 const EXTRA := {
-	"Label": ["text"], "RichText": ["text"], "Button": ["text"], "Bar": ["value", "max", "show_percent"],
+	"Label": ["text", "text_style"], "RichText": ["text"], "Button": ["text"], "Bar": ["value", "max", "show_percent"],
 	"VBox": ["separation"], "HBox": ["separation"], "Grid": ["separation", "columns"], "Margin": ["padding"],
 	"Image": ["texture", "stretch"], "Color": ["color"], "List": ["items"],
 	"Gauge": ["value", "max", "segments"], "Talk": ["speaker", "text"], "Slot": ["text", "count"], "Ribbon": ["text"],
@@ -228,6 +232,12 @@ func _node(where: String, d, parent: Control, owner_root: Control) -> Control:
 	match type:
 		"Label":
 			c.text = str(d.get("text", ""))
+			if d.has("text_style"):
+				var step := str(d.text_style)
+				if not step in ["display", "title", "heading", "body", "caption"]:
+					_err(where + ".text_style", "needs one of display, title, heading, body, caption")
+				else:
+					c.theme_type_variation = "UZU" + step.capitalize() + "Label"
 			c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if d.has("size") or d.has("min_size") else TextServer.AUTOWRAP_OFF
 		"RichText":
 			c.bbcode_enabled = true
