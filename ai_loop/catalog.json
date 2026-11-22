@@ -2,13 +2,13 @@
  "version": 1,
  "generated_by": "ai_loop/make_catalog.py",
  "counts": {
-  "cli": 25,
+  "cli": 26,
   "command": 72,
   "mcp": 80,
   "preset": 7,
-  "script": 42,
+  "script": 43,
   "class": 15,
-  "total": 241
+  "total": 243
  },
  "entries": [
   {
@@ -168,6 +168,19 @@
    "required_capabilities": [],
    "fallback": null,
    "usage": "uzu.py feel-report <project> [--seed 7] [--no-juice] [--out r.json] [--compare r2.json] [--watch k,...] [--probe-selftest [--frames 1500]]"
+  },
+  {
+   "name": "font-locale-check",
+   "kind": "cli",
+   "description": "font locale check (B-1316, see ai_loop/font_locale_check.py): the ink top of 、 (U+3001) and 。 (U+3002) must sit in the lower half of the body band measured from the same font's kana/kanji -- JP faces pass (top at 0.33..0.36 of the band), centred TC/HK faces fail (0.65..0.67). The face of a TTC is chosen with the face flag; list-faces prints the face names. Needs fontTools. Exit 0 = pass, 1 = fail, 2 = usage/input error",
+   "tags": [
+    "cli",
+    "uzu.py"
+   ],
+   "source": "ai_loop/uzu.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "usage": "uzu.py font-locale-check <font.ttf|otf|ttc> [--face N] [--list-faces] [--out report.json]"
   },
   {
    "name": "image-scene",
@@ -3139,6 +3152,18 @@
     "script"
    ],
    "source": "ai_loop/feel_report.py",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "font_locale_check",
+   "kind": "script",
+   "description": "Font locale check: Japanese punctuation position (BACKLOG B-1316).",
+   "tags": [
+    "python",
+    "script"
+   ],
+   "source": "ai_loop/font_locale_check.py",
    "required_capabilities": [],
    "fallback": null
   },

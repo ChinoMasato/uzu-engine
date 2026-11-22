@@ -90,6 +90,13 @@ or through ai_loop\\windows\\uzu.bat.
                   and spacing/radius/shadow scale conformance, as one uzu-ui-quality/1 JSON
                   verdict. Theme data comes from --probe or from running
                   ai_loop/ui_quality_probe.gd with --engine. Exit 0 = pass, 1 = fail
+  uzu.py font-locale-check <font.ttf|otf|ttc> [--face N] [--list-faces] [--out report.json]
+                  font locale check (B-1316, see ai_loop/font_locale_check.py): the ink top of
+                  、 (U+3001) and 。 (U+3002) must sit in the lower half of the body band
+                  measured from the same font's kana/kanji -- JP faces pass (top at 0.33..0.36
+                  of the band), centred TC/HK faces fail (0.65..0.67). The face of a TTC is
+                  chosen with the face flag; list-faces prints the face names. Needs
+                  fontTools. Exit 0 = pass, 1 = fail, 2 = usage/input error
   uzu.py catalog  <word> [<word> ...] [--limit N] [--caps a,b] [--profile caps.json]
                   search the feature catalog (B-403): every command, MCP tool,
                   preset, tool script and UZU class, generated from their definitions by ai_loop/make_catalog.py
@@ -2481,6 +2488,7 @@ def selftest_tools():
     commands.append(("tests/test_animation.py", []))
     commands.append(("tests/test_audio_check.py", []))
     commands.append(("tests/test_ui_quality.py", []))
+    commands.append(("tests/test_font_locale_check.py", []))
     commands.append(("tests/test_feel_report.py", []))
     ok = True
     for tool, args in commands:
@@ -2537,6 +2545,10 @@ def main(argv):
         import ui_quality
 
         return ui_quality.main(rest)
+    if tool == "font-locale-check":
+        import font_locale_check
+
+        return font_locale_check.main(rest)
     if tool == "catalog":
         import catalog
 
