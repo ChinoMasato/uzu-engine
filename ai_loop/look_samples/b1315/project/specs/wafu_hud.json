@@ -1,0 +1,166 @@
+{
+ "scene": "res://screens/wafu_hud.tscn",
+ "theme": {
+  "world": "wafu",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     24,
+     24
+    ],
+    "size": [
+     316,
+     128
+    ],
+    "children": [
+     {
+      "type": "VBox",
+      "separation": "s",
+      "children": [
+       {
+        "type": "Label",
+        "text": "ミナ　Lv.7",
+        "text_style": "heading"
+       },
+       {
+        "type": "HBox",
+        "separation": "m",
+        "children": [
+         {
+          "type": "Label",
+          "text": "HP",
+          "text_style": "caption",
+          "min_size": [
+           40,
+           0
+          ]
+         },
+         {
+          "type": "Gauge",
+          "value": 10,
+          "max": 100,
+          "segments": 65,
+          "min_size": [
+           0,
+           20
+          ],
+          "expand": true,
+          "motion": {
+           "preset": "value_change",
+           "from": 10,
+           "to": 65
+          }
+         }
+        ]
+       },
+       {
+        "type": "HBox",
+        "separation": "m",
+        "children": [
+         {
+          "type": "Label",
+          "text": "MP",
+          "text_style": "caption",
+          "min_size": [
+           40,
+           0
+          ]
+         },
+         {
+          "type": "Gauge",
+          "value": 8,
+          "max": 100,
+          "segments": 40,
+          "min_size": [
+           0,
+           20
+          ],
+          "expand": true,
+          "motion": {
+           "preset": "value_change",
+           "from": 8,
+           "to": 40
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "motion": "appear"
+   },
+   {
+    "type": "HBox",
+    "anchor": "top_right",
+    "offset": [
+     24,
+     24
+    ],
+    "separation": "m",
+    "children": [
+     {
+      "type": "Slot",
+      "text": "欠片",
+      "count": 1
+     },
+     {
+      "type": "Slot",
+      "text": "鍵",
+      "count": 1
+     },
+     {
+      "type": "Slot",
+      "text": "薬",
+      "count": 3
+     }
+    ]
+   },
+   {
+    "type": "Stick",
+    "anchor": "bottom_left",
+    "offset": [
+     36,
+     36
+    ],
+    "size": [
+     168,
+     168
+    ]
+   },
+   {
+    "type": "TouchButton",
+    "text": "決定",
+    "anchor": "bottom_right",
+    "offset": [
+     36,
+     36
+    ],
+    "size": [
+     104,
+     104
+    ]
+   },
+   {
+    "type": "Label",
+    "text": "スティックで移動／決定ボタンで調べる",
+    "text_style": "caption",
+    "anchor": "bottom",
+    "offset": [
+     0,
+     20
+    ],
+    "size": [
+     560,
+     24
+    ],
+    "align": "center"
+   }
+  ]
+ }
+}

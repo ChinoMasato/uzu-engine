@@ -43,7 +43,19 @@ func _ready() -> void:
 	add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 16)
-	panel.add_child(box)
+	# B-1315 containment: in a skew world the frame leans across the
+	# panel's rows (travel 79 px over a 316 px panel), so the content is
+	# inset past the slant at its own rows -- the same fix the B-1315
+	# sample screens apply. Other shapes keep the frame's own padding.
+	var frame_options: Dictionary = UZUUI.get_world_options(world).get("frame", {})
+	if String(frame_options.get("shape", "")) == "skew":
+		var margin := MarginContainer.new()
+		margin.add_theme_constant_override("margin_left", 68)
+		margin.add_theme_constant_override("margin_right", 68)
+		margin.add_child(box)
+		panel.add_child(margin)
+	else:
+		panel.add_child(box)
 	var title := UZUUI.make_label("クエスト受注", "title")
 	box.add_child(title)
 	var body := UZUUI.make_label("灯りの欠片を三つ集めてきておくれ。", "body")

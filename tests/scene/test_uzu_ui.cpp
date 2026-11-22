@@ -39,6 +39,7 @@ TEST_FORCE_LINK(test_uzu_ui)
 #include "scene/gui/panel_container.h"
 #include "scene/gui/progress_bar.h"
 #include "scene/gui/tab_container.h"
+#include "scene/gui/uzu_touch.h"
 #include "scene/gui/uzu_ui.h"
 #include "scene/gui/uzu_ui_juice.h"
 #include "scene/main/scene_tree.h"
@@ -993,6 +994,176 @@ TEST_CASE("[SceneTree][UZUUI] World motion: a spec's named motion plays on decor
 	CHECK(String(UZUUIJuice::get_animation_state(panel)["motion"]) == "appear");
 	UZUUIJuice::cancel_all();
 	memdelete(screen);
+}
+
+namespace {
+
+// The quality gate's contrast (B-1310), mirrored for the property tests:
+// WCAG luminance, a translucent colour composited over black and white,
+// the worse ratio wins.
+float test_wcag_luminance(const Color &p_c) {
+	auto lin = [](float v) {
+		return v <= 0.04045f ? v / 12.92f : Math::pow((v + 0.055f) / 1.055f, 2.4f);
+	};
+	return 0.2126f * lin(p_c.r) + 0.7152f * lin(p_c.g) + 0.0722f * lin(p_c.b);
+}
+
+float test_gate_contrast(const Color &p_fg, const Color &p_bg) {
+	float worst = 1e9f;
+	for (int i = 0; i < 2; i++) {
+		const Color base = i == 0 ? Color(0, 0, 0) : Color(1, 1, 1);
+		auto over = [&](const Color &c) {
+			return Color(c.r * c.a + base.r * (1.0f - c.a), c.g * c.a + base.g * (1.0f - c.a), c.b * c.a + base.b * (1.0f - c.a));
+		};
+		const float back = test_wcag_luminance(over(p_bg));
+		const float fore = test_wcag_luminance(over(p_fg));
+		worst = MIN(worst, (MAX(fore, back) + 0.05f) / (MIN(fore, back) + 0.05f));
+	}
+	return worst;
+}
+
+// The panel fill the way the gate's probe samples it: the centre of the
+// panel stylebox's texture (or the flat box's colour).
+Color test_panel_fill(const Ref<Theme> &p_theme) {
+	const Ref<StyleBox> sb = p_theme->get_stylebox("panel", "PanelContainer");
+	const Ref<StyleBoxTexture> tex = sb;
+	if (tex.is_valid() && tex->get_texture().is_valid()) {
+		const Ref<Image> img = tex->get_texture()->get_image();
+		return img->get_pixel(img->get_width() / 2, img->get_height() / 2);
+	}
+	const Ref<StyleBoxFlat> flat = sb;
+	REQUIRE(flat.is_valid());
+	return flat->get_bg_color();
+}
+
+} // namespace
+
+TEST_CASE("[SceneTree][UZUUI] Slider groove: solved contrast on every theme (B-1315)") {
+	// The B-1313 styling left the groove within a contrast of 1.0-1.8 of
+	// the panel in most themes; the gate now scores the groove against
+	// the panel and the fill against the groove at 2.0 each, and the
+	// theme builder solves the groove colour to pass. Pin both ratios
+	// for the default theme and every world.
+	PackedStringArray names;
+	names.push_back("default");
+	for (const String &world : UZUUI::get_world_names()) {
+		names.push_back(world);
+	}
+	for (const String &name : names) {
+		const Ref<Theme> theme = name == "default" ? UZUUI::create_theme({}) : UZUUI::create_world_theme(name);
+		REQUIRE_MESSAGE(theme.is_valid(), name);
+		const Ref<StyleBoxFlat> groove = theme->get_stylebox("slider", "HSlider");
+		const Ref<StyleBoxFlat> fill = theme->get_stylebox("grabber_area", "HSlider");
+		REQUIRE_MESSAGE(groove.is_valid(), name);
+		REQUIRE_MESSAGE(fill.is_valid(), name);
+		const Color panel = test_panel_fill(theme);
+		CHECK_MESSAGE(test_gate_contrast(groove->get_bg_color(), panel) >= 2.0f, name);
+		CHECK_MESSAGE(test_gate_contrast(fill->get_bg_color(), groove->get_bg_color()) >= 2.0f, name);
+	}
+	// Persona's body text: the reference red passes the gate's 4.5 where
+	// the earlier red scored 4.48.
+	const Ref<Theme> persona = UZUUI::create_world_theme("persona");
+	const Color text = persona->get_color("font_color", "Label");
+	CHECK(test_gate_contrast(text, test_panel_fill(persona)) >= 4.5f);
+	// And its halftone frame tiles at native size, never rescaled (the
+	// TILE_FIT rescale beat against the dot grid into a moire).
+	const Dictionary frame = Dictionary(UZUUI::get_world_options("persona")["frame"]);
+	const Ref<StyleBoxTexture> frame_box = UZUUI::create_frame_style(frame);
+	REQUIRE(frame_box.is_valid());
+	CHECK(frame_box->get_h_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_TILE);
+	CHECK(frame_box->get_v_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_TILE);
+	const Dictionary wood = Dictionary(UZUUI::get_world_options("fantasy")["frame"]);
+	const Ref<StyleBoxTexture> wood_box = UZUUI::create_frame_style(wood);
+	REQUIRE(wood_box.is_valid());
+	CHECK(wood_box->get_h_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_TILE_FIT);
+	// The skew slant as a number layouts can use (B-1315): persona's
+	// edge travels a quarter of its tile height; wafu does not lean.
+	const Dictionary margins = UZUUI::get_skew_safe_margins(frame);
+	CHECK(double(margins["slope"]) == doctest::Approx(0.25));
+	const Ref<Image> frame_img = UZUUI::draw_frame(frame);
+	CHECK(double(margins["travel"]) == doctest::Approx(0.25 * frame_img->get_height()));
+	const Dictionary wafu_frame = Dictionary(UZUUI::get_world_options("wafu")["frame"]);
+	CHECK(double(UZUUI::get_skew_safe_margins(wafu_frame)["travel"]) == doctest::Approx(0.0));
+	// The talk window in a skew world: the text block is inset past the
+	// slant -- the widest on-scale side margins, and a deeper top margin
+	// so the block starts below the rows where the parallelogram's right
+	// edge sits furthest left (B-1315 containment).
+	const Ref<StyleBox> talk_box = persona->get_stylebox("panel", "UZUTalk");
+	REQUIRE(talk_box.is_valid());
+	CHECK(talk_box->get_margin(SIDE_LEFT) == 64);
+	CHECK(talk_box->get_margin(SIDE_RIGHT) == 64);
+	CHECK(talk_box->get_margin(SIDE_TOP) == 32);
+	const Ref<Theme> wafu_theme = UZUUI::create_world_theme("wafu");
+	const Ref<StyleBox> wafu_talk_box = wafu_theme->get_stylebox("panel", "UZUTalk");
+	REQUIRE(wafu_talk_box.is_valid());
+	CHECK(wafu_talk_box->get_margin(SIDE_LEFT) < 64); // No skew, no widening.
+	// The name tag in a skew world falls back to a chamfer (its frame's
+	// travel is wider than the tag itself): the stylebox is sliced
+	// uniformly, not with the skew half-tile slice.
+	const Ref<StyleBoxTexture> tag_box = persona->get_stylebox("panel", "UZUNameTag");
+	REQUIRE(tag_box.is_valid());
+	CHECK(tag_box->get_texture_margin(SIDE_LEFT) == tag_box->get_texture_margin(SIDE_TOP));
+	// An OptionButton in a skew world: its label starts inside the
+	// shape, past the top-left notch (a deeper left margin).
+	const Ref<StyleBox> option_box = persona->get_stylebox("normal", "OptionButton");
+	REQUIRE(option_box.is_valid());
+	CHECK(option_box->get_margin(SIDE_LEFT) == 64);
+	const Ref<StyleBox> wafu_option_box = wafu_theme->get_stylebox("normal", "OptionButton");
+	REQUIRE(wafu_option_box.is_valid());
+	CHECK(wafu_option_box->get_margin(SIDE_LEFT) < 64);
+}
+
+TEST_CASE("[SceneTree][UZUUI] Touch parts: stick value and theme styling (B-1315)") {
+	Control *screen = memnew(Control);
+	SceneTree::get_singleton()->get_root()->add_child(screen);
+	screen->set_size(Size2(640, 480));
+	UZUTouchStick *stick = Object::cast_to<UZUTouchStick>(UZUUI::make_touch_stick());
+	REQUIRE(stick != nullptr);
+	CHECK(stick->get_custom_minimum_size() == Size2(168, 168));
+	screen->add_child(stick);
+	stick->set_size(Size2(168, 168));
+	// A drag to the right: past the deadzone, short of the rim.
+	stick->press_at(Vector2(84, 84) + Vector2(60, 0));
+	CHECK(stick->get_value().x == doctest::Approx(0.70).epsilon(0.05));
+	CHECK(stick->get_value().y == doctest::Approx(0.0));
+	CHECK(stick->get_knob_offset().x == doctest::Approx(60.0));
+	// A small drag stays inside the deadzone.
+	stick->drag_to(Vector2(84, 84) + Vector2(4, 0));
+	CHECK(stick->get_value() == Vector2());
+	// Release centres everything.
+	stick->release();
+	CHECK(stick->get_value() == Vector2());
+	CHECK(stick->get_knob_offset() == Vector2());
+	// A set value clamps to the unit circle.
+	stick->set_value(Vector2(2, 0));
+	CHECK(stick->get_value() == Vector2(1, 0));
+	// The pad button is a Button under its own variation.
+	Button *pad = Object::cast_to<Button>(UZUUI::make_touch_button("OK"));
+	REQUIRE(pad != nullptr);
+	CHECK(pad->get_theme_type_variation() == "UZUTouchButton");
+	CHECK(pad->get_text() == "OK");
+	memdelete(pad);
+	memdelete(screen);
+	// Every theme styles both parts.
+	PackedStringArray names;
+	names.push_back("default");
+	for (const String &world : UZUUI::get_world_names()) {
+		names.push_back(world);
+	}
+	for (const String &name : names) {
+		const Ref<Theme> theme = name == "default" ? UZUUI::create_theme({}) : UZUUI::create_world_theme(name);
+		REQUIRE_MESSAGE(theme.is_valid(), name);
+		CHECK_MESSAGE(theme->is_type_variation("UZUTouchButton", "Button"), name);
+		for (const char *color : { "base_color", "ring_color", "knob_color", "knob_ring_color" }) {
+			CHECK_MESSAGE(theme->has_color(color, "UZUTouchStick"), name);
+		}
+		const Ref<StyleBox> normal = theme->get_stylebox("normal", "UZUTouchButton");
+		REQUIRE_MESSAGE(normal.is_valid(), name);
+		CHECK_MESSAGE(!normal->is_class("StyleBoxEmpty"), name);
+		const Ref<StyleBox> focus = theme->get_stylebox("focus", "UZUTouchButton");
+		REQUIRE_MESSAGE(focus.is_valid(), name);
+		CHECK_MESSAGE(!focus->is_class("StyleBoxEmpty"), name);
+	}
 }
 
 } // namespace TestUZUUI

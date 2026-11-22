@@ -83,12 +83,17 @@ or through ai_loop\\windows\\uzu.bat.
                   loop seam and audio-sprite segment/gap consistency, as numbers in one JSON report.
                   Simultaneous-playback overlap is out of scope (it needs playback-side logs)
   uzu.py ui-quality [--probe probe.json] [--engine PATH] [--theme wafu] [--image shot.png]
-                  [--region x,y,w,h] [--out report.json]   AAA UI quality gate (B-1310, see
+                  [--region x,y,w,h] [--texture-image sheet.png] [--texture-region x,y,w,h]
+                  [--out report.json]   AAA UI quality gate (B-1310, see
                   ai_loop/ui_quality.py): texture repetition index (autocorrelation peak at
-                  tile lags), WCAG contrast (body >= 4.5, heading >= 3.0), 5-state completeness
-                  (focus must not be StyleBoxEmpty), theme coverage of the standard controls
-                  and spacing/radius/shadow scale conformance, as one uzu-ui-quality/1 JSON
-                  verdict. Theme data comes from --probe or from running
+                  tile lags), WCAG contrast (body >= 4.5, heading >= 3.0, slider groove/fill
+                  >= 2.0), 5-state completeness (focus must not be StyleBoxEmpty), theme
+                  coverage of the standard controls and spacing/radius/shadow scale
+                  conformance, as one uzu-ui-quality/1 JSON verdict. With --texture-image
+                  (an empty-panel sheet at native resolution) the texture is also scored on
+                  its own: designed micro-patterns by period residue + cell uniformity,
+                  other materials by a visibility index, plus frame centre-slice coverage.
+                  Theme data comes from --probe or from running
                   ai_loop/ui_quality_probe.gd with --engine. Exit 0 = pass, 1 = fail
   uzu.py font-locale-check <font.ttf|otf|ttc> [--face N] [--list-faces] [--out report.json]
                   font locale check (B-1316, see ai_loop/font_locale_check.py): the ink top of

@@ -206,6 +206,26 @@
 				Returns a decorated divider: a line that fades at both ends, with a diamond in the middle.
 			</description>
 		</method>
+		<method name="get_skew_safe_margins" qualifiers="static">
+			<return type="Dictionary" />
+			<param index="0" name="style" type="Dictionary" />
+			<description>
+				Returns the slant of a frame style as [code]{"slope": float, "travel": float}[/code] (zeroes unless the style's shape is [code]skew[/code]). A skew parallelogram leans with height, so across the frame its edge travels [code]travel[/code] px horizontally: content whose bottom row sits at fraction [code]f[/code] of the panel's height needs [code]travel * f[/code] of extra left inset to stay inside the shape, and content whose top row sits at fraction [code]f'[/code] needs [code]travel * (1 - f')[/code] on the right. Layouts and the containment check (B-1315) use this instead of eyeballing the slant.
+			</description>
+		</method>
+		<method name="make_touch_button" qualifiers="static">
+			<return type="Control" />
+			<param index="0" name="text" type="String" />
+			<description>
+				Returns a round pad [Button] for touch layouts, carrying the theme's [code]UZUTouchButton[/code] type variation (drawn disc faces for every state), so it follows the world theme like any other part.
+			</description>
+		</method>
+		<method name="make_touch_stick" qualifiers="static">
+			<return type="Control" />
+			<description>
+				Returns a [UZUTouchStick]: a virtual analog stick for touch layouts, drawn from the theme's [code]UZUTouchStick[/code] colours. The stick reports its value through [signal UZUTouchStick.value_changed]; feeding input actions from it is the game's job.
+			</description>
+		</method>
 		<method name="make_tabs" qualifiers="static">
 			<return type="Control" />
 			<param index="0" name="titles" type="PackedStringArray" />

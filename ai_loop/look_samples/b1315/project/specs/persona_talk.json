@@ -1,0 +1,40 @@
+{
+ "scene": "res://screens/persona_talk.tscn",
+ "theme": {
+  "world": "persona",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Ribbon",
+    "text": "第壱章　真夜中の図書館",
+    "anchor": "top",
+    "offset": [
+     0,
+     28
+    ],
+    "size": [
+     440,
+     54
+    ]
+   },
+   {
+    "type": "Talk",
+    "speaker": "謎の声",
+    "text": "真夜中まであと少し。欠片は三つ、図書館のどこかに眠っている。急げ、夜が明ける前に。",
+    "anchor": "bottom_wide",
+    "offset": [
+     48,
+     36
+    ],
+    "size": [
+     1056,
+     190
+    ],
+    "motion": "appear"
+   }
+  ]
+ }
+}

@@ -19,9 +19,13 @@ extends SceneTree
 ##   types: Screen (full-screen root), Panel, VBox, HBox, Grid, Margin, Center, Scroll, Label,
 ##          RichText (BBCode), Button, Bar (progress), Image (TextureRect), Color (ColorRect), Spacer,
 ##          Tabs (each child is a page; its name is the tab title), List (ItemList, "items": [...]),
+##          Slider (HSlider: "value", "min", "max", "step"), Check (CheckBox: "text", "pressed"),
+##          Option (OptionButton: "items": [...], "selected"),
 ##          game parts (B-1307, styled by the world): Gauge ("value", "max", "segments"),
 ##          Talk ("speaker", "text": a talk window with a name tag and a next mark),
-##          Slot ("text", "count"), Ribbon ("text"), Separator
+##          Slot ("text", "count"), Ribbon ("text"), Separator,
+##          touch parts (B-1315, styled by the theme): Stick (a UZUTouchStick),
+##          TouchButton ("text": a round pad button)
 ##   placement (outside containers): "anchor": top_left | top | top_right | left | center | right |
 ##          bottom_left | bottom | bottom_right | full | top_wide | bottom_wide | left_wide | right_wide,
 ##          "offset": [x, y] (inset from the anchored edges; for centers, a shift), "size": [w, h]
@@ -56,7 +60,9 @@ const TYPES := {
 	"Label": "Label", "RichText": "RichTextLabel", "Button": "Button", "Bar": "ProgressBar",
 	"Image": "TextureRect", "Color": "ColorRect", "Spacer": "Control",
 	"Tabs": "TabContainer", "List": "ItemList",
+	"Slider": "HSlider", "Check": "CheckBox", "Option": "OptionButton",
 	"Gauge": "", "Talk": "", "Slot": "", "Ribbon": "", "Separator": "",
+	"Stick": "", "TouchButton": "",
 }
 const COMMON := ["type", "name", "children", "anchor", "offset", "size", "min_size", "expand", "visible", "tooltip", "style", "font_size", "font_color", "align", "motion"]
 const MOTION_KEYS := ["preset", "duration", "strength", "from", "to"]
@@ -65,6 +71,8 @@ const EXTRA := {
 	"VBox": ["separation"], "HBox": ["separation"], "Grid": ["separation", "columns"], "Margin": ["padding"],
 	"Image": ["texture", "stretch"], "Color": ["color"], "List": ["items"],
 	"Gauge": ["value", "max", "segments"], "Talk": ["speaker", "text"], "Slot": ["text", "count"], "Ribbon": ["text"],
+	"Slider": ["value", "min", "max", "step"], "Check": ["text", "pressed"], "Option": ["items", "selected"],
+	"TouchButton": ["text"],
 }
 const ANCHORS := {
 	"top_left": Control.PRESET_TOP_LEFT, "top": Control.PRESET_CENTER_TOP, "top_right": Control.PRESET_TOP_RIGHT,
@@ -304,6 +312,10 @@ func _node(where: String, d, parent: Control, owner_root: Control) -> Control:
 			c = UZUUI.make_ribbon(str(d.get("text", "")))
 		"Separator":
 			c = UZUUI.make_separator()
+		"Stick":
+			c = UZUUI.make_touch_stick()
+		"TouchButton":
+			c = UZUUI.make_touch_button(str(d.get("text", "")))
 		_:
 			c = ClassDB.instantiate(TYPES[type])
 	c.name = d.get("name", type)
@@ -329,6 +341,19 @@ func _node(where: String, d, parent: Control, owner_root: Control) -> Control:
 			c.max_value = float(d.get("max", 100))
 			c.value = float(d.get("value", 50))
 			c.show_percentage = bool(d.get("show_percent", false))
+		"Slider":
+			c.min_value = float(d.get("min", 0))
+			c.max_value = float(d.get("max", 100))
+			c.step = float(d.get("step", 1))
+			c.value = float(d.get("value", 50))
+		"Check":
+			c.text = str(d.get("text", ""))
+			c.button_pressed = bool(d.get("pressed", false))
+		"Option":
+			for item in d.get("items", []):
+				c.add_item(str(item))
+			if c.item_count > 0:
+				c.select(clampi(int(d.get("selected", 0)), 0, c.item_count - 1))
 		"VBox", "HBox", "Grid":
 			if d.has("separation"):
 				var sep := _spacing(where + ".separation", d.separation)

@@ -12,6 +12,9 @@ Checks:
      grid over the whole panel -- produces a strong peak at the tile lag.
   2. contrast -- WCAG relative-luminance ratios of theme text colours against
      the panel / button fills sampled by the probe. Body >= 4.5, heading >= 3.0.
+     Two structural pairs are scored the same way (B-1315): the slider groove
+     against the panel and the slider fill against the groove, >= 2.0 each --
+     a track you cannot see is a state you cannot read.
   3. state_completeness -- Button must carry normal/hover/pressed/disabled/
      focus styleboxes, none of them StyleBoxEmpty, and hover/pressed/focus
      must be visually distinguishable from normal. (The current themes set
@@ -20,6 +23,22 @@ Checks:
      stylebox in the theme. Must be 1.0 (no default-Godot-looking parts).
   5. scale -- spacing (content margins, separation), corner radii and shadow
      sizes must come from the scale sets below, not ad-hoc values.
+  6. texture_sheet -- check 1 asked of a texture on its own, rendered as an
+     empty panel sheet at native resolution (B-1315). A designed micro
+     pattern (persona's halftone grid, period <= 24 px) is judged by the
+     residue its period cannot explain -- the band correlation's deviation
+     from the period-folded prediction (<= 0.30) -- plus the uniformity of
+     its period cells; an unpatterned material is judged by a visibility index,
+     the band peak weighted by how much the channel varies at all
+     (min(1, std/20)) -- correlation alone is blind to amplitude, and the
+     audit's bar is repetition a viewer cannot *perceive*. The frame's
+     centre slice (the part that actually repeats) must also carry no
+     alpha hole: a wedge-shaped gap fails outright, however it repeats.
+  7. containment -- every control inside a panel stays within the panel's
+     safe area (the stylebox content rect, narrowed for a skew frame by
+     the slant at the control's own rows), at rest and at the peak phase
+     of the screen's motions. Data: ai_loop/ui_containment_probe.gd
+     (--containment), run against the sample screens.
 
 Theme data comes from a probe JSON produced by ai_loop/ui_quality_probe.gd
 (--probe), or by running the engine here (--engine PATH [--godot-project DIR]).
@@ -62,6 +81,23 @@ HEADING_CONTRAST_MIN = 3.0
 REPETITION_MAX = 0.30
 REPETITION_LAG_MIN = 40
 REPETITION_LAG_MAX = 300
+
+# The slider's structural pairs (B-1315): below this the groove merges with
+# the panel or the fill merges with the groove at a glance.
+SLIDER_CONTRAST_MIN = 2.0
+
+# Texture-sheet measurement (B-1315). A designed pattern's period is at most
+# this many px (persona's halftone cell is 8); anything longer is texture,
+# not print. The residue and visibility bars are the audit's 0.30, unchanged.
+SHEET_PERIOD_MAX = 24
+SHEET_RESIDUE_MAX = 0.30
+SHEET_VISIBILITY_MAX = 0.30
+# Channel std (0..255) at which variation counts as fully visible; below it
+# the visibility index scales down linearly.
+SHEET_STD_FULL = 20.0
+# A designed pattern's period cells may drift this far, relative to the
+# channel's own scale, before the grid counts as non-uniform.
+SHEET_UNIFORMITY_MAX = 0.6
 
 
 # ---------------------------------------------------------------- images
@@ -151,13 +187,10 @@ def _autocorr_peak_stdlib(a, lag_min, lag_max):
     return best, best_lag
 
 
-def _autocorr_peak(channel, lag_min, lag_max, _force_stdlib=False):
-    """Strongest normalised autocorrelation at lag distance in
-    [lag_min, lag_max] (FFT based). The channel is high-passed first so a
-    smooth gradient or vignette cannot masquerade as repetition.
-    Returns (peak, (dx, dy)). A flat channel scores 0.
-    numpy is used when available; otherwise a stdlib FFT computes the same
-    values (slower), so the gate also runs on runners without numpy."""
+def _prep_autocorr(channel):
+    """High-pass and mean-remove a channel for autocorrelation, so a smooth
+    gradient or vignette cannot masquerade as repetition. Returns the
+    prepared rows, or None when the channel carries no variation."""
     from PIL import Image, ImageFilter
 
     h = len(channel)
@@ -166,7 +199,7 @@ def _autocorr_peak(channel, lag_min, lag_max, _force_stdlib=False):
     lo = min(flat)
     hi = max(flat)
     if hi - lo <= 1e-9:
-        return 0.0, (0, 0)
+        return None
     u8 = Image.new("L", (w, h))
     u8.putdata([round((v - lo) / (hi - lo) * 255.0) for v in flat])
     blur = u8.filter(ImageFilter.GaussianBlur(4))
@@ -176,6 +209,18 @@ def _autocorr_peak(channel, lag_min, lag_max, _force_stdlib=False):
     mean = sum(sum(row) for row in a) / (h * w)
     a = [[v - mean for v in row] for row in a]
     if sum(v * v for row in a for v in row) <= 1e-9:
+        return None
+    return a
+
+
+def _autocorr_peak(channel, lag_min, lag_max, _force_stdlib=False):
+    """Strongest normalised autocorrelation at lag distance in
+    [lag_min, lag_max] (FFT based). Returns (peak, (dx, dy)). A flat
+    channel scores 0. numpy is used when available; otherwise a stdlib
+    FFT computes the same values (slower), so the gate also runs on
+    runners without numpy."""
+    a = _prep_autocorr(channel)
+    if a is None:
         return 0.0, (0, 0)
     if not _force_stdlib:
         try:
@@ -236,6 +281,198 @@ def texture_repetition(image_path, region=None, max_side=512):
     }
 
 
+def _autocorr_grid(a, max_lag):
+    """Normalised autocorrelation A[dy][dx] of a prepared channel for
+    0 <= dx, dy <= max_lag (same FFT maths as _autocorr_peak)."""
+    try:
+        import numpy as np
+    except ImportError:
+        return _autocorr_grid_stdlib(a, max_lag)
+    arr = np.asarray(a, dtype=np.float64)
+    f = np.fft.rfft2(arr)
+    corr = np.fft.irfft2(f * np.conj(f), s=arr.shape)
+    corr /= corr[0, 0]
+    return [[float(corr[dy, dx]) for dx in range(max_lag + 1)] for dy in range(max_lag + 1)]
+
+
+def _autocorr_grid_stdlib(a, max_lag):
+    F = _fft2(a)
+    P = [[v * v.conjugate() for v in row] for row in F]
+    corr = _ifft2(P)
+    c00 = corr[0][0].real
+    if c00 <= 1e-12:
+        return [[0.0] * (max_lag + 1) for _ in range(max_lag + 1)]
+    return [[corr[dy][dx].real / c00 for dx in range(max_lag + 1)] for dy in range(max_lag + 1)]
+
+
+def _detect_period(axis):
+    """The fundamental period of one axis' autocorrelation (axis[d] for
+    d = 0..N), or None. A designed micro-pattern's correlation forms a
+    comb: a local peak of at least 0.5 at the period, again at twice the
+    period, standing at least 0.15 above the trough before it. The comb
+    test matters: wide dots in a narrow cell correlate almost as well one
+    px short of the period (a shoulder, A(7) = 0.65 for an 8 px cell),
+    but the shoulder has no peak at its double. A smooth material's
+    correlation only decays, so it never qualifies."""
+    n = len(axis)
+    for d in range(3, min(SHEET_PERIOD_MAX, n - 2) + 1):
+        if axis[d] < 0.5:
+            continue
+        if axis[d] < axis[d - 1] or axis[d] < axis[d + 1]:
+            continue  # A shoulder of the true period, not its peak.
+        if 2 * d < n and axis[2 * d] < 0.5:
+            continue  # The comb must continue at the double lag.
+        if axis[d] - min(axis[1:d]) < 0.15:
+            continue  # No resurgence: a decaying correlation's tail.
+        return d
+    return None
+
+
+def _cell_uniformity(channel, period, axis):
+    """Spread of the per-period cell means along one axis, relative to the
+    channel's own scale. A uniform grid has the same ink in every period
+    cell; a pattern that fades, breaks off or is interrupted drifts."""
+    h = len(channel)
+    w = len(channel[0])
+    flat = [v for row in channel for v in row]
+    mean = sum(flat) / len(flat)
+    std = math.sqrt(sum((v - mean) ** 2 for v in flat) / len(flat))
+    means = []
+    if axis == 0:
+        for j in range(w // period):
+            vals = [channel[y][x] for y in range(h) for x in range(j * period, (j + 1) * period)]
+            means.append(sum(vals) / len(vals))
+    else:
+        for j in range(h // period):
+            vals = [channel[y][x] for y in range(j * period, (j + 1) * period) for x in range(w)]
+            means.append(sum(vals) / len(vals))
+    if not means:
+        return 0.0
+    return (max(means) - min(means)) / max(abs(mean), std, 1.0)
+
+
+def _sheet_channel(channel):
+    """Score one channel of a texture sheet. Two ways to pass, by what the
+    material is (see the module docstring): a designed pattern is judged
+    on residue + uniformity, anything else on the visibility index."""
+    h = len(channel)
+    w = len(channel[0])
+    flat = [v for row in channel for v in row]
+    mean = sum(flat) / len(flat)
+    std = math.sqrt(sum((v - mean) ** 2 for v in flat) / len(flat))
+    out = {"std": round(std, 3)}
+    a = _prep_autocorr(channel)
+    if a is None:
+        out.update({"mode": "flat", "index": 0.0, "pass": True})
+        return out
+    max_lag = int(min(REPETITION_LAG_MAX, min(w, h) - 1))
+    grid = _autocorr_grid(a, max_lag)
+    band_peak, band_lag = 0.0, [0, 0]
+    for dy in range(max_lag + 1):
+        for dx in range(max_lag + 1):
+            dist = math.hypot(dx, dy)
+            if REPETITION_LAG_MIN <= dist <= REPETITION_LAG_MAX and grid[dy][dx] > band_peak:
+                band_peak, band_lag = grid[dy][dx], [dx, dy]
+    out["band_peak"] = round(band_peak, 4)
+    out["band_lag_px"] = band_lag
+    px = _detect_period([grid[0][d] for d in range(max_lag + 1)])
+    py = _detect_period([grid[d][0] for d in range(max_lag + 1)])
+    if px or py:
+        # Residue: how far the band correlation strays from what the
+        # period itself predicts. A perfectly periodic texture's
+        # correlation depends only on the lag modulo the period (wide
+        # dots correlate at period-1 too -- that shoulder is the
+        # pattern's own footprint, not an artifact), so the prediction
+        # for a lag is the correlation at the folded lag. A moire
+        # (TILE_FIT rescaling beating against the grid) drifts in phase
+        # as the lag grows and strays far from the fold, even though the
+        # grid itself is perfect.
+        residue = 0.0
+        for dy in range(max_lag + 1):
+            for dx in range(max_lag + 1):
+                dist = math.hypot(dx, dy)
+                if not (REPETITION_LAG_MIN <= dist <= REPETITION_LAG_MAX):
+                    continue
+                fx = dx % px if px else dx
+                fy = dy % py if py else dy
+                residue = max(residue, abs(grid[dy][dx] - grid[fy][fx]))
+        uniformity = 0.0
+        if px:
+            uniformity = max(uniformity, _cell_uniformity(channel, px, 0))
+        if py:
+            uniformity = max(uniformity, _cell_uniformity(channel, py, 1))
+        out.update({
+            "mode": "pattern", "period_px": [px, py],
+            "residue": round(residue, 4), "uniformity": round(uniformity, 4),
+            "index": round(residue, 4),
+            "pass": residue <= SHEET_RESIDUE_MAX and uniformity <= SHEET_UNIFORMITY_MAX,
+        })
+        return out
+    visibility = band_peak * min(1.0, std / SHEET_STD_FULL)
+    out.update({"mode": "visibility", "visibility": round(visibility, 4),
+                "index": round(visibility, 4), "pass": visibility <= SHEET_VISIBILITY_MAX})
+    return out
+
+
+def texture_repetition_sheet(image_path, region=None, max_side=512):
+    """Repetition of a texture on its own: an empty-panel sheet rendered
+    at native resolution (no rescale -- rescaling would hide exactly the
+    periodicity being measured, and invent moire that is not in the
+    texture). The centre window of at most max_side px is scored."""
+    from PIL import Image
+
+    img = Image.open(image_path).convert("RGB")
+    if region:
+        x, y, w, h = region
+        img = img.crop((x, y, x + w, y + h))
+    w, h = img.size
+    if w > max_side or h > max_side:
+        cw, ch = min(w, max_side), min(h, max_side)
+        img = img.crop(((w - cw) // 2, (h - ch) // 2, (w + cw) // 2, (h + ch) // 2))
+        w, h = img.size
+    pix = list(img.getdata())
+    lum = [[0.2126 * pix[y * w + x][0] + 0.7152 * pix[y * w + x][1] + 0.0722 * pix[y * w + x][2] for x in range(w)] for y in range(h)]
+    red = [[pix[y * w + x][0] - 0.5 * (pix[y * w + x][1] + pix[y * w + x][2]) for x in range(w)] for y in range(h)]
+    channels = {}
+    worst = 0.0
+    for name, channel in (("luminance", lum), ("red_excess", red)):
+        channels[name] = _sheet_channel(channel)
+        worst = max(worst, channels[name]["index"])
+    return {
+        "image": os.path.basename(image_path),
+        "window_px": [w, h],
+        "index": round(worst, 4),
+        "threshold": SHEET_RESIDUE_MAX,
+        "channels": channels,
+        "pass": all(c["pass"] for c in channels.values()),
+    }
+
+
+def texture_coverage(theme):
+    """Frame coverage: the panel frame's centre slice -- the part of the
+    texture that actually repeats across a panel -- must not contain an
+    alpha hole: a local collapse of opacity, judged against the slice's
+    own mean (a glass panel is translucent everywhere by design and
+    passes; the B-1318 skew wedge was a fully transparent seam in an
+    opaque frame and fails). The wedge was invisible to correlation --
+    it repeated perfectly; it is exactly an alpha hole here. Data comes
+    from the probe's centre-slice alpha sampling."""
+    types = theme.get("types", {})
+    sb = types.get("PanelContainer", {}).get("styleboxes", {}).get("panel")
+    if not sb:
+        return {"pass": False, "reason": "no panel stylebox"}
+    if "center_alpha_min" in sb:
+        amin = sb["center_alpha_min"]
+        amean = sb.get("center_alpha_mean", amin)
+        return {"pass": amean > 0.0 and amin >= 0.5 * amean,
+                "center_alpha_min": round(amin, 4), "center_alpha_mean": round(amean, 4)}
+    if "bg_color" in sb:  # A flat panel paints its colour everywhere.
+        alpha = sb["bg_color"][3] if len(sb["bg_color"]) > 3 else 1.0
+        return {"pass": alpha > 0.0, "center_alpha_min": round(alpha, 4),
+                "center_alpha_mean": round(alpha, 4)}
+    return {"pass": False, "reason": "no frame coverage data in probe"}
+
+
 # ---------------------------------------------------------------- contrast
 
 def _lin(c):
@@ -294,10 +531,29 @@ def check_contrast(theme):
             "pass": ratio >= minimum,
         })
 
+    def add_fill(name, fg_type, fg_box, bg_type, bg_box, minimum):
+        fg = _fill_of(types.get(fg_type, {}).get("styleboxes", {}).get(fg_box))
+        bg = _fill_of(types.get(bg_type, {}).get("styleboxes", {}).get(bg_box))
+        if fg is None or bg is None:
+            pairs.append({"pair": name, "pass": False, "reason": "missing colour data"})
+            return
+        ratio = contrast_ratio(fg, bg)
+        pairs.append({
+            "pair": name, "ratio": round(ratio, 3), "min": minimum,
+            "fg": [round(v, 4) for v in fg], "bg": [round(v, 4) for v in bg],
+            "pass": ratio >= minimum,
+        })
+
     add("body: Label text on panel", "Label", "font_color", "PanelContainer", "panel", BODY_CONTRAST_MIN)
     add("heading: Button text on button", "Button", "font_color", "Button", "normal", HEADING_CONTRAST_MIN)
+    # Structural pairs (B-1315): the slider's groove sits on the panel and
+    # its fill travels inside the groove; both fills come from the built
+    # styleboxes, like the text pairs.
+    add_fill("slider groove on panel", "HSlider", "slider", "PanelContainer", "panel", SLIDER_CONTRAST_MIN)
+    add_fill("slider fill on groove", "HSlider", "grabber_area", "HSlider", "slider", SLIDER_CONTRAST_MIN)
     return {"pass": all(p["pass"] for p in pairs), "pairs": pairs,
-            "body_min": BODY_CONTRAST_MIN, "heading_min": HEADING_CONTRAST_MIN}
+            "body_min": BODY_CONTRAST_MIN, "heading_min": HEADING_CONTRAST_MIN,
+            "slider_min": SLIDER_CONTRAST_MIN}
 
 
 # ---------------------------------------------------------------- states / coverage / scale
@@ -384,6 +640,26 @@ def check_scale(theme):
     return result
 
 
+def check_containment(data):
+    """Containment (B-1315, owner rule): every control inside a panel
+    stays within the panel's safe area -- at rest and at the peak phase
+    of the screen's motions. Data comes from ai_loop/ui_containment_probe.gd
+    run against the sample project; the probe has already applied the
+    skew narrowing, so this only reads its verdicts."""
+    if data.get("format") != "uzu-ui-containment/1":
+        return {"pass": False, "reason": f"containment format is {data.get('format')!r}"}
+    screens = {}
+    for name, s in sorted(data.get("screens", {}).items()):
+        screens[name] = {
+            "pass": bool(s.get("pass")),
+            "rest_violations": len(s.get("rest", [])),
+            "peak_violations": len(s.get("peak", [])),
+            "violations": (s.get("rest", []) + s.get("peak", []))[:8],
+        }
+    return {"pass": all(s["pass"] for s in screens.values()) and bool(screens),
+            "screens": screens}
+
+
 # ---------------------------------------------------------------- probe runner
 
 def run_probe(engine, project=None):
@@ -406,22 +682,35 @@ def run_probe(engine, project=None):
 
 # ---------------------------------------------------------------- main
 
-def build_report(probe, theme_name, images, region=None):
+def build_report(probe, theme_name, images, region=None, texture_images=None, texture_region=None,
+                 containment=None):
     themes = probe.get("themes", {})
     if theme_name not in themes:
         raise ValueError(f"theme '{theme_name}' not in probe (have: {', '.join(sorted(themes))})")
     theme = themes[theme_name]
     checks = {}
+    if texture_images:
+        # B-1315: when empty-panel sheets are the texture evidence, the
+        # sheet measurement replaces the screenshot one -- it scores the
+        # material at native resolution and can tell a designed pattern
+        # from a tiling artifact, which the screenshot peak cannot.
+        sheets = [texture_repetition_sheet(p, texture_region) for p in texture_images]
+        coverage = texture_coverage(theme)
+        checks["texture_sheet"] = {
+            "pass": all(s["pass"] for s in sheets) and coverage["pass"],
+            "sheets": sheets, "coverage": coverage}
     if images:
         per_image = [texture_repetition(p, region) for p in images]
         checks["texture_repetition"] = {
             "pass": all(r["pass"] for r in per_image), "images": per_image}
-    else:
+    elif not texture_images:
         checks["texture_repetition"] = {"pass": False, "reason": "no screenshot given"}
     checks["contrast"] = check_contrast(theme)
     checks["state_completeness"] = check_states(theme)
     checks["coverage"] = check_coverage(theme)
     checks["scale"] = check_scale(theme)
+    if containment is not None:
+        checks["containment"] = check_containment(containment)
     verdict = "pass" if all(c["pass"] for c in checks.values()) else "fail"
     return {"format": FORMAT, "theme": theme_name, "verdict": verdict, "checks": checks}
 
@@ -433,6 +722,10 @@ def main(argv=None):
     ap.add_argument("--theme", default="wafu", help="theme to score (default wafu; 'default' = create_theme)")
     ap.add_argument("--image", action="append", default=[], help="sample screenshot PNG (repeatable)")
     ap.add_argument("--region", help="panel crop x,y,w,h applied to every --image")
+    ap.add_argument("--texture-image", action="append", default=[],
+                    help="empty-panel sheet PNG for the texture-sheet check (repeatable)")
+    ap.add_argument("--texture-region", help="interior crop x,y,w,h applied to every --texture-image")
+    ap.add_argument("--containment", help="containment JSON from ai_loop/ui_containment_probe.gd")
     ap.add_argument("--out", help="write the report JSON here (default: stdout)")
     args = ap.parse_args(argv)
 
@@ -452,7 +745,18 @@ def main(argv=None):
             region = tuple(int(v) for v in args.region.split(","))
             if len(region) != 4:
                 raise ValueError("--region must be x,y,w,h")
-        report = build_report(probe, args.theme, args.image, region)
+        texture_region = None
+        if args.texture_region:
+            texture_region = tuple(int(v) for v in args.texture_region.split(","))
+            if len(texture_region) != 4:
+                raise ValueError("--texture-region must be x,y,w,h")
+        containment = None
+        if args.containment:
+            with open(args.containment, encoding="utf-8") as f:
+                containment = json.load(f)
+        report = build_report(probe, args.theme, args.image, region,
+                              texture_images=args.texture_image, texture_region=texture_region,
+                              containment=containment)
     except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as e:
         print(f"ui_quality: error: {e}", file=sys.stderr)
         return 2
