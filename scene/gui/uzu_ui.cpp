@@ -1142,6 +1142,19 @@ Ref<Image> draw_frame_impl(const Dictionary &p_style, float p_shadow_alpha) {
 	const int shadow = CLAMP(int(p_style.get("shadow", 6)), 0, 32) * scale;
 	const uint32_t seed = uint32_t(int(p_style.get("seed", 1)));
 	const int orn = ornament == "none" ? 0 : 10 * scale;
+	// Depth layers over the material (B-1318), each a 0..1 strength in
+	// the style: "inner_shadow" shades the surface just inside the rim,
+	// "highlight" is the rim light from the top left, "glow" bleeds the
+	// accent color in from the edge. The defaults keep every existing
+	// frame's look — all off, except the glow glass has always had.
+	const float inner_shadow = CLAMP(float(p_style.get("inner_shadow", 0.0)), 0.0f, 1.0f);
+	const float highlight = CLAMP(float(p_style.get("highlight", 0.0)), 0.0f, 1.0f);
+	const float glow = CLAMP(float(p_style.get("glow", material == "glass" ? 0.35f : 0.0f)), 0.0f, 1.0f);
+	// For skew the 9-slice middle is half a tile wide (create_frame_style),
+	// so an fbm material must repeat at that period or the tiled middle
+	// prints the seam as a pattern jump. Halftone is exempt: its dot
+	// cell (tile / 32) divides the half tile exactly.
+	const int mat_tile = shape == "skew" && material != "halftone" ? tile / 2 : tile;
 	// The corner the 9-slice keeps must contain the whole ornament: an
 	// ornament sits bw + 3 in from the frame edge and reaches orn px
 	// further. Before B-1311 the corner only reserved MAX(radius, bw*2,
@@ -1167,7 +1180,7 @@ Ref<Image> draw_frame_impl(const Dictionary &p_style, float p_shadow_alpha) {
 				}
 			}
 			const float inside = pixel ? (d <= 0.0f ? 1.0f : 0.0f) : CLAMP(0.5f - d, 0.0f, 1.0f);
-			Color c = material_color(material, base, p.x, p.y, d, seed, tile, scale);
+			Color c = material_color(material, base, p.x, p.y, d, seed, mat_tile, scale);
 			// Bevel: light from the top, dark at the bottom, just inside the border.
 			if (d > -(bw * 2.0f + 2.0f * scale) && d < -bw && !pixel) {
 				c = (p.y < center.y) ? c.lightened(0.18f) : c.darkened(0.18f);
@@ -1179,9 +1192,30 @@ Ref<Image> draw_frame_impl(const Dictionary &p_style, float p_shadow_alpha) {
 					e = accent; // A lit edge.
 				}
 				c = c.lerp(e, in_border);
+				// Rim highlight (B-1318): the border catches the light
+				// from the top left, so the frame reads as a raised
+				// surface instead of a flat print. The SDF gradient
+				// points out of the frame; the light is its up/left part.
+				if (highlight > 0.0f && !pixel) {
+					const float gx = frame_distance(shape, p + Vector2(1, 0), center, half, radius) - frame_distance(shape, p - Vector2(1, 0), center, half, radius);
+					const float gy = frame_distance(shape, p + Vector2(0, 1), center, half, radius) - frame_distance(shape, p - Vector2(0, 1), center, half, radius);
+					const Vector2 n = Vector2(gx, gy).normalized();
+					const float light = CLAMP(-n.y * 0.7f - n.x * 0.45f, 0.0f, 1.0f);
+					c = c.lightened(highlight * 0.38f * light * in_border);
+				}
 			}
-			if (material == "glass" && d < 0.0f) {
-				c = c.lerp(accent, 0.35f * Math::exp(d / (3.0f * scale))); // Glow just inside the edge.
+			// Depth layers over the interior (B-1318): the accent glow
+			// bleeding in from the edge and the inner shadow, the soft
+			// shade the rim casts on the surface just inside it. Both
+			// fall off within a few px, so the middle of a wide panel
+			// keeps the plain material.
+			if (d < 0.0f) {
+				if (glow > 0.0f) {
+					c = c.lerp(accent, glow * Math::exp(d / (3.0f * scale))); // Glow just inside the edge.
+				}
+				if (inner_shadow > 0.0f) {
+					c = c.darkened(inner_shadow * 0.55f * Math::exp(d / (7.0f * scale)));
+				}
 			}
 			// Corner ornaments, in the corner squares the 9-slice keeps
 			// (the corner above reserves their full extent, B-1311).
@@ -1254,7 +1288,24 @@ Ref<StyleBox> UZUUI::create_frame_style(const Dictionary &p_style) {
 	sb->set_texture(ImageTexture::create_from_image(img));
 	const int scale = CLAMP(int(style.get("scale", 1)), 1, 2);
 	const int margin = (img->get_width() - FRAME_TILE * scale) / 2;
-	sb->set_texture_margin_all(margin);
+	if (String(style.get("shape", "")) == "skew") {
+		// A parallelogram's cross-section is 3/4 of the texture width
+		// and shifts by a quarter of the height across the middle, so a
+		// full-tile middle is not covered by the shape at every row:
+		// tiled across a wide panel it left a transparent wedge at
+		// every seam (B-1317's persona shot, fixed in B-1318). A
+		// half-tile middle lies inside the band at every row — and so
+		// do the middles of all four edge strips — so no wedge can
+		// form. The fbm materials repeat at the same half period
+		// (draw_frame_impl), so the pattern stays seamless too.
+		const int margin_x = (img->get_width() - FRAME_TILE * scale / 2) / 2;
+		sb->set_texture_margin(SIDE_LEFT, margin_x);
+		sb->set_texture_margin(SIDE_RIGHT, margin_x);
+		sb->set_texture_margin(SIDE_TOP, margin);
+		sb->set_texture_margin(SIDE_BOTTOM, margin);
+	} else {
+		sb->set_texture_margin_all(margin);
+	}
 	sb->set_expand_margin_all(shadow.size * scale);
 	// The middle repeats, so the texture keeps its scale.
 	sb->set_h_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE_FIT);
@@ -1278,11 +1329,13 @@ Dictionary UZUUI::get_world_options(const String &p_world) {
 	if (p_world == "fantasy") {
 		set(frame, "material", "wood"), set(frame, "base", "#6b4a2e"), set(frame, "edge", "#2e1d10"), set(frame, "accent", "#e6c36a");
 		set(frame, "ornament", "brackets"), set(frame, "radius", 8), set(frame, "border_width", 3), set(frame, "shadow", 8);
+		set(frame, "inner_shadow", 0.45), set(frame, "highlight", 0.35);
 		set(button, "material", "parchment"), set(button, "base", "#e8d6a8"), set(button, "edge", "#5a3d22"), set(button, "radius", 6);
 		set(o, "text", "#f6e7c8"), set(o, "button_text", "#3a2614"), set(o, "accent", "#e6c36a"), set(o, "fill", "#d94a3a");
 	} else if (p_world == "wafu") {
 		set(frame, "material", "parchment"), set(frame, "base", "#efe2c4"), set(frame, "edge", "#3b2416"), set(frame, "accent", "#b8322a");
 		set(frame, "ornament", "diamonds"), set(frame, "radius", 2), set(frame, "border_width", 3), set(frame, "shadow", 8);
+		set(frame, "inner_shadow", 0.3), set(frame, "highlight", 0.2);
 		set(button, "material", "flat"), set(button, "base", "#b8322a"), set(button, "edge", "#3b1410"), set(button, "radius", 2);
 		set(o, "text", "#2a1a10"), set(o, "button_text", "#fbf1dc"), set(o, "accent", "#b8322a"), set(o, "fill", "#b8322a");
 	} else if (p_world == "sf") {
@@ -1293,11 +1346,13 @@ Dictionary UZUUI::get_world_options(const String &p_world) {
 	} else if (p_world == "horror") {
 		set(frame, "material", "grime"), set(frame, "base", "#2a1414"), set(frame, "edge", "#090404"), set(frame, "accent", "#8a1010");
 		set(frame, "ornament", "nails"), set(frame, "radius", 0), set(frame, "border_width", 3), set(frame, "shadow", 12);
+		set(frame, "inner_shadow", 0.5);
 		set(button, "material", "grime"), set(button, "base", "#3a1a1a"), set(button, "edge", "#0b0505"), set(button, "radius", 0);
 		set(o, "text", "#e8d8d0"), set(o, "button_text", "#e8d8d0"), set(o, "accent", "#a01818"), set(o, "fill", "#8a1010");
 	} else if (p_world == "persona") {
 		set(frame, "material", "halftone"), set(frame, "base", "#e8212b"), set(frame, "edge", "#111111"), set(frame, "accent", "#ffffff");
 		set(frame, "shape", "skew"), set(frame, "border_width", 4), set(frame, "shadow", 12);
+		set(frame, "inner_shadow", 0.3), set(frame, "highlight", 0.3);
 		set(button, "material", "flat"), set(button, "base", "#111111"), set(button, "edge", "#ffffff"), set(button, "shape", "skew"), set(button, "border_width", 3), set(button, "shadow", 8);
 		set(o, "text", "#ffffff"), set(o, "button_text", "#ffffff"), set(o, "accent", "#ffe14d"), set(o, "fill", "#ffe14d");
 	} else if (p_world == "pixel") {

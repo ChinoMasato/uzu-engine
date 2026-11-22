@@ -1,0 +1,23 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section]
+;   param=value ; assign a value to an editor property
+
+; B-1318 showcase: static (no motion) panels in one world, wide enough
+; that the frame's 9-slice middle tiles several times — the persona
+; wedge defect of B-1317 showed exactly there. See
+; ai_loop/iterations/2026-11-22-B-1318-muse.md.
+config_version=5
+
+[application]
+
+config/name="uzu-b1318-showcase"
+run/main_scene="res://main.tscn"
+
+[display]
+
+window/size/viewport_width=1152
+window/size/viewport_height=648
