@@ -191,12 +191,17 @@ enum UZUUIJuiceKind {
 	UI_HOVER,
 	UI_COUNT,
 	UI_TRANSITION,
+	UI_APPEAR,
+	UI_DISAPPEAR,
+	UI_PRESS,
+	UI_VALUE,
 };
 
 struct UZUUIJuiceEntry {
 	ObjectID id;
 	UZUUIJuiceKind kind = UI_OPEN;
 	String preset = "overshoot";
+	String motion; // The B-1317 preset name; legacy kinds use their event name.
 	double strength = 1.0;
 	double duration = 0.25;
 	double elapsed = 0.0;
@@ -206,6 +211,8 @@ struct UZUUIJuiceEntry {
 	Color base_modulate = Color(1, 1, 1, 1);
 	int64_t count_from = 0;
 	int64_t count_to = 0;
+	double value_from = 0.0; // UI_VALUE endpoints (a Range's value, a Label's number).
+	double value_to = 0.0;
 	ObjectID partner_id; // TRANSITION: the control fading in.
 	Vector2 partner_base_scale = Vector2(1, 1);
 	Color partner_base_modulate = Color(1, 1, 1, 1);
@@ -243,6 +250,14 @@ static const char *_event_name(UZUUIJuiceKind p_kind) {
 			return "count_up";
 		case UI_TRANSITION:
 			return "transition";
+		case UI_APPEAR:
+			return "appear";
+		case UI_DISAPPEAR:
+			return "disappear";
+		case UI_PRESS:
+			return "press";
+		case UI_VALUE:
+			return "value_change";
 	}
 	return "unknown";
 }
@@ -262,7 +277,14 @@ static void _restore(const UZUUIJuiceEntry &p_entry, bool p_finish) {
 				range->set_value(double(p_entry.count_to));
 			}
 		}
-		if (p_finish && (p_entry.kind == UI_CLOSE || p_entry.kind == UI_TRANSITION)) {
+		if (p_finish && p_entry.kind == UI_VALUE) {
+			if (Range *range = Object::cast_to<Range>(c)) {
+				range->set_value(p_entry.value_to);
+			} else if (Label *label = Object::cast_to<Label>(c)) {
+				label->set_text(String::num_int64(int64_t(Math::round(p_entry.value_to))));
+			}
+		}
+		if (p_finish && (p_entry.kind == UI_CLOSE || p_entry.kind == UI_TRANSITION || p_entry.kind == UI_DISAPPEAR)) {
 			c->set_visible(false);
 		}
 	}
@@ -274,11 +296,18 @@ static void _restore(const UZUUIJuiceEntry &p_entry, bool p_finish) {
 	}
 }
 
-static void _apply_entry(const UZUUIJuiceEntry &p_entry) {
+// The animation's time 0..1, quantized into held frames when the entry
+// steps (the pixel world).
+static double _entry_t(const UZUUIJuiceEntry &p_entry) {
 	double t = p_entry.duration > 0.0 ? CLAMP(p_entry.elapsed / p_entry.duration, 0.0, 1.0) : 1.0;
 	if (p_entry.steps > 0 && t < 1.0) {
 		t = Math::floor(t * double(p_entry.steps)) / double(p_entry.steps);
 	}
+	return t;
+}
+
+static void _apply_entry(const UZUUIJuiceEntry &p_entry) {
+	const double t = _entry_t(p_entry);
 	double v = UZUUIJuice::motion_value(p_entry.preset, t, p_entry.strength);
 	Control *c = _control_or_null(p_entry.id);
 	if (!c) {
@@ -294,8 +323,40 @@ static void _apply_entry(const UZUUIJuiceEntry &p_entry) {
 			c->set_scale(p_entry.base_scale * f);
 		} break;
 		case UI_HOVER: {
-			double f = 1.0 + 0.10 * p_entry.strength * Math::sin(Math::PI * CLAMP(p_entry.elapsed / MAX(p_entry.duration, 0.0001), 0.0, 1.0));
+			const double s = Math::sin(Math::PI * t);
+			c->set_scale(p_entry.base_scale * (1.0 + 0.10 * p_entry.strength * s));
+			Color m = p_entry.base_modulate;
+			const float brighten = float(1.0 + 0.10 * p_entry.strength * s);
+			m.r *= brighten;
+			m.g *= brighten;
+			m.b *= brighten;
+			c->set_modulate(m);
+		} break;
+		case UI_APPEAR: {
+			c->set_scale(p_entry.base_scale * MAX(v, 0.02));
+			Color m = p_entry.base_modulate;
+			m.a = p_entry.base_modulate.a * float(CLAMP(v, 0.0, 1.0));
+			c->set_modulate(m);
+		} break;
+		case UI_DISAPPEAR: {
+			c->set_scale(p_entry.base_scale * MAX(1.0 - v, 0.0));
+			Color m = p_entry.base_modulate;
+			m.a = p_entry.base_modulate.a * float(1.0 - CLAMP(v, 0.0, 1.0));
+			c->set_modulate(m);
+		} break;
+		case UI_PRESS: {
+			const double f = 1.0 - 0.12 * p_entry.strength * Math::sin(Math::PI * t);
 			c->set_scale(p_entry.base_scale * f);
+		} break;
+		case UI_VALUE: {
+			const double num = p_entry.value_from + (p_entry.value_to - p_entry.value_from) * v;
+			if (Range *range = Object::cast_to<Range>(c)) {
+				range->set_value(num); // The range clamps to its own min/max.
+			} else if (Label *label = Object::cast_to<Label>(c)) {
+				const double lo = MIN(p_entry.value_from, p_entry.value_to);
+				const double hi = MAX(p_entry.value_from, p_entry.value_to);
+				label->set_text(String::num_int64(int64_t(Math::round(CLAMP(num, lo, hi)))));
+			}
 		} break;
 		case UI_COUNT: {
 			double num = double(p_entry.count_from) + double(p_entry.count_to - p_entry.count_from) * v;
@@ -321,7 +382,7 @@ static void _apply_entry(const UZUUIJuiceEntry &p_entry) {
 	}
 }
 
-static void _start(UZUUIJuiceKind p_kind, Control *p_control, const String &p_preset, double p_duration, double p_strength, int p_steps, Control *p_partner = nullptr, int64_t p_from = 0, int64_t p_to = 0) {
+static void _start(UZUUIJuiceKind p_kind, Control *p_control, const String &p_preset, double p_duration, double p_strength, int p_steps, Control *p_partner = nullptr, int64_t p_from = 0, int64_t p_to = 0, const String &p_motion = String(), double p_value_from = 0.0, double p_value_to = 0.0) {
 	ERR_FAIL_NULL(p_control);
 	// One animation per control: restore the old one before capturing anew.
 	for (int i = _entries.size() - 1; i >= 0; i--) {
@@ -342,10 +403,13 @@ static void _start(UZUUIJuiceKind p_kind, Control *p_control, const String &p_pr
 	entry.base_modulate = p_control->get_modulate();
 	entry.count_from = p_from;
 	entry.count_to = p_to;
+	entry.motion = p_motion.is_empty() ? String(_event_name(p_kind)) : p_motion;
+	entry.value_from = p_value_from;
+	entry.value_to = p_value_to;
 	if (p_control->get_size().x > 0.0f && p_control->get_size().y > 0.0f) {
 		p_control->set_pivot_offset(p_control->get_size() * 0.5f);
 	}
-	if (p_kind == UI_OPEN || p_kind == UI_TRANSITION) {
+	if (p_kind == UI_OPEN || p_kind == UI_TRANSITION || p_kind == UI_APPEAR) {
 		p_control->set_visible(true);
 	}
 	if (p_kind == UI_TRANSITION && p_partner) {
@@ -383,25 +447,170 @@ bool UZUUIJuice::transition(Control *p_from, Control *p_to, double p_duration, c
 	return true;
 }
 
+// How a UZUUI world moves, as a curve: a stepped world steps, an
+// overshooting world overshoots (its value is the back constant itself),
+// the rest brake with ease_in.
+static void _world_curve(const String &p_world, String &r_curve, double &r_strength, int &r_steps, double &r_duration) {
+	const Dictionary m = UZUUI::get_world_motion(p_world);
+	r_duration = double(m["duration"]);
+	r_steps = int(m["steps"]);
+	r_strength = 1.0;
+	if (r_steps > 0) {
+		r_curve = "step";
+	} else if (double(m["overshoot"]) > 0.01) {
+		r_curve = "overshoot";
+		r_strength = double(m["overshoot"]) / 1.70158;
+	} else {
+		r_curve = "ease_in";
+	}
+}
+
 bool UZUUIJuice::apply_world_motion(Control *p_control, const String &p_world, bool p_open) {
 	ERR_FAIL_NULL_V(p_control, false);
 	if (!UZUUI::get_world_names().has(p_world)) {
 		return false;
 	}
-	Dictionary m = UZUUI::get_world_motion(p_world);
-	double duration = double(m["duration"]);
-	double overshoot = double(m["overshoot"]);
-	int steps = int(m["steps"]);
-	String preset = "ease_in";
-	double strength = 1.0;
-	if (steps > 0) {
-		preset = "step";
-	} else if (overshoot > 0.01) {
-		preset = "overshoot";
-		strength = overshoot / 1.70158; // The world's value is the back constant itself.
-	}
-	_start(p_open ? UI_OPEN : UI_CLOSE, p_control, preset, duration, strength, steps);
+	String curve;
+	double strength, duration;
+	int steps;
+	_world_curve(p_world, curve, strength, steps, duration);
+	_start(p_open ? UI_OPEN : UI_CLOSE, p_control, curve, duration, strength, steps);
 	return true;
+}
+
+PackedStringArray UZUUIJuice::get_motion_names() {
+	PackedStringArray names;
+	names.push_back("appear");
+	names.push_back("disappear");
+	names.push_back("hover");
+	names.push_back("press");
+	names.push_back("value_change");
+	return names;
+}
+
+bool UZUUIJuice::play_motion(Control *p_control, const String &p_motion, const Dictionary &p_options) {
+	ERR_FAIL_NULL_V(p_control, false);
+	UZUUIJuiceKind kind;
+	String curve = "overshoot";
+	double duration = 0.25;
+	if (p_motion == "appear") {
+		kind = UI_APPEAR;
+	} else if (p_motion == "disappear") {
+		kind = UI_DISAPPEAR;
+		curve = "anticipation";
+		duration = 0.22;
+	} else if (p_motion == "hover") {
+		kind = UI_HOVER;
+		duration = 0.18;
+	} else if (p_motion == "press") {
+		kind = UI_PRESS;
+		duration = 0.18;
+	} else if (p_motion == "value_change") {
+		kind = UI_VALUE;
+		curve = "ease_in";
+		duration = 0.6;
+	} else {
+		return false;
+	}
+	double strength = 1.0;
+	int steps = 0;
+	if (p_options.has("world")) {
+		const String world = p_options["world"];
+		if (!UZUUI::get_world_names().has(world)) {
+			return false;
+		}
+		String world_curve;
+		double world_strength, world_duration;
+		int world_steps;
+		_world_curve(world, world_curve, world_strength, world_steps, world_duration);
+		curve = world_curve;
+		strength = world_strength;
+		steps = world_steps;
+		duration = kind == UI_VALUE ? world_duration * 2.0 : world_duration;
+	}
+	if (p_options.has("curve")) {
+		curve = String(p_options["curve"]);
+		if (UZUUIJuice::get_preset(curve).is_empty()) {
+			return false;
+		}
+	}
+	if (p_options.has("duration")) {
+		duration = double(p_options["duration"]);
+	}
+	if (p_options.has("strength")) {
+		strength = double(p_options["strength"]);
+	}
+	if (p_options.has("steps")) {
+		steps = int(p_options["steps"]);
+	}
+	double value_from = 0.0;
+	double value_to = 0.0;
+	if (kind == UI_VALUE) {
+		Range *range = Object::cast_to<Range>(p_control);
+		Label *label = Object::cast_to<Label>(p_control);
+		if (!range && !label) {
+			return false;
+		}
+		if (p_options.has("to")) {
+			value_to = double(p_options["to"]);
+		} else if (range) {
+			value_to = range->get_max();
+		} else {
+			return false; // A label needs its target named.
+		}
+		if (p_options.has("from")) {
+			value_from = double(p_options["from"]);
+		} else if (range) {
+			value_from = range->get_value();
+		} else {
+			value_from = label->get_text().to_int();
+		}
+	}
+	_start(kind, p_control, curve, duration, strength, steps, nullptr, 0, 0, p_motion, value_from, value_to);
+	return true;
+}
+
+Dictionary UZUUIJuice::get_animation_state(Control *p_control) {
+	Dictionary d;
+	d["animating"] = false;
+	ERR_FAIL_NULL_V(p_control, d);
+	const ObjectID id = p_control->get_instance_id();
+	for (const UZUUIJuiceEntry &e : _entries) {
+		if (e.id == id || e.partner_id == id) {
+			const double t = _entry_t(e);
+			d["animating"] = true;
+			d["motion"] = e.motion;
+			d["curve"] = e.preset;
+			d["elapsed"] = e.elapsed;
+			d["duration"] = e.duration;
+			d["progress"] = t;
+			d["value"] = UZUUIJuice::motion_value(e.preset, t, e.strength);
+			return d;
+		}
+	}
+	return d;
+}
+
+bool UZUUIJuice::seek_animation(Control *p_control, double p_time) {
+	ERR_FAIL_NULL_V(p_control, false);
+	const ObjectID id = p_control->get_instance_id();
+	for (int i = 0; i < _entries.size(); i++) {
+		UZUUIJuiceEntry &e = _entries.write[i];
+		if (e.id != id && e.partner_id != id) {
+			continue;
+		}
+		if (p_time >= e.duration) {
+			UZUUIJuiceEntry done = e;
+			_entries.remove_at(i);
+			_restore(done, true);
+			_log_event(_event_name(done.kind), "end", done.preset, done.id);
+		} else {
+			e.elapsed = MAX(p_time, 0.0);
+			_apply_entry(e);
+		}
+		return true;
+	}
+	return false;
 }
 
 bool UZUUIJuice::is_animating(Control *p_control) {
@@ -478,6 +687,10 @@ void UZUUIJuice::_bind_methods() {
 	ClassDB::bind_static_method("UZUUIJuice", D_METHOD("count_up", "control", "from", "to", "duration", "preset", "strength"), &UZUUIJuice::count_up, DEFVAL(0.6), DEFVAL("ease_in"), DEFVAL(1.0));
 	ClassDB::bind_static_method("UZUUIJuice", D_METHOD("transition", "from_control", "to_control", "duration", "preset", "strength"), &UZUUIJuice::transition, DEFVAL(0.3), DEFVAL("ease_in"), DEFVAL(1.0));
 	ClassDB::bind_static_method("UZUUIJuice", D_METHOD("apply_world_motion", "control", "world", "open"), &UZUUIJuice::apply_world_motion, DEFVAL(true));
+	ClassDB::bind_static_method("UZUUIJuice", D_METHOD("get_motion_names"), &UZUUIJuice::get_motion_names);
+	ClassDB::bind_static_method("UZUUIJuice", D_METHOD("play_motion", "control", "motion", "options"), &UZUUIJuice::play_motion, DEFVAL(Dictionary()));
+	ClassDB::bind_static_method("UZUUIJuice", D_METHOD("get_animation_state", "control"), &UZUUIJuice::get_animation_state);
+	ClassDB::bind_static_method("UZUUIJuice", D_METHOD("seek_animation", "control", "time"), &UZUUIJuice::seek_animation);
 	ClassDB::bind_static_method("UZUUIJuice", D_METHOD("is_animating", "control"), &UZUUIJuice::is_animating);
 	ClassDB::bind_static_method("UZUUIJuice", D_METHOD("get_active_animation_count"), &UZUUIJuice::get_active_animation_count);
 	ClassDB::bind_static_method("UZUUIJuice", D_METHOD("cancel", "control"), &UZUUIJuice::cancel);

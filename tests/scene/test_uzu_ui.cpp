@@ -827,4 +827,26 @@ TEST_CASE("[SceneTree][UZUUI] World motion: moving frames, opening, hover, ambie
 	memdelete(screen);
 }
 
+TEST_CASE("[SceneTree][UZUUI] World motion: a spec's named motion plays on decorate (B-1317)") {
+	Control *screen = memnew(Control);
+	screen->set_theme(UZUUI::create_world_theme("wafu"));
+	SceneTree::get_singleton()->get_root()->add_child(screen);
+	screen->set_size(Size2(1280, 720));
+	Control *panel = UZUUI::make_panel();
+	Dictionary spec;
+	spec["preset"] = "appear";
+	panel->set_meta("uzu_motion", spec);
+	screen->add_child(panel);
+	UZUUIWorld *world = memnew(UZUUIWorld);
+	world->set_world("wafu");
+	screen->add_child(world);
+	const Dictionary stats = world->decorate();
+	CHECK(int(stats["motions"]) == 1);
+	CHECK(UZUUIJuice::is_animating(panel));
+	// The named preset played, not the default opening.
+	CHECK(String(UZUUIJuice::get_animation_state(panel)["motion"]) == "appear");
+	UZUUIJuice::cancel_all();
+	memdelete(screen);
+}
+
 } // namespace TestUZUUI

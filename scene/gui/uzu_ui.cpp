@@ -1704,6 +1704,7 @@ Dictionary UZUUIWorld::decorate() {
 	int panels = 0;
 	int buttons = 0;
 	int opened = 0;
+	int motions = 0;
 	ribbons.clear();
 	next_marks.clear();
 	TypedArray<Node> all = root->find_children("*", "Control", true, false);
@@ -1730,8 +1731,22 @@ Dictionary UZUUIWorld::decorate() {
 		if (c->get_name() == StringName("Next") && Object::cast_to<Label>(c)) {
 			next_marks.push_back(c->get_instance_id());
 		}
+		// A motion the spec named for this control (B-1317: the "motion"
+		// key of ai_loop/ui_tool.gd, stored as "uzu_motion" metadata)
+		// plays with this world's motion, instead of the default opening.
+		bool spec_motion = false;
+		if (c->has_meta("uzu_motion")) {
+			const Dictionary spec = c->get_meta("uzu_motion");
+			Dictionary options = spec.duplicate(); // A Dictionary is a reference: erasing from a plain copy would eat the spec (and the stored meta).
+			options.erase("preset");
+			if (!options.has("world")) {
+				options["world"] = world;
+			}
+			spec_motion = UZUUIJuice::play_motion(c, String(spec.get("preset", "")), options);
+			motions += spec_motion ? 1 : 0;
+		}
 		// The top-level panels open with the world's motion.
-		if (open_on_ready && Object::cast_to<PanelContainer>(c) && c->get_parent() == root && c->is_inside_tree()) {
+		if (open_on_ready && !spec_motion && Object::cast_to<PanelContainer>(c) && c->get_parent() == root && c->is_inside_tree()) {
 			opened += UZUUIJuice::apply_world_motion(c, world, true) ? 1 : 0;
 		}
 	}
@@ -1746,6 +1761,7 @@ Dictionary UZUUIWorld::decorate() {
 	stats["panels"] = panels;
 	stats["buttons"] = buttons;
 	stats["opened"] = opened;
+	stats["motions"] = motions;
 	stats["ribbons"] = ribbons.size();
 	stats["next_marks"] = next_marks.size();
 	return stats;

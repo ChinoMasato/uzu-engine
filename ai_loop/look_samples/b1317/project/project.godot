@@ -1,0 +1,22 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section header between []
+;   param=value ; assign a value to an editor property
+
+; B-1317 showcase: the five motion presets' screen (panel appear, button
+; press, gauge value_change) in one world, shot at three moments of the
+; motion. See ai_loop/iterations/2026-11-22-B-1317-muse.md.
+config_version=5
+
+[application]
+
+config/name="uzu-b1317-showcase"
+run/main_scene="res://main.tscn"
+
+[display]
+
+window/size/viewport_width=1152
+window/size/viewport_height=648
