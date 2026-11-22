@@ -257,3 +257,5 @@
 - 2026-11-22 B-1310 修正（リード、CI 復旧）: 統合直後の uzu_verify run #44955489719 が Agent tool self-tests で failure（ui_quality.py とテストが numpy を import するがランナーに無く ModuleNotFoundError）。ワークフロー変更ではなく本体側で直した: 自己相関の FFT を標準ライブラリ実装へフォールバック化（numpy がある場合は従来の高速経路、無い場合は純 Python FFT で同じ値を計算。実測で両経路の差 0.00000 を確認）。テストの合成画像生成も random＋PIL 化。numpy 遮断のシミュレーションでゲートが完走し、現行 wafu は従来どおり fail（繰り返し指数 0.5205）になることを確認。
 
 - 2026-11-22 B-1310 修正その2（リード、CI 復旧）: numpy 修正直後の uzu_verify run #44957378060 が再び Agent tool self-tests で failure（tests/test_ui_quality.py の RepetitionTest 2件が `from PIL import Image` で ModuleNotFoundError。ランナーに Pillow が無い）。ワークフロー変更ではなく本体側で直した: PIL 依存の合成画像テスト2件を PIL 不在時は skip する形にし、ui font subset の skip（fonttools/brotli 不在時）と同じ扱いにした。PIL がある環境では 13件すべて実行され pass、PIL 遮断のシミュレーションでは 11件 pass＋2件 skip で exit 0 を確認。`uzu.py ui-quality` 本体の texture_repetition は従来どおり PIL を使う（スクリーンショット解析の実行時依存であり、CI の self-test では呼ばれない）。
+
+- 2026-11-22 B-1311 枠テクスチャの高品質化 完了（リード統合）: agent/b-1311-muse を統合。装飾漏れは角マージン確保量の不足（4px）が原因と特定し構造修正（漏れ実測 16/64px → 0px）。素材生成は fbm＋ドメインワープ＋タイル256px＋3層構成へ、生成スケール scale 1/2 を追加。全テスト 1579/1581。ゲートの繰り返し指数は見本画面の切り出しでは切り分け不能だったため、空パネルで測る手順を B-1315 で整備する留保つきで締める。
