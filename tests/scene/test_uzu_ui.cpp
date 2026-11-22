@@ -44,6 +44,7 @@ TEST_FORCE_LINK(test_uzu_ui)
 #include "scene/main/scene_tree.h"
 #include "scene/main/window.h"
 #include "scene/resources/material.h"
+#include "scene/resources/style_box.h"
 #include "scene/resources/style_box_flat.h"
 #include "scene/resources/style_box_texture.h"
 #include "scene/resources/theme.h"
@@ -118,6 +119,68 @@ TEST_CASE("[SceneTree][UZUUI] Panel styles and the theme") {
 	REQUIRE(fill.is_valid());
 	CHECK(fill->get_bg_color().is_equal_approx(Color::html("#40c0a0")));
 	CHECK(UZUUI::get_theme_defaults().has("panel"));
+}
+
+TEST_CASE("[SceneTree][UZUUI] Theme completeness: every standard control styled, focus visible") {
+	// B-1313: the B-1310 gate's coverage list. Every type must carry at
+	// least one stylebox of the theme itself (not the default Godot look),
+	// the parts that take focus must carry a focus box that is not
+	// StyleBoxEmpty, and the drawn parts (check marks, arrows, knobs)
+	// must carry the theme's own icons.
+	auto check_complete = [](const Ref<Theme> &theme) {
+		for (const char *cls : { "PanelContainer", "Button", "CheckBox", "OptionButton", "HSlider", "VSlider", "LineEdit", "SpinBox", "HScrollBar", "VScrollBar", "PopupMenu", "Tree", "TabContainer", "ItemList", "ProgressBar", "TooltipPanel" }) {
+			List<StringName> boxes;
+			theme->get_stylebox_list(cls, &boxes);
+			CHECK_MESSAGE(boxes.size() > 0, cls);
+		}
+		// The state boxes each part is drawn with.
+		for (const char *item : { "normal/CheckBox", "hover/CheckBox", "hover_pressed/CheckBox", "normal/OptionButton", "hover/OptionButton", "pressed/OptionButton", "disabled/OptionButton",
+					 "slider/HSlider", "grabber_area/HSlider", "grabber_area_highlight/HSlider", "slider/VSlider", "grabber_area/VSlider",
+					 "normal/LineEdit", "read_only/LineEdit", "up_background_hovered/SpinBox", "up_background_pressed/SpinBox", "down_background_hovered/SpinBox",
+					 "scroll/HScrollBar", "grabber/HScrollBar", "grabber_highlight/HScrollBar", "grabber_pressed/HScrollBar",
+					 "scroll/VScrollBar", "grabber/VScrollBar", "grabber_highlight/VScrollBar", "grabber_pressed/VScrollBar",
+					 "panel/PopupMenu", "hover/PopupMenu", "separator/PopupMenu",
+					 "panel/Tree", "selected/Tree", "selected_focus/Tree", "hovered/Tree" }) {
+			const String s = item;
+			CHECK_MESSAGE(theme->has_stylebox(s.get_slicec('/', 0), s.get_slicec('/', 1)), item);
+		}
+		// Focus is a real, visible box on every focusable part.
+		for (const char *cls : { "Button", "CheckBox", "OptionButton", "LineEdit", "Tree", "ItemList" }) {
+			REQUIRE_MESSAGE(theme->has_stylebox("focus", cls), cls);
+			const Ref<StyleBox> focus = theme->get_stylebox("focus", cls);
+			CHECK_MESSAGE(Object::cast_to<StyleBoxEmpty>(focus.ptr()) == nullptr, cls);
+		}
+		for (const char *cls : { "HScrollBar", "VScrollBar" }) {
+			const Ref<StyleBox> focus = theme->get_stylebox("scroll_focus", cls);
+			CHECK_MESSAGE(Object::cast_to<StyleBoxEmpty>(focus.ptr()) == nullptr, cls);
+		}
+		// The Button focus ring: an unfilled accent border, not the
+		// normal box reused (the gate requires it to be distinguishable).
+		Ref<StyleBoxFlat> ring = theme->get_stylebox("focus", "Button");
+		REQUIRE(ring.is_valid());
+		CHECK_FALSE(ring->is_draw_center_enabled());
+		CHECK(ring->get_border_width(SIDE_LEFT) == 2);
+		CHECK(theme->get_stylebox("focus", "Button") != theme->get_stylebox("normal", "Button"));
+		// Drawn icons: check marks, arrows, knobs, ticks.
+		for (const char *item : { "checked/CheckBox", "unchecked/CheckBox", "radio_checked/CheckBox", "radio_unchecked/CheckBox",
+					 "arrow/OptionButton", "grabber/HSlider", "grabber_highlight/HSlider", "grabber_disabled/HSlider", "tick/HSlider",
+					 "grabber/VSlider", "tick/VSlider", "clear/LineEdit", "up/SpinBox", "down/SpinBox",
+					 "checked/PopupMenu", "submenu/PopupMenu", "arrow/Tree", "arrow_collapsed/Tree", "checked/Tree", "unchecked/Tree" }) {
+			const String s = item;
+			CHECK_MESSAGE(theme->has_icon(s.get_slicec('/', 0), s.get_slicec('/', 1)), item);
+		}
+		// The check mark is really drawn: the checked icon has accent
+		// pixels the unchecked one does not.
+		const Ref<Texture2D> checked = theme->get_icon("checked", "CheckBox");
+		const Ref<Texture2D> unchecked = theme->get_icon("unchecked", "CheckBox");
+		REQUIRE(checked.is_valid());
+		REQUIRE(unchecked.is_valid());
+		CHECK(checked->get_image()->get_data() != unchecked->get_image()->get_data());
+	};
+	check_complete(UZUUI::create_theme(Dictionary()));
+	for (const String &world : UZUUI::get_world_names()) {
+		check_complete(UZUUI::create_world_theme(world));
+	}
 }
 
 TEST_CASE("[SceneTree][UZUUI] Parts") {

@@ -47,7 +47,9 @@
 #include "scene/resources/image_texture.h"
 #include "scene/resources/material.h"
 #include "scene/resources/shader.h"
+#include "scene/resources/style_box.h"
 #include "scene/resources/style_box_flat.h"
+#include "scene/resources/style_box_line.h"
 #include "scene/resources/style_box_texture.h"
 #include "scene/resources/theme.h"
 #include "scene/scene_string_names.h"
@@ -109,6 +111,411 @@ Dictionary merged(const Dictionary &p_base, const Variant &p_over) {
 		}
 	}
 	return out;
+}
+
+// ---------------------------------------------------------------------------
+// B-1313: full theme coverage and visible focus.
+//
+// The helpers below style the standard controls the first themes left to
+// the default Godot look (CheckBox, OptionButton, sliders, LineEdit,
+// SpinBox, scroll bars, PopupMenu, Tree) and give every focusable part a
+// focus ring that can actually be seen. Icons are drawn procedurally, the
+// same way the kit draws its panels: no image assets.
+
+// The gate's radius scale (B-1310); flat boxes snap to it so the new parts
+// do not add off-scale values of their own.
+int snap_radius(int p_radius) {
+	static const int SCALE[] = { 0, 2, 4, 6, 8, 12, 16, 24, 32 };
+	int best = SCALE[0];
+	for (int v : SCALE) {
+		if (Math::abs(v - p_radius) < Math::abs(best - p_radius)) {
+			best = v;
+		}
+	}
+	return best;
+}
+
+Ref<StyleBoxFlat> flat_box(const Color &p_bg, int p_radius, float p_padding, const Color &p_border = Color(0, 0, 0, 0), int p_border_width = 0) {
+	Ref<StyleBoxFlat> sb;
+	sb.instantiate();
+	sb->set_bg_color(p_bg);
+	if (p_border_width > 0) {
+		sb->set_border_width_all(p_border_width);
+		sb->set_border_color(p_border);
+	}
+	sb->set_corner_radius_all(snap_radius(p_radius));
+	sb->set_content_margin_all(p_padding);
+	return sb;
+}
+
+// The focus ring: no fill, an accent border, expanded just outside the
+// control's own rect so it reads as an outline, never as a second panel.
+Ref<StyleBoxFlat> focus_box(const Color &p_accent, int p_radius) {
+	Ref<StyleBoxFlat> sb;
+	sb.instantiate();
+	sb->set_draw_center(false);
+	sb->set_border_width_all(2);
+	sb->set_border_color(p_accent);
+	sb->set_corner_radius_all(snap_radius(p_radius));
+	sb->set_expand_margin_all(2);
+	return sb;
+}
+
+Ref<StyleBoxEmpty> empty_box() {
+	Ref<StyleBoxEmpty> sb;
+	sb.instantiate();
+	return sb;
+}
+
+float segment_distance(const Vector2 &p, const Vector2 &p_a, const Vector2 &p_b) {
+	const Vector2 ab = p_b - p_a;
+	const float t = CLAMP((p - p_a).dot(ab) / MAX(ab.length_squared(), 0.001f), 0.0f, 1.0f);
+	return (p_a + ab * t - p).length();
+}
+
+bool point_in_triangle(const Vector2 &p, const Vector2 &p_a, const Vector2 &p_b, const Vector2 &p_c) {
+	auto sign = [](const Vector2 &u, const Vector2 &v, const Vector2 &w) {
+		return (u.x - w.x) * (v.y - w.y) - (v.x - w.x) * (u.y - w.y);
+	};
+	const float d1 = sign(p, p_a, p_b);
+	const float d2 = sign(p, p_b, p_c);
+	const float d3 = sign(p, p_c, p_a);
+	const bool neg = d1 < 0.0f || d2 < 0.0f || d3 < 0.0f;
+	const bool pos = d1 > 0.0f || d2 > 0.0f || d3 > 0.0f;
+	return !(neg && pos);
+}
+
+// A check box / radio icon: a small framed square (or ring) in the field
+// colors, with the mark in the accent when on. Disabled variants are the
+// same drawing at low contrast, made by the caller passing dim colors.
+Ref<ImageTexture> make_check_icon(bool p_on, bool p_radio, const Color &p_bg, const Color &p_border, const Color &p_mark) {
+	const int s = 18;
+	Ref<Image> img = Image::create_empty(s, s, false, Image::FORMAT_RGBA8);
+	const Vector2 c(s * 0.5f, s * 0.5f);
+	for (int y = 0; y < s; y++) {
+		for (int x = 0; x < s; x++) {
+			const Vector2 p(x + 0.5f, y + 0.5f);
+			const float d = p_radio ? (p - c).length() - 7.5f : rounded_rect_distance(p, c, Vector2(7.5f, 7.5f), 3.0f);
+			Color col(0, 0, 0, 0);
+			if (d <= 0.0f) {
+				col = d > -2.0f ? p_border : p_bg;
+			}
+			if (p_on) {
+				if (p_radio) {
+					if ((p - c).length() <= 3.4f) {
+						col = p_mark;
+					}
+				} else if (segment_distance(p, Vector2(4.5f, 9.5f), Vector2(7.8f, 12.8f)) < 1.7f || segment_distance(p, Vector2(7.8f, 12.8f), Vector2(13.5f, 5.0f)) < 1.7f) {
+					col = p_mark;
+				}
+			}
+			img->set_pixel(x, y, col);
+		}
+	}
+	return ImageTexture::create_from_image(img);
+}
+
+// A bare check mark (PopupMenu / Tree checked items carry no box).
+Ref<ImageTexture> make_mark_icon(const Color &p_mark) {
+	const int s = 14;
+	Ref<Image> img = Image::create_empty(s, s, false, Image::FORMAT_RGBA8);
+	for (int y = 0; y < s; y++) {
+		for (int x = 0; x < s; x++) {
+			const Vector2 p(x + 0.5f, y + 0.5f);
+			const bool on = segment_distance(p, Vector2(2.5f, 7.5f), Vector2(5.6f, 10.6f)) < 1.6f || segment_distance(p, Vector2(5.6f, 10.6f), Vector2(11.5f, 3.5f)) < 1.6f;
+			img->set_pixel(x, y, on ? p_mark : Color(0, 0, 0, 0));
+		}
+	}
+	return ImageTexture::create_from_image(img);
+}
+
+// A triangle arrow: 0 = down, 1 = up, 2 = right, 3 = left.
+Ref<ImageTexture> make_arrow_icon(int p_dir, const Color &p_color) {
+	const int s = 12;
+	Ref<Image> img = Image::create_empty(s, s, false, Image::FORMAT_RGBA8);
+	Vector2 a, b, c;
+	switch (p_dir) {
+		case 1:
+			a = Vector2(2, 8), b = Vector2(10, 8), c = Vector2(6, 3);
+			break;
+		case 2:
+			a = Vector2(4, 2), b = Vector2(4, 10), c = Vector2(9, 6);
+			break;
+		case 3:
+			a = Vector2(8, 2), b = Vector2(8, 10), c = Vector2(3, 6);
+			break;
+		default:
+			a = Vector2(2, 4), b = Vector2(10, 4), c = Vector2(6, 9);
+			break;
+	}
+	for (int y = 0; y < s; y++) {
+		for (int x = 0; x < s; x++) {
+			img->set_pixel(x, y, point_in_triangle(Vector2(x + 0.5f, y + 0.5f), a, b, c) ? p_color : Color(0, 0, 0, 0));
+		}
+	}
+	return ImageTexture::create_from_image(img);
+}
+
+// The slider knob: a filled disc with a rim, lit from above.
+Ref<ImageTexture> make_grabber_icon(const Color &p_fill, const Color &p_rim) {
+	const int s = 18;
+	Ref<Image> img = Image::create_empty(s, s, false, Image::FORMAT_RGBA8);
+	const Vector2 c(s * 0.5f, s * 0.5f);
+	for (int y = 0; y < s; y++) {
+		for (int x = 0; x < s; x++) {
+			const Vector2 p(x + 0.5f, y + 0.5f);
+			const float d = (p - c).length() - 7.5f;
+			Color col(0, 0, 0, 0);
+			if (d <= 0.0f) {
+				col = d > -2.0f ? p_rim : p_fill.lightened(0.12f * (1.0f - p.y / s));
+			}
+			img->set_pixel(x, y, col);
+		}
+	}
+	return ImageTexture::create_from_image(img);
+}
+
+Ref<ImageTexture> make_tick_icon(bool p_vertical, const Color &p_color) {
+	const int w = p_vertical ? 6 : 12;
+	const int h = p_vertical ? 12 : 6;
+	Ref<Image> img = Image::create_empty(w, h, false, Image::FORMAT_RGBA8);
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			const bool on = p_vertical ? (x >= 2 && x < 4) : (y >= 2 && y < 4);
+			img->set_pixel(x, y, on ? p_color : Color(0, 0, 0, 0));
+		}
+	}
+	return ImageTexture::create_from_image(img);
+}
+
+Ref<ImageTexture> make_cross_icon(const Color &p_color) {
+	const int s = 12;
+	Ref<Image> img = Image::create_empty(s, s, false, Image::FORMAT_RGBA8);
+	for (int y = 0; y < s; y++) {
+		for (int x = 0; x < s; x++) {
+			const Vector2 p(x + 0.5f, y + 0.5f);
+			const bool on = segment_distance(p, Vector2(3, 3), Vector2(9, 9)) < 1.3f || segment_distance(p, Vector2(9, 3), Vector2(3, 9)) < 1.3f;
+			img->set_pixel(x, y, on ? p_color : Color(0, 0, 0, 0));
+		}
+	}
+	return ImageTexture::create_from_image(img);
+}
+
+Ref<ImageTexture> make_empty_icon() {
+	return ImageTexture::create_from_image(Image::create_empty(16, 16, false, Image::FORMAT_RGBA8));
+}
+
+// Styles every standard control create_theme / create_world_theme used to
+// leave at the default Godot look, from boxes and colors the caller built
+// in its own idiom (procedural panels for create_theme, world frames for
+// create_world_theme). p_button_* are the caller's button state boxes,
+// p_panel_box its panel box, p_field_box its sunken input-field box.
+void style_extended_controls(const Ref<Theme> &p_theme,
+		const Ref<StyleBox> &p_panel_box, const Ref<StyleBox> &p_field_box,
+		const Ref<StyleBox> &p_button_normal, const Ref<StyleBox> &p_button_hover,
+		const Ref<StyleBox> &p_button_pressed, const Ref<StyleBox> &p_button_disabled,
+		const Color &p_accent, const Color &p_text, const Color &p_field_bg, int p_radius) {
+	const Color dim = Color(p_text, 0.45f);
+	const Color faint = Color(p_text, 0.08f);
+	const Ref<StyleBox> focus = focus_box(p_accent, p_radius);
+	const Ref<StyleBox> focus_small = focus_box(p_accent, 4);
+	const Ref<ImageTexture> no_icon = make_empty_icon();
+
+	// CheckBox: the icon carries the look (a framed box / ring drawn
+	// above); the control's own boxes stay empty except for a faint hover
+	// wash and the focus ring.
+	p_theme->set_stylebox("normal", "CheckBox", empty_box());
+	p_theme->set_stylebox("pressed", "CheckBox", empty_box());
+	p_theme->set_stylebox("disabled", "CheckBox", empty_box());
+	p_theme->set_stylebox("hover", "CheckBox", flat_box(Color(p_accent, 0.14f), 4, 0));
+	p_theme->set_stylebox("hover_pressed", "CheckBox", flat_box(Color(p_accent, 0.22f), 4, 0));
+	p_theme->set_stylebox("focus", "CheckBox", focus_small);
+	const Color box_bg = p_field_bg.lightened(0.08f);
+	p_theme->set_icon("checked", "CheckBox", make_check_icon(true, false, box_bg, p_accent, p_accent));
+	p_theme->set_icon("unchecked", "CheckBox", make_check_icon(false, false, box_bg, Color(p_text, 0.7f), p_accent));
+	p_theme->set_icon("checked_disabled", "CheckBox", make_check_icon(true, false, box_bg, dim, dim));
+	p_theme->set_icon("unchecked_disabled", "CheckBox", make_check_icon(false, false, box_bg, dim, dim));
+	p_theme->set_icon("radio_checked", "CheckBox", make_check_icon(true, true, box_bg, p_accent, p_accent));
+	p_theme->set_icon("radio_unchecked", "CheckBox", make_check_icon(false, true, box_bg, Color(p_text, 0.7f), p_accent));
+	p_theme->set_icon("radio_checked_disabled", "CheckBox", make_check_icon(true, true, box_bg, dim, dim));
+	p_theme->set_icon("radio_unchecked_disabled", "CheckBox", make_check_icon(false, true, box_bg, dim, dim));
+	for (const char *name : { "font_color", "font_pressed_color", "font_hover_color", "font_hover_pressed_color", "font_focus_color" }) {
+		p_theme->set_color(name, "CheckBox", p_text);
+	}
+	p_theme->set_color("font_disabled_color", "CheckBox", dim);
+	p_theme->set_constant("h_separation", "CheckBox", 4);
+
+	// OptionButton: a button with a drawn arrow.
+	p_theme->set_stylebox("normal", "OptionButton", p_button_normal);
+	p_theme->set_stylebox("hover", "OptionButton", p_button_hover);
+	p_theme->set_stylebox("pressed", "OptionButton", p_button_pressed);
+	p_theme->set_stylebox("disabled", "OptionButton", p_button_disabled);
+	p_theme->set_stylebox("normal_mirrored", "OptionButton", p_button_normal);
+	p_theme->set_stylebox("hover_mirrored", "OptionButton", p_button_hover);
+	p_theme->set_stylebox("pressed_mirrored", "OptionButton", p_button_pressed);
+	p_theme->set_stylebox("disabled_mirrored", "OptionButton", p_button_disabled);
+	p_theme->set_stylebox("focus", "OptionButton", focus);
+	p_theme->set_icon("arrow", "OptionButton", make_arrow_icon(0, p_text));
+	for (const char *name : { "font_color", "font_pressed_color", "font_hover_color", "font_hover_pressed_color", "font_focus_color" }) {
+		p_theme->set_color(name, "OptionButton", p_text);
+	}
+	p_theme->set_color("font_disabled_color", "OptionButton", dim);
+	p_theme->set_constant("h_separation", "OptionButton", 4);
+	p_theme->set_constant("arrow_margin", "OptionButton", 4);
+
+	// Sliders: a groove in the field color, the travelled part in the
+	// accent, a drawn knob.
+	const Ref<StyleBox> groove = flat_box(p_field_bg, 4, 0, Color(p_accent, 0.4f), 1);
+	const Ref<StyleBox> groove_fill = flat_box(p_accent, 4, 0);
+	const Ref<StyleBox> groove_fill_hi = flat_box(p_accent.lightened(0.2f), 4, 0);
+	for (const char *cls : { "HSlider", "VSlider" }) {
+		p_theme->set_stylebox("slider", cls, groove);
+		p_theme->set_stylebox("grabber_area", cls, groove_fill);
+		p_theme->set_stylebox("grabber_area_highlight", cls, groove_fill_hi);
+		p_theme->set_icon("grabber", cls, make_grabber_icon(p_accent, p_text));
+		p_theme->set_icon("grabber_highlight", cls, make_grabber_icon(p_accent.lightened(0.25f), p_text));
+		p_theme->set_icon("grabber_disabled", cls, make_grabber_icon(Color(p_accent, 0.4f), dim));
+		p_theme->set_icon("tick", cls, make_tick_icon(cls[0] == 'H', Color(p_text, 0.6f)));
+	}
+
+	// LineEdit: the sunken field box, the accent caret and selection, a
+	// drawn clear button. (SpinBox embeds a LineEdit, so it inherits the
+	// field; its own arrows and button backgrounds are set below.)
+	p_theme->set_stylebox("normal", "LineEdit", p_field_box);
+	p_theme->set_stylebox("read_only", "LineEdit", flat_box(Color(p_field_bg, 0.6f), p_radius, 8, Color(p_accent, 0.25f), 1));
+	p_theme->set_stylebox("focus", "LineEdit", focus);
+	p_theme->set_color("font_color", "LineEdit", p_text);
+	p_theme->set_color("font_selected_color", "LineEdit", p_text);
+	p_theme->set_color("font_uneditable_color", "LineEdit", dim);
+	p_theme->set_color("font_placeholder_color", "LineEdit", Color(p_text, 0.4f));
+	p_theme->set_color("caret_color", "LineEdit", p_accent);
+	p_theme->set_color("selection_color", "LineEdit", Color(p_accent, 0.45f));
+	p_theme->set_color("clear_button_color", "LineEdit", p_text);
+	p_theme->set_color("clear_button_color_pressed", "LineEdit", p_accent);
+	p_theme->set_icon("clear", "LineEdit", make_cross_icon(p_text));
+
+	// SpinBox: drawn up/down arrows over faint button backgrounds.
+	p_theme->set_icon("up", "SpinBox", make_arrow_icon(1, p_text));
+	p_theme->set_icon("up_hover", "SpinBox", make_arrow_icon(1, p_accent));
+	p_theme->set_icon("up_pressed", "SpinBox", make_arrow_icon(1, p_accent));
+	p_theme->set_icon("up_disabled", "SpinBox", make_arrow_icon(1, dim));
+	p_theme->set_icon("down", "SpinBox", make_arrow_icon(0, p_text));
+	p_theme->set_icon("down_hover", "SpinBox", make_arrow_icon(0, p_accent));
+	p_theme->set_icon("down_pressed", "SpinBox", make_arrow_icon(0, p_accent));
+	p_theme->set_icon("down_disabled", "SpinBox", make_arrow_icon(0, dim));
+	p_theme->set_icon("updown", "SpinBox", no_icon);
+	const Ref<StyleBox> spin_hover = flat_box(Color(p_accent, 0.25f), 4, 0);
+	const Ref<StyleBox> spin_pressed = flat_box(Color(p_accent, 0.45f), 4, 0);
+	p_theme->set_stylebox("up_background", "SpinBox", empty_box());
+	p_theme->set_stylebox("up_background_hovered", "SpinBox", spin_hover);
+	p_theme->set_stylebox("up_background_pressed", "SpinBox", spin_pressed);
+	p_theme->set_stylebox("up_background_disabled", "SpinBox", empty_box());
+	p_theme->set_stylebox("down_background", "SpinBox", empty_box());
+	p_theme->set_stylebox("down_background_hovered", "SpinBox", spin_hover);
+	p_theme->set_stylebox("down_background_pressed", "SpinBox", spin_pressed);
+	p_theme->set_stylebox("down_background_disabled", "SpinBox", empty_box());
+	p_theme->set_stylebox("field_and_buttons_separator", "SpinBox", empty_box());
+	p_theme->set_stylebox("up_down_buttons_separator", "SpinBox", empty_box());
+	p_theme->set_color("up_icon_modulate", "SpinBox", Color(1, 1, 1));
+	p_theme->set_color("down_icon_modulate", "SpinBox", Color(1, 1, 1));
+	p_theme->set_constant("buttons_width", "SpinBox", 16);
+
+	// Scroll bars: a dark groove and a solid grabber that brightens.
+	const Ref<StyleBox> scroll_groove = flat_box(p_field_bg.darkened(0.25f), 4, 0);
+	const Ref<StyleBox> grabber = flat_box(p_accent.darkened(0.15f), 4, 0);
+	const Ref<StyleBox> grabber_hi = flat_box(p_accent.lightened(0.15f), 4, 0);
+	const Ref<StyleBox> grabber_pressed = flat_box(p_accent.darkened(0.35f), 4, 0);
+	for (const char *cls : { "HScrollBar", "VScrollBar" }) {
+		p_theme->set_stylebox("scroll", cls, scroll_groove);
+		p_theme->set_stylebox("scroll_focus", cls, focus_small);
+		p_theme->set_stylebox("grabber", cls, grabber);
+		p_theme->set_stylebox("grabber_highlight", cls, grabber_hi);
+		p_theme->set_stylebox("grabber_pressed", cls, grabber_pressed);
+		for (const char *icon : { "increment", "increment_highlight", "increment_pressed", "decrement", "decrement_highlight", "decrement_pressed" }) {
+			p_theme->set_icon(icon, cls, no_icon);
+		}
+	}
+
+	// PopupMenu: the panel box, an accent wash under the hovered item, a
+	// hairline separator, drawn check / radio / submenu marks.
+	p_theme->set_stylebox("panel", "PopupMenu", p_panel_box);
+	p_theme->set_stylebox("hover", "PopupMenu", flat_box(Color(p_accent, 0.35f), 4, 4));
+	Ref<StyleBoxLine> separator;
+	separator.instantiate();
+	separator->set_color(Color(p_text, 0.3f));
+	separator->set_thickness(1);
+	p_theme->set_stylebox("separator", "PopupMenu", separator);
+	p_theme->set_stylebox("labeled_separator_left", "PopupMenu", separator);
+	p_theme->set_stylebox("labeled_separator_right", "PopupMenu", separator);
+	p_theme->set_icon("checked", "PopupMenu", make_mark_icon(p_accent));
+	p_theme->set_icon("checked_disabled", "PopupMenu", make_mark_icon(dim));
+	p_theme->set_icon("unchecked", "PopupMenu", no_icon);
+	p_theme->set_icon("unchecked_disabled", "PopupMenu", no_icon);
+	p_theme->set_icon("indeterminate", "PopupMenu", make_mark_icon(p_text));
+	p_theme->set_icon("indeterminate_disabled", "PopupMenu", make_mark_icon(dim));
+	p_theme->set_icon("radio_checked", "PopupMenu", make_check_icon(true, true, Color(0, 0, 0, 0), p_accent, p_accent));
+	p_theme->set_icon("radio_checked_disabled", "PopupMenu", make_check_icon(true, true, Color(0, 0, 0, 0), dim, dim));
+	p_theme->set_icon("radio_unchecked", "PopupMenu", make_check_icon(false, true, Color(0, 0, 0, 0), Color(p_text, 0.7f), p_accent));
+	p_theme->set_icon("radio_unchecked_disabled", "PopupMenu", make_check_icon(false, true, Color(0, 0, 0, 0), dim, dim));
+	p_theme->set_icon("submenu", "PopupMenu", make_arrow_icon(2, p_text));
+	p_theme->set_icon("submenu_mirrored", "PopupMenu", make_arrow_icon(3, p_text));
+	p_theme->set_color("font_color", "PopupMenu", p_text);
+	p_theme->set_color("font_hover_color", "PopupMenu", p_text);
+	p_theme->set_color("font_disabled_color", "PopupMenu", dim);
+	p_theme->set_color("font_accelerator_color", "PopupMenu", Color(p_text, 0.6f));
+	p_theme->set_color("font_separator_color", "PopupMenu", p_accent);
+	p_theme->set_constant("h_separation", "PopupMenu", 4);
+	p_theme->set_constant("v_separation", "PopupMenu", 4);
+
+	// Tree: the panel box, accent selection, drawn fold arrows and check
+	// marks, guide lines in a quiet text tint.
+	p_theme->set_stylebox("panel", "Tree", p_panel_box);
+	p_theme->set_stylebox("focus", "Tree", focus_small);
+	p_theme->set_stylebox("cursor", "Tree", focus_small);
+	p_theme->set_stylebox("cursor_unfocused", "Tree", flat_box(Color(0, 0, 0, 0), 4, 0, Color(p_accent, 0.4f), 1));
+	const Ref<StyleBox> row_selected = flat_box(Color(p_accent, 0.35f), 4, 4);
+	p_theme->set_stylebox("selected", "Tree", row_selected);
+	p_theme->set_stylebox("selected_focus", "Tree", row_selected);
+	p_theme->set_stylebox("hovered", "Tree", flat_box(faint, 4, 4));
+	p_theme->set_stylebox("hovered_dimmed", "Tree", flat_box(Color(p_text, 0.04f), 4, 4));
+	const Ref<StyleBox> row_hover_selected = flat_box(Color(p_accent, 0.45f), 4, 4);
+	p_theme->set_stylebox("hovered_selected", "Tree", row_hover_selected);
+	p_theme->set_stylebox("hovered_selected_focus", "Tree", row_hover_selected);
+	p_theme->set_stylebox("button_hover", "Tree", p_button_hover);
+	p_theme->set_stylebox("button_pressed", "Tree", p_button_pressed);
+	p_theme->set_stylebox("title_button_normal", "Tree", p_button_normal);
+	p_theme->set_stylebox("title_button_pressed", "Tree", p_button_pressed);
+	p_theme->set_stylebox("title_button_hover", "Tree", p_button_hover);
+	p_theme->set_stylebox("custom_button", "Tree", p_button_normal);
+	p_theme->set_stylebox("custom_button_pressed", "Tree", p_button_pressed);
+	p_theme->set_stylebox("custom_button_hover", "Tree", p_button_hover);
+	p_theme->set_icon("arrow", "Tree", make_arrow_icon(0, p_text));
+	p_theme->set_icon("arrow_collapsed", "Tree", make_arrow_icon(2, p_text));
+	p_theme->set_icon("arrow_collapsed_mirrored", "Tree", make_arrow_icon(3, p_text));
+	p_theme->set_icon("select_arrow", "Tree", make_arrow_icon(0, p_text));
+	p_theme->set_icon("checked", "Tree", make_check_icon(true, false, box_bg, p_accent, p_accent));
+	p_theme->set_icon("checked_disabled", "Tree", make_check_icon(true, false, box_bg, dim, dim));
+	p_theme->set_icon("unchecked", "Tree", make_check_icon(false, false, box_bg, Color(p_text, 0.7f), p_accent));
+	p_theme->set_icon("unchecked_disabled", "Tree", make_check_icon(false, false, box_bg, dim, dim));
+	p_theme->set_icon("indeterminate", "Tree", make_mark_icon(p_text));
+	p_theme->set_icon("indeterminate_disabled", "Tree", make_mark_icon(dim));
+	p_theme->set_icon("updown", "Tree", no_icon);
+	p_theme->set_color("font_color", "Tree", p_text);
+	p_theme->set_color("font_hovered_color", "Tree", p_text);
+	p_theme->set_color("font_hovered_dimmed_color", "Tree", Color(p_text, 0.7f));
+	p_theme->set_color("font_hovered_selected_color", "Tree", p_text);
+	p_theme->set_color("font_selected_color", "Tree", p_text);
+	p_theme->set_color("font_disabled_color", "Tree", dim);
+	p_theme->set_color("title_button_color", "Tree", p_text);
+	p_theme->set_color("guide_color", "Tree", Color(p_text, 0.25f));
+	p_theme->set_color("relationship_line_color", "Tree", Color(p_text, 0.3f));
+	p_theme->set_color("parent_hl_line_color", "Tree", Color(p_accent, 0.5f));
+	p_theme->set_color("children_hl_line_color", "Tree", Color(p_accent, 0.5f));
+	p_theme->set_color("drop_on_item_color", "Tree", p_accent);
+	p_theme->set_color("drop_position_color", "Tree", p_accent);
+	p_theme->set_constant("h_separation", "Tree", 4);
+	p_theme->set_constant("v_separation", "Tree", 4);
+	p_theme->set_constant("draw_guides", "Tree", 1);
 }
 
 } // namespace
@@ -211,22 +618,28 @@ Ref<Theme> UZUUI::create_theme(const Dictionary &p_options) {
 	if (!button.has("border")) {
 		button["border"] = accent;
 	}
-	theme->set_stylebox("normal", "Button", create_panel_style(button));
+	const Ref<StyleBox> btn_normal = create_panel_style(button);
+	theme->set_stylebox("normal", "Button", btn_normal);
 	Dictionary state = button.duplicate();
 	state["top"] = color_of(button["hover"], Color::html("#46598f"));
 	state["bottom"] = Color(state["top"]).darkened(0.15);
-	theme->set_stylebox("hover", "Button", create_panel_style(state));
+	const Ref<StyleBox> btn_hover = create_panel_style(state);
+	theme->set_stylebox("hover", "Button", btn_hover);
 	state["top"] = color_of(button["pressed"], Color::html("#1a2238"));
 	state["bottom"] = state["top"];
 	state["shadow"] = 0;
-	theme->set_stylebox("pressed", "Button", create_panel_style(state));
+	const Ref<StyleBox> btn_pressed = create_panel_style(state);
+	theme->set_stylebox("pressed", "Button", btn_pressed);
 	state["top"] = Color(color_of(button["top"], Color::html("#34416a"))).darkened(0.4);
 	state["bottom"] = state["top"];
 	state["border"] = Color(accent, 0.3);
-	theme->set_stylebox("disabled", "Button", create_panel_style(state));
+	const Ref<StyleBox> btn_disabled = create_panel_style(state);
+	theme->set_stylebox("disabled", "Button", btn_disabled);
 	Ref<StyleBoxEmpty> none;
 	none.instantiate();
-	theme->set_stylebox("focus", "Button", none);
+	// Focus is a visible accent ring, not an empty box (B-1313): keyboard
+	// and gamepad users must be able to see the focused part.
+	theme->set_stylebox("focus", "Button", focus_box(accent, int(button.get("radius", 8))));
 	// Tabs: the selected tab joins the page; the others are darker.
 	Dictionary tab = button.duplicate();
 	tab["shadow"] = 0;
@@ -253,9 +666,11 @@ Ref<Theme> UZUUI::create_theme(const Dictionary &p_options) {
 	selected->set_bg_color(Color(accent, 0.35));
 	theme->set_stylebox("selected", "ItemList", selected);
 	theme->set_stylebox("selected_focus", "ItemList", selected);
-	theme->set_stylebox("cursor", "ItemList", none);
-	theme->set_stylebox("cursor_unfocused", "ItemList", none);
-	theme->set_stylebox("focus", "ItemList", none);
+	// The list cursor and focus are outlines in the accent, not empty
+	// boxes (B-1313).
+	theme->set_stylebox("cursor", "ItemList", flat_box(Color(0, 0, 0, 0), 4, 0, accent, 1));
+	theme->set_stylebox("cursor_unfocused", "ItemList", flat_box(Color(0, 0, 0, 0), 4, 0, Color(accent, 0.4), 1));
+	theme->set_stylebox("focus", "ItemList", focus_box(accent, int(panel.get("radius", 12))));
 	// Text.
 	for (const char *cls : { "Label", "Button", "ProgressBar", "TooltipLabel", "ItemList" }) {
 		theme->set_color("font_color", cls, text);
@@ -272,6 +687,16 @@ Ref<Theme> UZUUI::create_theme(const Dictionary &p_options) {
 	theme->set_color("font_hovered_color", "ItemList", text);
 	theme->set_constant("separation", "VBoxContainer", 8);
 	theme->set_constant("separation", "HBoxContainer", 10);
+	// Every remaining standard control (B-1313): the input field is the
+	// panel sunk — its gradient flipped and darkened, no shadow.
+	Dictionary field = panel.duplicate();
+	field["top"] = color_of(panel["bottom"], Color::html("#10162a")).darkened(0.1);
+	field["bottom"] = color_of(panel["bottom"], Color::html("#10162a")).darkened(0.25);
+	field["padding"] = 8;
+	field["shadow"] = 0;
+	const Color field_bg = color_of(field["bottom"], Color::html("#10162a"));
+	style_extended_controls(theme, panel_style, create_panel_style(field), btn_normal, btn_hover, btn_pressed, btn_disabled,
+			accent, text, field_bg, int(button.get("radius", 8)));
 	return theme;
 }
 
@@ -640,16 +1065,20 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 	tip["ornament"] = "none";
 	theme->set_stylebox("panel", "TooltipPanel", create_frame_style(tip));
 	// Buttons: the world's button, lighter on hover, darker and flat when pressed.
-	theme->set_stylebox("normal", "Button", create_frame_style(button));
+	const Ref<StyleBox> wbtn_normal = create_frame_style(button);
+	theme->set_stylebox("normal", "Button", wbtn_normal);
 	Dictionary state = button.duplicate();
 	const Color bbase = color_of(button["base"], Color(0.2, 0.2, 0.3));
 	state["base"] = bbase.lightened(0.18);
-	theme->set_stylebox("hover", "Button", create_frame_style(state));
+	const Ref<StyleBox> wbtn_hover = create_frame_style(state);
+	theme->set_stylebox("hover", "Button", wbtn_hover);
 	state["base"] = bbase.darkened(0.25);
 	state["shadow"] = 0;
-	theme->set_stylebox("pressed", "Button", create_frame_style(state));
+	const Ref<StyleBox> wbtn_pressed = create_frame_style(state);
+	theme->set_stylebox("pressed", "Button", wbtn_pressed);
 	state["base"] = Color(bbase.darkened(0.4), 0.7);
-	theme->set_stylebox("disabled", "Button", create_frame_style(state));
+	const Ref<StyleBox> wbtn_disabled = create_frame_style(state);
+	theme->set_stylebox("disabled", "Button", wbtn_disabled);
 	const Color btext = color_of(o["button_text"], Color(1, 1, 1));
 	for (const char *name : { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color" }) {
 		theme->set_color(name, "Button", btext);
@@ -667,6 +1096,22 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 	// Game parts as type variations of the usual controls.
 	const Color accent = color_of(o["accent"], Color::html("#d9a441"));
 	const Color text = color_of(o["text"], Color(1, 1, 1));
+	// Every remaining standard control, restyled in the world's frames
+	// (B-1313; create_theme styled them in the default idiom, the world
+	// pass replaces them): the input field is the frame sunk — base
+	// darkened, no ornament, no shadow.
+	Dictionary field_frame = frame.duplicate();
+	field_frame["base"] = color_of(frame["base"], Color(0.1, 0.1, 0.14)).darkened(0.3);
+	field_frame["ornament"] = "none";
+	field_frame["shadow"] = 0;
+	field_frame["padding"] = 8;
+	const int button_radius = int(button.get("radius", 8));
+	style_extended_controls(theme, panel, create_frame_style(field_frame), wbtn_normal, wbtn_hover, wbtn_pressed, wbtn_disabled,
+			accent, text, color_of(field_frame["base"], Color(0.07, 0.07, 0.1)), button_radius);
+	theme->set_stylebox("focus", "Button", focus_box(accent, button_radius));
+	theme->set_stylebox("focus", "ItemList", focus_box(accent, int(frame.get("radius", 8))));
+	theme->set_stylebox("cursor", "ItemList", flat_box(Color(0, 0, 0, 0), 4, 0, accent, 1));
+	theme->set_stylebox("cursor_unfocused", "ItemList", flat_box(Color(0, 0, 0, 0), 4, 0, Color(accent, 0.4), 1));
 	// Name tag: a small frame of the accent color.
 	Dictionary tag = button.duplicate();
 	tag["base"] = accent;
