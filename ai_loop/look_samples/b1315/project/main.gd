@@ -24,10 +24,10 @@ func _ready() -> void:
 		screen = s
 	theme = UZUUI.create_world_theme(world, {"font": FONT})
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.05, 0.03, 0.04) if world == "persona" else Color(0.13, 0.12, 0.11)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
+	# The world's backdrop composition (B-1319): a generated graphic
+	# field, not a flat color — persona gets its red diagonal halftone
+	# band, wafu a mottled dark wall with a warm glow.
+	add_child(UZUUI.make_backdrop(world))
 
 	if screen == "sheet":
 		_sheet()

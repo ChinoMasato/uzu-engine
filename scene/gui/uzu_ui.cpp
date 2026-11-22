@@ -1486,6 +1486,7 @@ Ref<StyleBox> UZUUI::create_frame_style(const Dictionary &p_style) {
 	}
 	sb->set_expand_margin_all(shadow.size * scale);
 	// The middle repeats, so the texture keeps its scale.
+	const bool skew = String(style.get("shape", "")) == "skew";
 	if (String(style.get("material", "")) == "halftone") {
 		// A printed dot grid must keep its exact cell: TILE_FIT rescales
 		// the tile to fit the panel, and the resampling beats against
@@ -1498,6 +1499,25 @@ Ref<StyleBox> UZUUI::create_frame_style(const Dictionary &p_style) {
 	} else {
 		sb->set_h_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE_FIT);
 		sb->set_v_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE_FIT);
+	}
+	if (skew) {
+		// A parallelogram's cross-section shifts with y, so the middle
+		// band must map onto the panel's height as one continuous
+		// stretch. Tiling it vertically (halftone's TILE) clips the
+		// band when the panel is shorter than the texture: the rows
+		// between the clip and the bottom strip never draw, the lean
+		// jumps by slope × the skipped rows at the seam, and the
+		// bottom strip reads as a second, offset band under the panel
+		// (B-1319, the persona talk window at 1056×190: a 26 px step).
+		// On a taller panel TILE_FIT has the same flaw at every tile
+		// boundary (the B-1315 tall-panel step). A single stretch
+		// keeps the silhouette continuous at any height; the pattern
+		// in the band scales with it, which the eye accepts far more
+		// readily than a broken outline. The horizontal axis keeps
+		// its tiling — across the middle's rows the band covers the
+		// full sliced width at every row (B-1318), so tiling sideways
+		// cannot open a seam in the silhouette.
+		sb->set_v_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
 	}
 	sb->set_content_margin_all(style_padding(style, 12));
 	if (String(style.get("shape", "")) == "pixel") {
@@ -1894,6 +1914,15 @@ uniform vec4 glow_color : source_color = vec4(1.0, 0.9, 0.6, 1.0);
 uniform float speed = 0.3;
 uniform float strength = 0.22;
 uniform float steps = 0.0;
+// The decoration lives on the frame's body only (B-1319): the sampled
+// alpha is the frame texture's, so a mask over it clips the effect off
+// the transparent margin and the drop shadow the same texture carries.
+// Without it the glint whitened the shadow under a window into a pale
+// smudge on the background. mask_lo/mask_hi are the alpha range the
+// effect fades in over; a world's interior alpha sets them (opaque
+// frames sit at 1.0 over a shadow of at most 0.85, glass lower).
+uniform float mask_lo = 0.90;
+uniform float mask_hi = 0.99;
 varying vec2 local;
 
 void vertex() {
@@ -1908,8 +1937,11 @@ void fragment() {
 	}
 	float k = 0.0;
 	if (mode == 1) {
+		// A narrow, crisp streak: the old 110 px soft band froze in
+		// still captures as a dirty smudge (B-1319); a tight shine
+		// reads as gloss, moving or frozen.
 		float x = mod(local.x + local.y * 0.6 - t * 900.0, 1800.0);
-		k = smoothstep(0.0, 50.0, x) * (1.0 - smoothstep(50.0, 110.0, x));
+		k = smoothstep(0.0, 14.0, x) * (1.0 - smoothstep(14.0, 54.0, x));
 	} else if (mode == 2) {
 		k = 0.5 + 0.5 * sin(t * 6.2831853);
 	} else if (mode == 3) {
@@ -1918,6 +1950,7 @@ void fragment() {
 	} else if (mode == 4) {
 		k = 0.5 + 0.5 * sin((local.y - t * 80.0) * 0.35);
 	}
+	k *= smoothstep(mask_lo, mask_hi, c.a);
 	c.rgb = mix(c.rgb, glow_color.rgb, clamp(k * strength, 0.0, 1.0));
 	COLOR = c;
 }
@@ -1929,14 +1962,20 @@ Ref<ShaderMaterial> UZUUI::create_world_material(const String &p_world) {
 		int mode;
 		const char *color;
 		float speed, strength, steps;
+		// The alpha range the decoration fades in over (B-1319): the
+		// frame body sits above it, the shadow the same texture
+		// carries sits below it. Opaque frames have a body of 1.0
+		// over a shadow of at most 0.85; sf's glass body is ~0.86
+		// over a soft shadow of at most 0.5.
+		float mask_lo, mask_hi;
 	};
 	static const Decor DECOR[] = {
-		{ "fantasy", 1, "#fff1b0", 0.25f, 0.28f, 0.0f }, // A gold glint now and then.
-		{ "wafu", 1, "#fff8e6", 0.12f, 0.16f, 0.0f }, // A slow, quiet sheen.
-		{ "sf", 4, "#7ff0ff", 1.0f, 0.12f, 0.0f }, // Scan lines flowing down.
-		{ "horror", 3, "#000000", 1.0f, 0.45f, 0.0f }, // A failing light.
-		{ "persona", 1, "#ffffff", 0.9f, 0.4f, 0.0f }, // A fast white flash.
-		{ "pixel", 2, "#ffffff", 0.5f, 0.14f, 4.0f }, // A stepped blink.
+		{ "fantasy", 1, "#fff1b0", 0.25f, 0.28f, 0.0f, 0.90f, 0.99f }, // A gold glint now and then.
+		{ "wafu", 1, "#fff8e6", 0.12f, 0.16f, 0.0f, 0.90f, 0.99f }, // A slow, quiet sheen.
+		{ "sf", 4, "#7ff0ff", 1.0f, 0.12f, 0.0f, 0.60f, 0.84f }, // Scan lines flowing down.
+		{ "horror", 3, "#000000", 1.0f, 0.45f, 0.0f, 0.90f, 0.99f }, // A failing light.
+		{ "persona", 1, "#ffffff", 0.9f, 0.30f, 0.0f, 0.90f, 0.99f }, // A fast white flash.
+		{ "pixel", 2, "#ffffff", 0.5f, 0.14f, 4.0f, 0.90f, 0.99f }, // A stepped blink.
 	};
 	for (const Decor &d : DECOR) {
 		if (p_world != d.world) {
@@ -1953,9 +1992,136 @@ Ref<ShaderMaterial> UZUUI::create_world_material(const String &p_world) {
 		m->set_shader_parameter("speed", d.speed);
 		m->set_shader_parameter("strength", d.strength);
 		m->set_shader_parameter("steps", d.steps);
+		m->set_shader_parameter("mask_lo", d.mask_lo);
+		m->set_shader_parameter("mask_hi", d.mask_hi);
 		return m;
 	}
 	ERR_FAIL_V_MSG(Ref<ShaderMaterial>(), vformat("UZUUI: unknown world \"%s\" (see get_world_names).", p_world));
+}
+
+Dictionary UZUUI::get_backdrop_options(const String &p_world) {
+	Dictionary o;
+	auto set = [](Dictionary &d, const char *k, const Variant &v) { d[k] = v; };
+	// Every world gets a composition, never a flat fill (B-1319): a
+	// mottled dark ground, a soft glow or a graphic band, and a
+	// vignette to hold the edges down.
+	if (p_world == "persona") {
+		// The reference's graphic field: near-black, a bold red
+		// diagonal band in halftone with a white rule above it and a
+		// black under-band, like a manga page cut.
+		set(o, "base", "#0b0508"), set(o, "mottle", 0.5), set(o, "seed", 7);
+		set(o, "band", "#e60012"), set(o, "band_y", 0.60), set(o, "band_h", 118), set(o, "band_halftone", true);
+		set(o, "band_under", "#030203"), set(o, "band_under_h", 22);
+		set(o, "line", "#ffffff"), set(o, "vignette", 0.35);
+	} else if (p_world == "wafu") {
+		// A dark plaster wall with a lantern-warm pool of light.
+		set(o, "base", "#17120d"), set(o, "mottle", 0.8), set(o, "seed", 3);
+		set(o, "glow", "#3a2812"), set(o, "glow_pos", Vector2(0.5, 0.62)), set(o, "glow_strength", 0.5);
+		set(o, "vignette", 0.6);
+	} else if (p_world == "fantasy") {
+		set(o, "base", "#10130c"), set(o, "mottle", 0.7), set(o, "seed", 5);
+		set(o, "glow", "#26300f"), set(o, "glow_pos", Vector2(0.5, 0.35)), set(o, "glow_strength", 0.45);
+		set(o, "vignette", 0.5);
+	} else if (p_world == "sf") {
+		set(o, "base", "#04090f"), set(o, "mottle", 0.4), set(o, "seed", 9);
+		set(o, "glow", "#07242f"), set(o, "glow_pos", Vector2(0.5, 0.3)), set(o, "glow_strength", 0.5);
+		set(o, "vignette", 0.4);
+	} else if (p_world == "horror") {
+		set(o, "base", "#0d0707"), set(o, "mottle", 0.9), set(o, "seed", 13);
+		set(o, "glow", "#1e0a0a"), set(o, "glow_pos", Vector2(0.5, 0.42)), set(o, "glow_strength", 0.4);
+		set(o, "vignette", 0.75);
+	} else if (p_world == "pixel") {
+		set(o, "base", "#0c0e1e"), set(o, "mottle", 0.25), set(o, "seed", 2);
+		set(o, "band", "#1b1f3a"), set(o, "band_y", 0.80), set(o, "band_h", 56);
+		set(o, "line", "#f4b41a"), set(o, "vignette", 0.3);
+	} else {
+		ERR_FAIL_V_MSG(Dictionary(), vformat("UZUUI: unknown world \"%s\" (see get_world_names).", p_world));
+	}
+	o["world"] = p_world;
+	return o;
+}
+
+Ref<Image> UZUUI::draw_backdrop(const Dictionary &p_style) {
+	Vector2 size_v(1152, 648);
+	const Variant size_var = p_style.get("size", Variant());
+	if (size_var.get_type() == Variant::VECTOR2I) {
+		size_v = Vector2(Vector2i(size_var));
+	} else if (size_var.get_type() == Variant::VECTOR2) {
+		size_v = size_var;
+	}
+	const Vector2i size = Vector2i(CLAMP(int(size_v.x), 16, 4096), CLAMP(int(size_v.y), 16, 4096));
+	const Color base = color_of(p_style.get("base", Variant()), Color(0.05, 0.04, 0.05, 1.0));
+	const float mottle = CLAMP(float(p_style.get("mottle", 0.5)), 0.0f, 1.0f);
+	const uint32_t seed = uint32_t(int(p_style.get("seed", 1)));
+	const bool has_band = p_style.has("band");
+	const Color band = color_of(p_style.get("band", Variant()), Color());
+	const float band_y = CLAMP(float(p_style.get("band_y", 0.6)), 0.0f, 1.0f) * size.y;
+	const float band_h = CLAMP(float(p_style.get("band_h", 120)), 0.0f, float(size.y));
+	const bool band_halftone = bool(p_style.get("band_halftone", false));
+	const bool has_under = p_style.has("band_under");
+	const Color under = color_of(p_style.get("band_under", Variant()), Color());
+	const float under_h = CLAMP(float(p_style.get("band_under_h", 0)), 0.0f, 128.0f);
+	const bool has_line = p_style.has("line");
+	const Color line = color_of(p_style.get("line", Variant()), Color());
+	const bool has_glow = p_style.has("glow");
+	const Color glow = color_of(p_style.get("glow", Variant()), Color());
+	const Vector2 glow_pos = Vector2(p_style.get("glow_pos", Vector2(0.5, 0.5)));
+	const float glow_strength = CLAMP(float(p_style.get("glow_strength", 0.5)), 0.0f, 1.0f);
+	const float vignette = CLAMP(float(p_style.get("vignette", 0.0)), 0.0f, 1.0f);
+	Ref<Image> img = Image::create_empty(size.x, size.y, false, Image::FORMAT_RGBA8);
+	for (int y = 0; y < size.y; y++) {
+		for (int x = 0; x < size.x; x++) {
+			Color c = base;
+			if (mottle > 0.0f) {
+				// One fbm field over the whole canvas (its period is
+				// the canvas width), so the ground has a grain but no
+				// repeat the eye can catch. Multiplicative, so a dark
+				// ground varies around itself instead of washing
+				// toward white.
+				const float n = fbm_noise(x, y, size.x, 6, 4, seed + 17u, 4);
+				const float f = 1.0f + (n - 0.5f) * mottle * 0.7f;
+				c = Color(CLAMP(c.r * f, 0.0f, 1.0f), CLAMP(c.g * f, 0.0f, 1.0f), CLAMP(c.b * f, 0.0f, 1.0f), c.a);
+			}
+			if (has_glow) {
+				const Vector2 rel = Vector2((x - glow_pos.x * size.x) / size.x, (y - glow_pos.y * size.y) / size.y);
+				const float f = CLAMP(1.0f - rel.length() * 2.2f, 0.0f, 1.0f);
+				c = c.lerp(glow, glow_strength * 0.6f * f * f);
+			}
+			if (has_band || has_line) {
+				// The band's coordinate: it rises to the right, the
+				// graphic slant of the persona composition.
+				const float s = (y - band_y) + (x - size.x * 0.5f) * 0.22f;
+				if (has_band && Math::abs(s) < band_h * 0.5f) {
+					c = band_halftone ? material_color("halftone", band, x, y, 0.0f, seed, 256, 1) : band;
+				} else if (has_under && s >= band_h * 0.5f && s < band_h * 0.5f + under_h) {
+					c = under;
+				}
+				if (has_line && s <= -band_h * 0.5f && s > -band_h * 0.5f - 3.0f) {
+					c = line;
+				}
+			}
+			if (vignette > 0.0f) {
+				const Vector2 uv = Vector2((float(x) / size.x - 0.5f) * 2.0f, (float(y) / size.y - 0.5f) * 2.0f);
+				const float f = CLAMP((uv.length() - 0.55f) / 0.95f, 0.0f, 1.0f);
+				c = c.darkened(vignette * 0.6f * f * f);
+			}
+			img->set_pixel(x, y, c);
+		}
+	}
+	return img;
+}
+
+Control *UZUUI::make_backdrop(const String &p_world) {
+	const Dictionary o = get_backdrop_options(p_world);
+	ERR_FAIL_COND_V(o.is_empty(), nullptr);
+	TextureRect *rect = memnew(TextureRect);
+	rect->set_name("Backdrop");
+	rect->set_texture(ImageTexture::create_from_image(draw_backdrop(o)));
+	rect->set_expand_mode(TextureRect::EXPAND_IGNORE_SIZE);
+	rect->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_COVERED);
+	rect->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
+	rect->set_anchors_preset(Control::PRESET_FULL_RECT);
+	return rect;
 }
 
 void UZUUIWorld::set_world(const String &p_world) {
@@ -2242,6 +2408,9 @@ void UZUUI::_bind_methods() {
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_ribbon", "text"), &UZUUI::make_ribbon);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_separator"), &UZUUI::make_separator);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("create_world_material", "world"), &UZUUI::create_world_material);
+	ClassDB::bind_static_method("UZUUI", D_METHOD("draw_backdrop", "style"), &UZUUI::draw_backdrop);
+	ClassDB::bind_static_method("UZUUI", D_METHOD("get_backdrop_options", "world"), &UZUUI::get_backdrop_options);
+	ClassDB::bind_static_method("UZUUI", D_METHOD("make_backdrop", "world"), &UZUUI::make_backdrop);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_touch_stick"), &UZUUI::make_touch_stick);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_touch_button", "text"), &UZUUI::make_touch_button);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_panel", "content"), &UZUUI::make_panel, DEFVAL(Variant()));

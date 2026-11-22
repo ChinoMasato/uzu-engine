@@ -52,7 +52,28 @@
 			<return type="ShaderMaterial" />
 			<param index="0" name="world" type="String" />
 			<description>
-				Returns the moving decoration of a world's frames: a canvas shader that glints (fantasy, wafu, persona), flows with scan lines (sf), flickers (horror), or blinks in steps (pixel). [UZUUIWorld] puts it on the frames. Returns [code]null[/code] for an unknown world.
+				Returns the moving decoration of a world's frames: a canvas shader that glints (fantasy, wafu, persona), flows with scan lines (sf), flickers (horror), or blinks in steps (pixel). [UZUUIWorld] puts it on the frames. The decoration is masked by the frame texture's alpha, so it stays on the frame's body and never whitens the drop shadow or the background (B-1319). Returns [code]null[/code] for an unknown world.
+			</description>
+		</method>
+		<method name="draw_backdrop" qualifiers="static">
+			<return type="Image" />
+			<param index="0" name="style" type="Dictionary" />
+			<description>
+				Generates a screen backdrop (B-1319): a composed background, never a flat fill. Style keys: [code]"size"[/code] (default 1152×648), [code]"base"[/code], [code]"mottle"[/code] (0..1 fbm variation), [code]"band"[/code] (a diagonal band's color; absent for no band), [code]"band_y"[/code], [code]"band_h"[/code], [code]"band_halftone"[/code], [code]"band_under"[/code] / [code]"band_under_h"[/code] (a dark under-band), [code]"line"[/code] (a thin line along the band's upper edge), [code]"glow"[/code] / [code]"glow_pos"[/code] / [code]"glow_strength"[/code] (a soft radial glow), [code]"vignette"[/code] (0..1 edge darkening), [code]"seed"[/code].
+			</description>
+		</method>
+		<method name="get_backdrop_options" qualifiers="static">
+			<return type="Dictionary" />
+			<param index="0" name="world" type="String" />
+			<description>
+				Returns a world's backdrop composition for [method draw_backdrop] (see [method get_world_names]). Empty for an unknown world.
+			</description>
+		</method>
+		<method name="make_backdrop" qualifiers="static">
+			<return type="Control" />
+			<param index="0" name="world" type="String" />
+			<description>
+				Builds a world's backdrop as a full-rect [TextureRect] (aspect-covered, mouse-transparent), ready to add as a screen's first child. Returns [code]null[/code] for an unknown world.
 			</description>
 		</method>
 		<method name="create_world_theme" qualifiers="static">

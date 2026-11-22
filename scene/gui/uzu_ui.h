@@ -123,6 +123,21 @@ public:
 	// unknown world.
 	static Ref<ShaderMaterial> create_world_material(const String &p_world);
 
+	// A screen's backdrop (B-1319): a generated background composition,
+	// so a showcase or menu never floats its frames over a flat color.
+	// A backdrop style: "size" (Vector2i, default 1152×648), "base",
+	// "mottle" (0..1 fbm variation over the base), "band" (a diagonal
+	// band's color; absent = no band), "band_y" (0..1 center), "band_h"
+	// (px), "band_halftone" (dots on the band), "line" (a thin line
+	// color along the band's upper edge), "glow" (a soft radial glow's
+	// color), "glow_pos" (0..1), "glow_strength", "vignette" (0..1
+	// edge darkening), "seed". get_backdrop_options returns a world's
+	// composition; make_backdrop builds it as a full-rect TextureRect
+	// (mouse-transparent, aspect-covered) ready to add first in a screen.
+	static Ref<Image> draw_backdrop(const Dictionary &p_style);
+	static Dictionary get_backdrop_options(const String &p_world);
+	static Control *make_backdrop(const String &p_world);
+
 	// The skew frame's slant, for layouts that must stay inside the
 	// parallelogram (B-1315): {"slope", "travel"} -- across the frame
 	// tile the edge travels travel px horizontally, so content whose
