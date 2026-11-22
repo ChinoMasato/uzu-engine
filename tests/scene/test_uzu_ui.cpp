@@ -99,9 +99,11 @@ TEST_CASE("[SceneTree][UZUUI] Panel styles and the theme") {
 	Ref<StyleBoxTexture> sb = UZUUI::create_panel_style(style);
 	REQUIRE(sb.is_valid());
 	CHECK(sb->get_texture().is_valid());
-	CHECK(sb->get_texture_margin(SIDE_LEFT) == doctest::Approx(6 + 11));
-	CHECK(sb->get_expand_margin(SIDE_BOTTOM) == doctest::Approx(6)); // The shadow is outside the rect.
-	CHECK(sb->get_content_margin(SIDE_TOP) == doctest::Approx(14));
+	// The style's lengths snap to the layout scale (B-1314): radius
+	// 10 -> 8, shadow 6 -> 8 (elevation level 2), padding 14 -> 12.
+	CHECK(sb->get_texture_margin(SIDE_LEFT) == doctest::Approx(8 + 9));
+	CHECK(sb->get_expand_margin(SIDE_BOTTOM) == doctest::Approx(8)); // The shadow is outside the rect.
+	CHECK(sb->get_content_margin(SIDE_TOP) == doctest::Approx(12));
 
 	Dictionary options;
 	options["accent"] = "#40c0a0";
@@ -246,6 +248,147 @@ TEST_CASE("[SceneTree][UZUUI] Type scale: five steps on every theme, decoration 
 	CHECK(Object::cast_to<Label>(plain)->get_theme_type_variation() == "UZUBodyLabel");
 	memdelete(title);
 	memdelete(plain);
+}
+
+TEST_CASE("[SceneTree][UZUUI] Layout scale: spacing, radius and elevation on every theme") {
+	// B-1314: the scale itself — the gate's spacing set (B-1310), five
+	// elevation levels whose sizes strictly grow, and the step names.
+	const Dictionary layout = UZUUI::get_layout_scale();
+	const Array spacing = layout["spacing"];
+	REQUIRE(spacing.size() == 9);
+	CHECK(int(spacing[0]) == 0);
+	for (int i = 1; i < spacing.size(); i++) {
+		CHECK(int(spacing[i]) > int(spacing[i - 1]));
+	}
+	const Dictionary elevation = layout["elevation"];
+	REQUIRE(elevation.size() == 5);
+	int prev_size = -1;
+	for (int i = 0; i < 5; i++) {
+		const Dictionary level = elevation[itos(i)];
+		const int size = int(level["shadow"]);
+		CHECK(size > prev_size);
+		prev_size = size;
+		CHECK(int(level["offset_y"]) == int(Math::round(size * 0.35)));
+		CHECK(double(level["alpha"]) >= 0.0);
+		CHECK(double(level["alpha"]) <= 1.0);
+	}
+	CHECK(int(Dictionary(layout["spacing_steps"])["m"]) == 12);
+	CHECK(int(Dictionary(layout["spacing_steps"])["xs"]) == 4);
+
+	auto in_scale = [](const Array &p_scale, int p_value) {
+		for (int i = 0; i < p_scale.size(); i++) {
+			if (int(p_scale[i]) == p_value) {
+				return true;
+			}
+		}
+		return false;
+	};
+	const Array radii = layout["radius"];
+	Array shadow_sizes;
+	for (int i = 0; i < 5; i++) {
+		shadow_sizes.push_back(int(Dictionary(elevation[itos(i)])["shadow"]));
+	}
+
+	// Every length a theme carries is on the scale: content margins and
+	// separations on the spacing steps, flat corner radii on the radius
+	// steps, expand margins (the baked shadow) and flat shadow sizes on
+	// the elevation sizes. This is the gate's scale check (B-1310),
+	// pinned at the source for every theme the kit ships.
+	auto check_theme = [&](const Ref<Theme> &theme) {
+		REQUIRE(theme.is_valid());
+		CHECK(theme->get_meta("uzu_layout") == layout);
+		for (const char *cls : { "PanelContainer", "Button", "CheckBox", "OptionButton", "HSlider", "VSlider", "LineEdit", "SpinBox", "HScrollBar", "VScrollBar", "PopupMenu", "Tree", "TabContainer", "ItemList", "ProgressBar", "TooltipPanel", "Label", "RichTextLabel", "UZUNameTag", "UZUTalk", "UZUSlot", "UZURibbon", "UZUGauge", "VBoxContainer", "HBoxContainer" }) {
+			List<StringName> boxes;
+			theme->get_stylebox_list(cls, &boxes);
+			for (const StringName &name : boxes) {
+				const Ref<StyleBox> sb = theme->get_stylebox(name, cls);
+				const String where = String(cls) + "." + String(name);
+				for (int side = 0; side < 4; side++) {
+					const float m = sb->get_margin(Side(side));
+					const bool margin_ok = m == Math::floor(m) && in_scale(spacing, int(m));
+					CHECK_MESSAGE(margin_ok, where, " content_margin ", m);
+				}
+				if (const StyleBoxTexture *tex = Object::cast_to<StyleBoxTexture>(sb.ptr())) {
+					for (int side = 0; side < 4; side++) {
+						const float e = tex->get_expand_margin(Side(side));
+						CHECK_MESSAGE(in_scale(shadow_sizes, int(e)), where, " expand_margin ", e);
+					}
+				}
+				if (const StyleBoxFlat *flat = Object::cast_to<StyleBoxFlat>(sb.ptr())) {
+					for (int corner = 0; corner < 4; corner++) {
+						CHECK_MESSAGE(in_scale(radii, flat->get_corner_radius(Corner(corner))), where, " corner_radius");
+					}
+					CHECK_MESSAGE(in_scale(shadow_sizes, flat->get_shadow_size()), where, " shadow_size");
+				}
+			}
+			List<StringName> constants;
+			theme->get_constant_list(cls, &constants);
+			for (const StringName &name : constants) {
+				const String n = name;
+				if (n.contains("separation") || n.contains("margin")) {
+					CHECK_MESSAGE(in_scale(spacing, theme->get_constant(name, cls)), cls, ".", n);
+				}
+			}
+		}
+	};
+	check_theme(UZUUI::create_theme(Dictionary()));
+	for (const String &world : UZUUI::get_world_names()) {
+		check_theme(UZUUI::create_world_theme(world));
+	}
+
+	// The theme defaults and the world options state on-scale numbers.
+	const Dictionary defaults = UZUUI::get_theme_defaults();
+	for (const char *section : { "panel", "button" }) {
+		const Dictionary sec = defaults[section];
+		CHECK(in_scale(spacing, int(sec["padding"])));
+		CHECK(in_scale(shadow_sizes, int(sec["shadow"])));
+		CHECK(in_scale(radii, int(sec["radius"])));
+	}
+	for (const String &world : UZUUI::get_world_names()) {
+		const Dictionary o = UZUUI::get_world_options(world);
+		for (const char *section : { "frame", "button" }) {
+			const Dictionary sec = o[section];
+			if (sec.has("radius")) {
+				CHECK_MESSAGE(in_scale(radii, int(sec["radius"])), world, " ", section, " radius");
+			}
+			if (sec.has("shadow")) {
+				CHECK_MESSAGE(in_scale(shadow_sizes, int(sec["shadow"])), world, " ", section, " shadow");
+			}
+		}
+	}
+
+	// Styles resolve through the scale: "elevation" names a level, an
+	// explicit "shadow" snaps to one, "padding" takes a step name.
+	Dictionary by_level;
+	by_level["elevation"] = 3;
+	Ref<StyleBoxTexture> panel_sb = UZUUI::create_panel_style(by_level);
+	REQUIRE(panel_sb.is_valid());
+	CHECK(panel_sb->get_expand_margin(SIDE_LEFT) == doctest::Approx(12));
+	Dictionary by_shadow;
+	by_shadow["shadow"] = 10;
+	panel_sb = UZUUI::create_panel_style(by_shadow);
+	CHECK(panel_sb->get_expand_margin(SIDE_LEFT) == doctest::Approx(12));
+	Dictionary by_name;
+	by_name["padding"] = "l";
+	panel_sb = UZUUI::create_panel_style(by_name);
+	CHECK(panel_sb->get_content_margin(SIDE_LEFT) == doctest::Approx(16));
+	Ref<StyleBoxTexture> frame_sb = UZUUI::create_frame_style(by_level);
+	REQUIRE(frame_sb.is_valid());
+	CHECK(frame_sb->get_expand_margin(SIDE_LEFT) == doctest::Approx(12));
+	Dictionary frame_default;
+	frame_sb = UZUUI::create_frame_style(frame_default);
+	CHECK(frame_sb->get_expand_margin(SIDE_LEFT) == doctest::Approx(8)); // The kit default is level 2.
+	CHECK(frame_sb->get_content_margin(SIDE_LEFT) == doctest::Approx(12));
+
+	// The made parts speak the scale too: the talk window's name tag is
+	// inset by a spacing step, and its overlap is one step (negative —
+	// the tag sits on the window's edge by design).
+	Control *talk = UZUUI::make_talk_window("Elder", "Bring three shards.");
+	Control *tag_margin = Object::cast_to<Control>(talk->get_node(NodePath("TagMargin")));
+	REQUIRE(tag_margin != nullptr);
+	CHECK(tag_margin->get_theme_constant("margin_left", "MarginContainer") == 24);
+	CHECK(talk->get_theme_constant("separation", "VBoxContainer") == -8);
+	memdelete(talk);
 }
 
 TEST_CASE("[SceneTree][UZUUI] Parts") {

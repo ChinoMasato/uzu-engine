@@ -11,8 +11,8 @@ extends SceneTree
 ##              frames, colors and parts in one name; then panel/button/bar are not used),
 ##              "font": "res://fonts/x.ttf", "font_fallback": "res://fonts/ja.woff2" (glyphs the font lacks),
 ##              "font_size": 20, "font_color": "#f4ead2", "accent": "#d9a441",
-##              "panel": {"top": "#1d2740ee", "bottom": "#10162add", "radius": 12, "border": "#d9a441", "shadow": 8, "padding": 14},
-##              "button": {"bg": "#2b3550", "hover": "#3a4870", "pressed": "#1d2438", "radius": 8, "padding": 10},
+##              "panel": {"top": "#1d2740ee", "bottom": "#10162add", "radius": 12, "border": "#d9a441", "shadow": 8, "padding": 12},
+##              "button": {"bg": "#2b3550", "hover": "#3a4870", "pressed": "#1d2438", "radius": 8, "padding": 8},
 ##              "bar": {"bg": "#00000080", "fill": "#d9a441", "radius": 6}},
 ##    "root": {"type": "Screen", "children": [ ...nodes... ]}}
 ## A node: {"type": T, "name": "...", "children": [...], and the keys of its type}
@@ -29,6 +29,11 @@ extends SceneTree
 ##   common: "visible", "tooltip", "style" (a panel style for this node through UZUUI: bg or a
 ##          top/bottom gradient, radius, border, border_width, shadow, padding), "font_size",
 ##          "font_color", "align" (left | center | right)
+##   Lengths follow the UZUUI layout scale (B-1314, UZUUI.get_layout_scale()): a style's
+##          "shadow" snaps to an elevation level and "elevation" (0..4) names the level
+##          instead; "padding" and a box's "separation" take a step name ("xs" | "s" | "m" |
+##          "l" | "xl" | "xxl" = 4 | 8 | 12 | 16 | 24 | 32) instead of a number. Raw numbers
+##          still work everywhere (the kit snaps them to the scale).
 ##   Label / RichText / Button: "text";  Bar: "value", "max", "show_percent"
 ##   Label: "text_style" names a step of the theme's type scale (B-1312: display | title |
 ##          heading | body | caption) instead of a raw "font_size"; the theme gives the
@@ -60,7 +65,11 @@ const ANCHORS := {
 	"full": Control.PRESET_FULL_RECT, "top_wide": Control.PRESET_TOP_WIDE, "bottom_wide": Control.PRESET_BOTTOM_WIDE,
 	"left_wide": Control.PRESET_LEFT_WIDE, "right_wide": Control.PRESET_RIGHT_WIDE,
 }
-const STYLE_KEYS := ["bg", "top", "bottom", "radius", "border", "border_width", "shadow", "padding", "hover", "pressed", "fill"]
+const STYLE_KEYS := ["bg", "top", "bottom", "radius", "border", "border_width", "shadow", "elevation", "padding", "hover", "pressed", "fill"]
+## The named steps of the UZUUI layout scale (B-1314), for "padding" and
+## "separation" values that would rather name a step than count px. The
+## same names are in UZUUI.get_layout_scale()["spacing_steps"].
+const SPACING_STEPS := {"xs": 4, "s": 8, "m": 12, "l": 16, "xl": 24, "xxl": 32}
 const THEME_KEYS := ["world", "font", "font_fallback", "font_size", "font_color", "accent", "panel", "button", "bar"]
 
 var errors := []
@@ -93,6 +102,19 @@ func _vec2(where: String, v, fallback := Vector2.ZERO) -> Vector2:
 	return fallback
 
 
+## A spacing value: a number of px, or a layout-scale step name.
+func _spacing(where: String, v, fallback := 0) -> int:
+	if v is String:
+		if SPACING_STEPS.has(v):
+			return SPACING_STEPS[v]
+		_err(where, "needs a step name (%s) or a number" % ", ".join(SPACING_STEPS.keys()))
+		return fallback
+	if v is int or v is float:
+		return int(v)
+	_err(where, "needs a step name (%s) or a number" % ", ".join(SPACING_STEPS.keys()))
+	return fallback
+
+
 ## A panel style through UZUUI (B-1302): a gradient ("top"/"bottom") or a flat "bg",
 ## rounded corners, a border and a soft shadow.
 func _stylebox(where: String, d) -> StyleBox:
@@ -104,6 +126,11 @@ func _stylebox(where: String, d) -> StyleBox:
 			_err(where, "unknown key '%s' (allowed: %s)" % [key, ", ".join(STYLE_KEYS)])
 		elif key in ["bg", "top", "bottom", "border", "hover", "pressed", "fill"]:
 			_color("%s.%s" % [where, key], d[key])
+		elif key == "elevation":
+			if not (d[key] is int or d[key] is float) or int(d[key]) < 0 or int(d[key]) > 4:
+				_err(where + ".elevation", "needs a level 0..4")
+		elif key == "padding":
+			_spacing(where + ".padding", d[key])  # Validates the step name, if any.
 	return UZUUI.create_panel_style(d)
 
 
@@ -252,16 +279,17 @@ func _node(where: String, d, parent: Control, owner_root: Control) -> Control:
 			c.show_percentage = bool(d.get("show_percent", false))
 		"VBox", "HBox", "Grid":
 			if d.has("separation"):
-				c.add_theme_constant_override("separation" if type != "Grid" else "h_separation", int(d.separation))
+				var sep := _spacing(where + ".separation", d.separation)
+				c.add_theme_constant_override("separation" if type != "Grid" else "h_separation", sep)
 				if type == "Grid":
-					c.add_theme_constant_override("v_separation", int(d.separation))
+					c.add_theme_constant_override("v_separation", sep)
 			if type == "Grid":
 				c.columns = int(d.get("columns", 2))
 		"Margin":
 			var p = d.get("padding", 12)
 			var pads: Array = p if p is Array and p.size() == 4 else [p, p, p, p]
 			for k in 4:
-				c.add_theme_constant_override(["margin_left", "margin_top", "margin_right", "margin_bottom"][k], int(pads[k]))
+				c.add_theme_constant_override(["margin_left", "margin_top", "margin_right", "margin_bottom"][k], _spacing(where + ".padding", pads[k], 12))
 		"Image":
 			var tex = load(d.texture) if d.has("texture") and ResourceLoader.exists(str(d.texture)) else null
 			if d.has("texture") and not tex is Texture2D:
