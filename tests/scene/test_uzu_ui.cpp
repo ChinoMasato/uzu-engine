@@ -861,6 +861,206 @@ TEST_CASE("[SceneTree][UZUUI] Skew frames: no wedge at the tile seams") {
 	}
 }
 
+// Maps one destination pixel inside an axis' middle region back to a
+// source pixel, following StyleBoxTexture's stretch modes (B-1319's
+// 9-slice simulation; the corner and edge regions map 1:1).
+static int slice_map_axis(int p_dst, int p_src_lo, int p_src_len, int p_dst_len, StyleBoxTexture::AxisStretchMode p_mode) {
+	switch (p_mode) {
+		case StyleBoxTexture::AXIS_STRETCH_MODE_TILE:
+			return p_src_lo + (p_dst % p_src_len);
+		case StyleBoxTexture::AXIS_STRETCH_MODE_TILE_FIT: {
+			const int tiles = MAX(1, int(Math::ceil(double(p_dst_len) / double(p_src_len))));
+			const double tile_dst = double(p_dst_len) / tiles;
+			const double local = (p_dst + 0.5) - Math::floor((p_dst + 0.5) / tile_dst) * tile_dst;
+			return p_src_lo + MIN(int(local / tile_dst * p_src_len), p_src_len - 1);
+		}
+		default: // AXIS_STRETCH_MODE_STRETCH
+			return p_src_lo + MIN(int((p_dst + 0.5) * double(p_src_len) / double(p_dst_len)), p_src_len - 1);
+	}
+}
+
+static Color slice_sample(const Ref<Image> &p_img, const Ref<StyleBoxTexture> &p_sb, int p_dest_w, int p_dest_h, int x, int y) {
+	auto axis = [](int p, int p_dest, float p_m_lo, float p_m_hi, int p_src_size, StyleBoxTexture::AxisStretchMode p_mode) {
+		const int lo = int(p_m_lo);
+		const int hi = int(p_m_hi);
+		if (p < lo) {
+			return p;
+		}
+		if (p >= p_dest - hi) {
+			return p_src_size - (p_dest - p);
+		}
+		return slice_map_axis(p - lo, lo, p_src_size - lo - hi, p_dest - lo - hi, p_mode);
+	};
+	const int sx = axis(x, p_dest_w, p_sb->get_texture_margin(SIDE_LEFT), p_sb->get_texture_margin(SIDE_RIGHT), p_img->get_width(), p_sb->get_h_axis_stretch_mode());
+	const int sy = axis(y, p_dest_h, p_sb->get_texture_margin(SIDE_TOP), p_sb->get_texture_margin(SIDE_BOTTOM), p_img->get_height(), p_sb->get_v_axis_stretch_mode());
+	return p_img->get_pixel(sx, sy);
+}
+
+TEST_CASE("[SceneTree][UZUUI] Skew frames: the bottom edge is one continuous band (B-1319)") {
+	// Regression (owner feedback on B-1315's persona talk shot): at
+	// talk-window size the panel's bottom strip drew as a second
+	// band, offset ~26 px from the body above it. The middle band was
+	// tiled vertically, so a panel shorter than the frame texture
+	// clipped the band's rows; the bottom strip still showed the
+	// texture's last rows, and the lean jumped at the seam by
+	// slope × the skipped rows. Simulate the 9-slice draw from the
+	// style's own texture, margins and stretch modes, and require
+	// the silhouette's edges to move continuously at any height —
+	// an edge may lean, it may never jump.
+	Dictionary frame = UZUUI::get_world_options("persona")["frame"];
+	const Ref<Image> img = UZUUI::draw_frame(frame);
+	REQUIRE(img.is_valid());
+	Ref<StyleBoxTexture> sb = UZUUI::create_frame_style(frame);
+	REQUIRE(sb.is_valid());
+	CHECK(sb->get_v_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
+	const int expand = int(sb->get_expand_margin(SIDE_LEFT));
+	const Size2 sizes[] = { Size2(1056, 190), Size2(1056, 120), Size2(700, 600) };
+	for (const Size2 &panel : sizes) {
+		const int dw = int(panel.x) + 2 * expand;
+		const int dh = int(panel.y) + 2 * expand;
+		int prev_first = -1;
+		int prev_last = -1;
+		int max_step = 0;
+		int rows = 0;
+		for (int y = 0; y < dh; y++) {
+			int first = -1;
+			int last = -1;
+			for (int x = 0; x < dw; x++) {
+				// The frame body only: the shadow the same texture
+				// carries tops out at 0.85, below this threshold.
+				if (slice_sample(img, sb, dw, dh, x, y).a > 0.98f) {
+					if (first < 0) {
+						first = x;
+					}
+					last = x;
+				}
+			}
+			if (first < 0) {
+				continue;
+			}
+			rows++;
+			if (prev_first >= 0) {
+				max_step = MAX(max_step, MAX(Math::abs(first - prev_first), Math::abs(last - prev_last)));
+			}
+			prev_first = first;
+			prev_last = last;
+		}
+		CHECK(rows > 0);
+		// The lean moves an edge 0.25 px per row; sampling and the
+		// anti-aliased rim account for a couple of px — never the
+		// 26 px seam jump of the bug.
+		CHECK(max_step <= 3);
+	}
+}
+
+TEST_CASE("[SceneTree][UZUUI] World material: the decoration stays on the frame body (B-1319)") {
+	// The glint used to mix toward white over the whole stylebox
+	// texture, drop shadow included, so a persona window's shadow
+	// read as a pale smudge on the background. The shader now masks
+	// the effect by the sampled alpha; each world sets the range so
+	// its frame body clears it and its shadow (0.85 hard, 0.5 soft)
+	// does not.
+	for (const String &w : UZUUI::get_world_names()) {
+		const Ref<ShaderMaterial> m = UZUUI::create_world_material(w);
+		REQUIRE(m.is_valid());
+		const float lo = float(m->get_shader_parameter("mask_lo"));
+		const float hi = float(m->get_shader_parameter("mask_hi"));
+		CHECK(lo > 0.5f); // Above every soft shadow.
+		CHECK(hi > lo);
+		CHECK(hi <= 1.0f);
+	}
+	// Persona's hard shadow is 0.85: the mask must start above it,
+	// and the opaque body (1.0) must clear it fully.
+	const Ref<ShaderMaterial> persona = UZUUI::create_world_material("persona");
+	REQUIRE(persona.is_valid());
+	CHECK(float(persona->get_shader_parameter("mask_lo")) > 0.85f);
+	CHECK(float(persona->get_shader_parameter("mask_hi")) < 1.0f);
+	// SF's glass body is ~0.86: its mask must top out below that, or
+	// the scan lines would be masked off the frame they decorate.
+	const Ref<ShaderMaterial> sf = UZUUI::create_world_material("sf");
+	REQUIRE(sf.is_valid());
+	CHECK(float(sf->get_shader_parameter("mask_hi")) < 0.86f);
+	// The mechanism itself: the mask multiplies the effect.
+	CHECK(persona->get_shader()->get_code().contains("smoothstep(mask_lo, mask_hi, c.a)"));
+}
+
+TEST_CASE("[SceneTree][UZUUI] Backdrops: every world composes, none is flat (B-1319)") {
+	for (const String &w : UZUUI::get_world_names()) {
+		const Dictionary o = UZUUI::get_backdrop_options(w);
+		REQUIRE(!o.is_empty());
+		const Ref<Image> img = UZUUI::draw_backdrop(o);
+		REQUIRE(img.is_valid());
+		REQUIRE(img->get_width() == 1152);
+		REQUIRE(img->get_height() == 648);
+		// Not a flat fill: the luminance varies across the canvas.
+		double mean = 0.0;
+		double sq = 0.0;
+		int n = 0;
+		for (int y = 0; y < img->get_height(); y += 9) {
+			for (int x = 0; x < img->get_width(); x += 9) {
+				const Color c = img->get_pixel(x, y);
+				const double lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+				mean += lum;
+				sq += lum * lum;
+				n++;
+			}
+		}
+		mean /= n;
+		const double sd = Math::sqrt(MAX(0.0, sq / n - mean * mean));
+		// A flat fill scores exactly 0; dark worlds (horror, pixel)
+		// compose at low absolute luminance and measure 0.0036-0.005.
+		CHECK(sd > 0.002);
+		// The vignette holds the corners down: the same composition
+		// without it (same seed, same mottle) is brighter in the
+		// corner block — an exact comparison, no noise allowance.
+		Dictionary plain_style = o.duplicate();
+		plain_style.erase("vignette");
+		const Ref<Image> plain = UZUUI::draw_backdrop(plain_style);
+		REQUIRE(plain.is_valid());
+		auto block_lum = [](const Ref<Image> &p_img, int cx, int cy) {
+			double s = 0.0;
+			for (int y = cy - 4; y <= cy + 4; y++) {
+				for (int x = cx - 4; x <= cx + 4; x++) {
+					const Color c = p_img->get_pixel(x, y);
+					s += 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+				}
+			}
+			return s / 81.0;
+		};
+		CHECK(block_lum(img, 10, 10) < block_lum(plain, 10, 10) * 0.98);
+		CHECK(block_lum(img, 1141, 637) < block_lum(plain, 1141, 637) * 0.98);
+	}
+	// Persona's composition is its graphic band: a real red swath.
+	const Ref<Image> persona = UZUUI::draw_backdrop(UZUUI::get_backdrop_options("persona"));
+	REQUIRE(persona.is_valid());
+	int red = 0;
+	for (int y = 0; y < persona->get_height(); y += 3) {
+		for (int x = 0; x < persona->get_width(); x += 3) {
+			const Color c = persona->get_pixel(x, y);
+			red += (c.r > 0.5f && c.g < 0.2f) ? 1 : 0;
+		}
+	}
+	CHECK(red > 2000);
+	// Wafu has no band: its texture is the mottle and the glow, so
+	// red-band pixels are absent there.
+	const Ref<Image> wafu = UZUUI::draw_backdrop(UZUUI::get_backdrop_options("wafu"));
+	REQUIRE(wafu.is_valid());
+	int wafu_red = 0;
+	for (int y = 0; y < wafu->get_height(); y += 3) {
+		for (int x = 0; x < wafu->get_width(); x += 3) {
+			const Color c = wafu->get_pixel(x, y);
+			wafu_red += (c.r > 0.5f && c.g < 0.2f) ? 1 : 0;
+		}
+	}
+	CHECK(wafu_red == 0);
+	CHECK(UZUUI::get_backdrop_options("steampunk").is_empty());
+	CHECK(UZUUI::make_backdrop("steampunk") == nullptr);
+	Control *bd = UZUUI::make_backdrop("persona");
+	REQUIRE(bd != nullptr);
+	CHECK(bd->get_mouse_filter() == Control::MOUSE_FILTER_IGNORE);
+	memdelete(bd);
+}
+
 TEST_CASE("[SceneTree][UZUUI] World themes and game parts") {
 	const PackedStringArray worlds = UZUUI::get_world_names();
 	CHECK(worlds.size() == 6);
@@ -1065,13 +1265,17 @@ TEST_CASE("[SceneTree][UZUUI] Slider groove: solved contrast on every theme (B-1
 	const Ref<Theme> persona = UZUUI::create_world_theme("persona");
 	const Color text = persona->get_color("font_color", "Label");
 	CHECK(test_gate_contrast(text, test_panel_fill(persona)) >= 4.5f);
-	// And its halftone frame tiles at native size, never rescaled (the
-	// TILE_FIT rescale beat against the dot grid into a moire).
+	// And its halftone frame tiles at native size across the width, never
+	// rescaled (the TILE_FIT rescale beat against the dot grid into a
+	// moire). The vertical axis is the exception since B-1319: a skew
+	// frame stretches it, because a tiled vertical band cuts the slanted
+	// bottom strip mid-slope and the seam showed as a doubled bottom edge
+	// (see the B-1319 continuity test below).
 	const Dictionary frame = Dictionary(UZUUI::get_world_options("persona")["frame"]);
 	const Ref<StyleBoxTexture> frame_box = UZUUI::create_frame_style(frame);
 	REQUIRE(frame_box.is_valid());
 	CHECK(frame_box->get_h_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_TILE);
-	CHECK(frame_box->get_v_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_TILE);
+	CHECK(frame_box->get_v_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
 	const Dictionary wood = Dictionary(UZUUI::get_world_options("fantasy")["frame"]);
 	const Ref<StyleBoxTexture> wood_box = UZUUI::create_frame_style(wood);
 	REQUIRE(wood_box.is_valid());

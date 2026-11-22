@@ -12,12 +12,12 @@
             512,
             256
           ],
-          "index": 0.131,
+          "index": 0.26,
           "threshold": 0.3,
           "channels": {
             "luminance": {
-              "std": 7.097,
-              "band_peak": 0.9998,
+              "std": 6.777,
+              "band_peak": 0.9997,
               "band_lag_px": [
                 128,
                 0
@@ -25,16 +25,16 @@
               "mode": "pattern",
               "period_px": [
                 8,
-                8
+                15
               ],
-              "residue": 0.131,
-              "uniformity": 0.1042,
-              "index": 0.131,
+              "residue": 0.26,
+              "uniformity": 0.0016,
+              "index": 0.26,
               "pass": true
             },
             "red_excess": {
-              "std": 31.39,
-              "band_peak": 0.9998,
+              "std": 29.982,
+              "band_peak": 0.9997,
               "band_lag_px": [
                 128,
                 0
@@ -42,11 +42,11 @@
               "mode": "pattern",
               "period_px": [
                 8,
-                8
+                15
               ],
-              "residue": 0.1309,
-              "uniformity": 0.1047,
-              "index": 0.1309,
+              "residue": 0.2599,
+              "uniformity": 0.0016,
+              "index": 0.2599,
               "pass": true
             }
           },
