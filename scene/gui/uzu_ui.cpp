@@ -1688,8 +1688,21 @@ Dictionary UZUUI::get_world_options(const String &p_world) {
 		set(button, "material", "flat"), set(button, "base", "#b8322a"), set(button, "edge", "#3b1410"), set(button, "radius", 2);
 		set(o, "text", "#2a1a10"), set(o, "button_text", "#fbf1dc"), set(o, "accent", "#b8322a"), set(o, "fill", "#b8322a");
 	} else if (p_world == "sf") {
-		set(frame, "material", "glass"), set(frame, "base", "#07141ee6"), set(frame, "edge", "#38e1ff"), set(frame, "accent", "#38e1ff");
+		set(frame, "material", "glass"), set(frame, "base", "#0e2a3ef2"), set(frame, "edge", "#38e1ff"), set(frame, "accent", "#38e1ff");
 		set(frame, "shape", "chamfer"), set(frame, "radius", 12), set(frame, "border_width", 2), set(frame, "shadow", 12);
+		// A radial light run on the glass (B-1323): the base colour
+		// is the lit core where the hologram's source sits (upper
+		// centre), running out through the classic sf body colour to
+		// near-black at the rim, so a panel stands in a field of
+		// light instead of one even tint -- and the run's arcs keep
+		// the dark glass off the straight horizontal banding a plain
+		// vertical run falls into. The buttons stay ungraded --
+		// their states are derived from the base alone, and a state
+		// change must read as one clean step of brightness.
+		Array sstops;
+		sstops.push_back("#07141ee6");
+		sstops.push_back("#02070df2");
+		set(frame, "gradient_stops", sstops), set(frame, "gradient_dir", "radial"), set(frame, "gradient_center", Vector2(0.5, 0.35)), set(frame, "gradient_radius", 0.9);
 		set(button, "material", "glass"), set(button, "base", "#0e2a3aee"), set(button, "accent", "#38e1ff"), set(button, "shape", "chamfer"), set(button, "radius", 8);
 		set(o, "text", "#d8f6ff"), set(o, "button_text", "#d8f6ff"), set(o, "accent", "#38e1ff"), set(o, "fill", "#38e1ff");
 	} else if (p_world == "horror") {
@@ -1924,6 +1937,19 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 		talk_panel->set_content_margin(SIDE_LEFT, 64);
 		talk_panel->set_content_margin(SIDE_RIGHT, 64);
 		talk_panel->set_content_margin(SIDE_TOP, 32);
+	}
+	if (String(frame.get("shape", "rounded")) == "chamfer") {
+		// A chamfered glass window (sf, B-1323): the cut corners and
+		// the semi-transparent body leave the text rows a scan-px
+		// tighter than the flat margin reads -- the containment
+		// probe caught the body line 1 px past the scanned boundary
+		// at the appear peak. One scale step of extra inset on the
+		// sides clears it, the same treatment as skew at chamfer
+		// scale.
+		talk_panel = panel->duplicate();
+		talk_panel->set_content_margin(SIDE_LEFT, 24);
+		talk_panel->set_content_margin(SIDE_RIGHT, 24);
+		talk_panel->set_content_margin(SIDE_TOP, 16);
 	}
 	theme->set_type_variation("UZUTalk", "PanelContainer");
 	theme->set_stylebox("panel", "UZUTalk", talk_panel);
@@ -2195,7 +2221,7 @@ Ref<ShaderMaterial> UZUUI::create_world_material(const String &p_world) {
 	static const Decor DECOR[] = {
 		{ "fantasy", 1, "#fff1b0", 0.25f, 0.28f, 0.0f, 0.90f, 0.99f, 0.10f, 0.30f, 0.10f }, // A gold glint now and then.
 		{ "wafu", 1, "#fff8e6", 0.12f, 0.16f, 0.0f, 0.90f, 0.99f, 0.06f, 0.18f, 0.05f }, // A slow, quiet sheen.
-		{ "sf", 4, "#7ff0ff", 1.0f, 0.12f, 0.0f, 0.60f, 0.84f, 0.0f, 0.25f, 0.30f }, // Scan lines flowing down.
+		{ "sf", 4, "#7ff0ff", 1.0f, 0.12f, 0.0f, 0.60f, 0.84f, 0.35f, 0.25f, 0.30f }, // Scan lines flowing down, and a slow light sweep over the glass (B-1323).
 		{ "horror", 3, "#000000", 1.0f, 0.45f, 0.0f, 0.90f, 0.99f, 0.0f, 0.08f, 0.0f }, // A failing light.
 		{ "persona", 1, "#ffffff", 0.9f, 0.30f, 0.0f, 0.90f, 0.99f, 0.30f, 0.45f, 0.22f }, // A fast white flash.
 		{ "pixel", 2, "#ffffff", 0.5f, 0.14f, 4.0f, 0.90f, 0.99f, 0.0f, 0.0f, 0.0f }, // A stepped blink.
@@ -2275,16 +2301,37 @@ Dictionary UZUUI::get_backdrop_options(const String &p_world) {
 		set(o, "glow", "#26300f"), set(o, "glow_pos", Vector2(0.5, 0.35)), set(o, "glow_strength", 0.45);
 		set(o, "vignette", 0.5);
 	} else if (p_world == "sf") {
-		set(o, "base", "#04090f"), set(o, "mottle", 0.4), set(o, "seed", 9);
+		// A hologram field (B-1323): the ground is a radial run with
+		// its lit core high in the frame -- the same place the glow
+		// pools -- a dark glass band low on the canvas ruled by one
+		// cyan line (the horizon the panels float over), and a
+		// scatter of small stars in the upper field, read as distant
+		// traffic lights through the glass.
+		set(o, "base", "#0a2c3d"), set(o, "mottle", 0.4), set(o, "seed", 9);
+		Array gstops;
+		gstops.push_back("#051824");
+		gstops.push_back("#020507");
+		set(o, "gradient_stops", gstops), set(o, "gradient_dir", "radial");
+		set(o, "gradient_center", Vector2(0.5, 0.30)), set(o, "gradient_radius", 0.9);
 		set(o, "glow", "#07242f"), set(o, "glow_pos", Vector2(0.5, 0.3)), set(o, "glow_strength", 0.5);
+		set(o, "band", "#06222e"), set(o, "band_y", 0.80), set(o, "band_h", 54), set(o, "band_slope", 0.0);
+		set(o, "line", "#38e1ff");
+		set(o, "stars", 7), set(o, "star", "#7ff0ff");
 		set(o, "vignette", 0.4);
 	} else if (p_world == "horror") {
 		set(o, "base", "#0d0707"), set(o, "mottle", 0.9), set(o, "seed", 13);
 		set(o, "glow", "#1e0a0a"), set(o, "glow_pos", Vector2(0.5, 0.42)), set(o, "glow_strength", 0.4);
 		set(o, "vignette", 0.75);
 	} else if (p_world == "pixel") {
+		// Flat bands only (B-1323): a far strip high in the field and
+		// the ground strip low, both level -- the stepped-tone
+		// horizon of a retro backdrop. No gradients and no glow: the
+		// world's print stays in flat palette steps, and the capture
+		// treatment (a nearest-neighbour pixel pass) squares what
+		// little slope the mottle leaves.
 		set(o, "base", "#0c0e1e"), set(o, "mottle", 0.25), set(o, "seed", 2);
-		set(o, "band", "#1b1f3a"), set(o, "band_y", 0.80), set(o, "band_h", 56);
+		set(o, "band", "#1b1f3a"), set(o, "band_y", 0.80), set(o, "band_h", 56), set(o, "band_slope", 0.0);
+		set(o, "band2", "#141830"), set(o, "band2_y", 0.30), set(o, "band2_h", 28), set(o, "band2_slope", 0.0);
 		set(o, "line", "#f4b41a"), set(o, "vignette", 0.3);
 	} else {
 		ERR_FAIL_V_MSG(Dictionary(), vformat("UZUUI: unknown world \"%s\" (see get_world_names).", p_world));

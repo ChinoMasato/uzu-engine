@@ -1378,6 +1378,52 @@ TEST_CASE("[SceneTree][UZUUI] Gradient ramps, radial runs and frame lighting (B-
 	CHECK(code.contains("a_r - a_l")); // The rim reads the silhouette's gradient.
 }
 
+TEST_CASE("[SceneTree][UZUUI] SF and pixel showcase presets (B-1323)") {
+	// SF: the glass frame carries the light run, the backdrop is a
+	// radial hologram field with a ruled horizon band, and the frame
+	// material sweeps -- the three B-1323 flavourings of the sf row.
+	const Dictionary sframe = Dictionary(UZUUI::get_world_options("sf")["frame"]);
+	REQUIRE(sframe.has("gradient_stops"));
+	CHECK(Array(sframe["gradient_stops"]).size() == 2);
+	CHECK(String(sframe["gradient_dir"]) == "radial");
+	const Dictionary sback = UZUUI::get_backdrop_options("sf");
+	CHECK(String(sback["gradient_dir"]) == "radial");
+	CHECK(sback.has("band"));
+	CHECK(sback.has("line"));
+	const Ref<ShaderMaterial> sf = UZUUI::create_world_material("sf");
+	REQUIRE(sf.is_valid());
+	CHECK(float(sf->get_shader_parameter("sweep")) > 0.0f);
+	// The sf frame's run is real in the print: the top of the tile is
+	// brighter than the bottom (the texture's middle column, inside
+	// the frame body).
+	const Ref<Image> simg = UZUUI::draw_frame(sframe);
+	REQUIRE(simg.is_valid());
+	const int sx = simg->get_width() / 2;
+	const Color stop = simg->get_pixel(sx, simg->get_height() / 4);
+	const Color sbot = simg->get_pixel(sx, simg->get_height() * 3 / 4);
+	CHECK(stop.g > sbot.g + 0.02f);
+	// The sf talk window carries the chamfer inset: one scale step
+	// past the shared panel margins, so the body text clears the
+	// scanned boundary at the appear peak.
+	const Ref<Theme> sf_theme = UZUUI::create_world_theme("sf");
+	REQUIRE(sf_theme.is_valid());
+	const Ref<StyleBox> sf_talk = sf_theme->get_stylebox("panel", "UZUTalk");
+	REQUIRE(sf_talk.is_valid());
+	CHECK(sf_talk->get_margin(SIDE_LEFT) == 24);
+	CHECK(sf_talk->get_margin(SIDE_RIGHT) == 24);
+	CHECK(sf_talk->get_margin(SIDE_TOP) == 16);
+	// Pixel: flat bands only -- a far strip joins the ground strip,
+	// both level, and the frame names no gradient at all.
+	const Dictionary pback = UZUUI::get_backdrop_options("pixel");
+	CHECK(pback.has("band2"));
+	CHECK(float(pback["band2_slope"]) == 0.0f);
+	CHECK(!pback.has("gradient_stops"));
+	CHECK(!pback.has("glow"));
+	const Dictionary pframe = Dictionary(UZUUI::get_world_options("pixel")["frame"]);
+	CHECK(!pframe.has("gradient_stops"));
+	CHECK(!pframe.has("gradient_to"));
+}
+
 TEST_CASE("[SceneTree][UZUUI] World themes and game parts") {
 	const PackedStringArray worlds = UZUUI::get_world_names();
 	CHECK(worlds.size() == 6);

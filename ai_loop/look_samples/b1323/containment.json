@@ -1,0 +1,65 @@
+{
+	"format": "uzu-ui-containment/1",
+	"screens": {
+		"pixel_hud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "pixel"
+		},
+		"pixel_menu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "pixel"
+		},
+		"pixel_settings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "pixel"
+		},
+		"pixel_talk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "pixel"
+		},
+		"pixel_title": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "pixel"
+		},
+		"sf_hud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "sf"
+		},
+		"sf_menu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "sf"
+		},
+		"sf_settings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "sf"
+		},
+		"sf_talk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "sf"
+		},
+		"sf_title": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "sf"
+		}
+	}
+}

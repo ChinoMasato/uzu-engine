@@ -8,7 +8,8 @@ extends Control
 ## focus bursts / press flashes / transition slashes in front.
 ## World and screen come from the environment (uzu.py look does not
 ## forward user args to the scene):
-##   UZU_B1315_WORLD = persona | wafu        (default persona)
+##   UZU_B1315_WORLD = persona | wafu | sf | pixel   (default persona;
+##        sf and pixel dressed in B-1323)
 ##   UZU_B1315_SCREEN = title | menu | settings | hud | talk | sheet | touch
 ##   UZU_B1315_FRAME_OUT = where the sheet mode saves the frame PNG
 ##   UZU_B1315_FOCUS = 1: after the opening, focus the first button
@@ -65,6 +66,12 @@ func _ready() -> void:
 	elif world == "wafu":
 		_fx_back.dust = 12
 		_fx_back.dust_color = Color(1.0, 0.85, 0.6, 0.35)
+	elif world == "sf":
+		_fx_back.dust = 18
+		_fx_back.dust_color = Color(0.55, 0.92, 1.0, 0.40)
+	elif world == "pixel":
+		_fx_back.dust = 10
+		_fx_back.dust_color = Color(1.0, 0.85, 0.45, 0.5)
 	add_child(_fx_back)
 	_deco_back = DecoLayer.new()
 	_deco_back.font = FONT
@@ -155,6 +162,114 @@ func _dress(name: String) -> void:
 					{"kind": "sparkle", "at": Vector2(905, 64), "r": 16.0, "color": Color.WHITE, "pulse": true},
 					{"kind": "sparkle", "at": Vector2(1120, 400), "r": 12.0, "color": Color(1, 1, 1, 0.8)},
 				]
+	elif world == "sf":
+		# B-1323: the hologram dressing -- level rules instead of
+		# slashes, thin rings, a faint level watermark. Sf composes
+		# on the level; nothing tilts.
+		var cyan := Color(0.22, 0.882, 1.0)
+		var pale := Color(0.498, 0.941, 1.0)
+		match name:
+			"title":
+				back = [
+					{"kind": "word", "text": "PROTOCOL", "at": Vector2(600, 300), "size": 130, "angle": 0.0, "color": Color(cyan, 0.10)},
+					{"kind": "ring", "at": Vector2(1022, 478), "r": 56.0, "width": 3.0, "color": Color(pale, 0.7)},
+					{"kind": "slash", "at": Vector2(985, 148), "len": 210.0, "h": 3.0, "angle": 0.0, "color": cyan},
+					{"kind": "slash", "at": Vector2(1015, 182), "len": 130.0, "h": 3.0, "angle": 0.0, "color": Color(1, 1, 1, 0.8)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(140, 300), "r": 13.0, "color": pale, "pulse": true},
+					{"kind": "sparkle", "at": Vector2(1006, 88), "r": 18.0, "color": pale, "pulse": true, "phase": 1.3},
+					{"kind": "sparkle", "at": Vector2(884, 540), "r": 11.0, "color": Color(pale, 0.8)},
+				]
+			"menu":
+				back = [
+					{"kind": "word", "text": "PAUSE", "at": Vector2(576, 330), "size": 230, "angle": 0.0, "color": Color(cyan, 0.10)},
+					{"kind": "slash", "at": Vector2(150, 120), "len": 150.0, "h": 3.0, "angle": 0.0, "color": Color(1, 1, 1, 0.4)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(952, 120), "r": 15.0, "color": pale, "pulse": true},
+					{"kind": "sparkle", "at": Vector2(210, 540), "r": 11.0, "color": Color(pale, 0.8)},
+				]
+			"settings":
+				back = [
+					{"kind": "word", "text": "CONFIG", "at": Vector2(810, 555), "size": 190, "angle": 0.0, "color": Color(cyan, 0.10)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(140, 110), "r": 13.0, "color": pale, "pulse": true},
+				]
+			"hud":
+				back = [
+					{"kind": "word", "text": "STATUS", "at": Vector2(700, 380), "size": 140, "angle": 0.0, "color": Color(cyan, 0.09)},
+					{"kind": "slash", "at": Vector2(170, 330), "len": 170.0, "h": 3.0, "angle": 0.0, "color": Color(cyan, 0.7)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(560, 120), "r": 11.0, "color": Color(pale, 0.7)},
+				]
+			"talk":
+				back = [
+					{"kind": "word", "text": "SIGNAL", "at": Vector2(330, 190), "size": 120, "angle": 0.0, "color": Color(cyan, 0.11)},
+					{"kind": "ring", "at": Vector2(118, 128), "r": 44.0, "width": 3.0, "color": Color(cyan, 0.5)},
+					{"kind": "ring", "at": Vector2(1012, 216), "r": 64.0, "width": 3.0, "color": Color(cyan, 0.3)},
+					{"kind": "slash", "at": Vector2(150, 336), "len": 190.0, "h": 3.0, "angle": 0.0, "color": Color(cyan, 0.45)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(905, 64), "r": 14.0, "color": pale, "pulse": true},
+					{"kind": "sparkle", "at": Vector2(1120, 400), "r": 10.0, "color": Color(pale, 0.8)},
+				]
+	elif world == "pixel":
+		# B-1323: the retro dressing -- chunky bars and rings in the
+		# palette only. The layer draws smooth, and the capture's
+		# nearest-neighbour pass squares it into dots with everything
+		# else, so the shapes are kept big and simple on purpose.
+		var amber := Color(0.957, 0.706, 0.102)
+		var green := Color(0.357, 0.831, 0.416)
+		match name:
+			"title":
+				back = [
+					{"kind": "word", "text": "QUEST", "at": Vector2(620, 300), "size": 120, "angle": 0.0, "color": Color(amber, 0.12)},
+					{"kind": "ring", "at": Vector2(1022, 478), "r": 52.0, "width": 8.0, "color": Color(amber, 0.8)},
+					{"kind": "slash", "at": Vector2(985, 148), "len": 200.0, "h": 10.0, "angle": 0.0, "color": Color(green, 0.8)},
+					{"kind": "slash", "at": Vector2(1015, 182), "len": 120.0, "h": 10.0, "angle": 0.0, "color": Color(1, 1, 1, 0.85)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(140, 300), "r": 14.0, "color": Color(amber, 0.9), "pulse": true},
+					{"kind": "sparkle", "at": Vector2(1006, 88), "r": 20.0, "color": Color.WHITE, "pulse": true, "phase": 1.3},
+					{"kind": "sparkle", "at": Vector2(884, 540), "r": 12.0, "color": Color(amber, 0.8)},
+				]
+			"menu":
+				back = [
+					{"kind": "word", "text": "PAUSE", "at": Vector2(576, 330), "size": 220, "angle": 0.0, "color": Color(amber, 0.12)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(952, 120), "r": 16.0, "color": Color.WHITE, "pulse": true},
+					{"kind": "sparkle", "at": Vector2(210, 540), "r": 12.0, "color": Color(amber, 0.8)},
+				]
+			"settings":
+				back = [
+					{"kind": "word", "text": "CONFIG", "at": Vector2(810, 555), "size": 180, "angle": 0.0, "color": Color(amber, 0.11)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(140, 110), "r": 14.0, "color": Color.WHITE, "pulse": true},
+				]
+			"hud":
+				back = [
+					{"kind": "word", "text": "QUEST", "at": Vector2(700, 380), "size": 140, "angle": 0.0, "color": Color(amber, 0.10)},
+					{"kind": "slash", "at": Vector2(170, 330), "len": 170.0, "h": 10.0, "angle": 0.0, "color": Color(green, 0.7)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(560, 120), "r": 12.0, "color": Color(amber, 0.7)},
+				]
+			"talk":
+				back = [
+					{"kind": "word", "text": "STORY", "at": Vector2(330, 190), "size": 120, "angle": 0.0, "color": Color(amber, 0.12)},
+					{"kind": "ring", "at": Vector2(118, 128), "r": 44.0, "width": 8.0, "color": Color(amber, 0.5)},
+					{"kind": "ring", "at": Vector2(1012, 216), "r": 64.0, "width": 7.0, "color": Color(amber, 0.3)},
+					{"kind": "slash", "at": Vector2(150, 336), "len": 190.0, "h": 10.0, "angle": 0.0, "color": Color(green, 0.5)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(905, 64), "r": 15.0, "color": Color.WHITE, "pulse": true},
+					{"kind": "sparkle", "at": Vector2(1120, 400), "r": 11.0, "color": Color(amber, 0.8)},
+				]
 	elif world == "wafu":
 		back = [
 			{"kind": "ring", "at": Vector2(990, 150), "r": 88.0, "width": 11.0, "gap": 0.5, "color": Color(0.937, 0.886, 0.769, 0.10)},
@@ -218,17 +333,28 @@ func _wire_fx(scr: Control) -> void:
 			btn.pressed.connect(_on_button_press.bind(btn))
 
 
+## The burst colours follow the world (B-1323): persona and wafu
+## keep the warm whites they were tuned with; sf bursts cyan,
+## pixel bursts amber.
+func _burst_color(press: bool) -> Color:
+	if world == "sf":
+		return Color(0.55, 0.95, 1.0)
+	if world == "pixel":
+		return Color(1.0, 0.8, 0.35) if press else Color(1.0, 0.85, 0.4)
+	return Color(1, 0.9, 0.6) if press else Color(1, 0.95, 0.75)
+
+
 func _on_button_focus(btn: BaseButton) -> void:
 	if _fx_front:
 		var r := btn.get_global_rect()
-		_fx_front.burst(r.position + Vector2(14, r.size.y * 0.5), Color(1, 0.95, 0.75))
+		_fx_front.burst(r.position + Vector2(14, r.size.y * 0.5), _burst_color(false))
 
 
 func _on_button_press(btn: BaseButton) -> void:
 	if _fx_front:
 		_fx_front.flash(btn.get_global_transform(), btn.size, Color.WHITE)
 		var r := btn.get_global_rect()
-		_fx_front.burst(r.get_center(), Color(1, 0.9, 0.6))
+		_fx_front.burst(r.get_center(), _burst_color(true))
 
 
 ## The opening choreography: whatever the world's own opening played

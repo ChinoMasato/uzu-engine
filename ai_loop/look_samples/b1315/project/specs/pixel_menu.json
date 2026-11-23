@@ -1,0 +1,164 @@
+{
+ "scene": "res://screens/pixel_menu.tscn",
+ "theme": {
+  "world": "pixel",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Panel",
+    "anchor": "center",
+    "size": [
+     520,
+     452
+    ],
+    "motion": "appear",
+    "children": [
+     {
+      "type": "Margin",
+      "padding": [
+       16,
+       4,
+       16,
+       4
+      ],
+      "children": [
+       {
+        "type": "VBox",
+        "separation": "l",
+        "children": [
+         {
+          "type": "Label",
+          "text": "ポーズ",
+          "text_style": "heading",
+          "align": "center"
+         },
+         {
+          "type": "Label",
+          "text": "PAUSE",
+          "text_style": "caption",
+          "font_color": "#f4b41a",
+          "align": "center"
+         },
+         {
+          "type": "Color",
+          "color": "#f4b41a",
+          "min_size": [
+           0,
+           3
+          ]
+         },
+         {
+          "type": "Label",
+          "text": "ユウキ　Lv.12",
+          "text_style": "body"
+         },
+         {
+          "type": "HBox",
+          "separation": "m",
+          "children": [
+           {
+            "type": "Label",
+            "text": "HP",
+            "text_style": "caption",
+            "min_size": [
+             40,
+             0
+            ]
+           },
+           {
+            "type": "Gauge",
+            "value": 10,
+            "max": 100,
+            "segments": 65,
+            "min_size": [
+             0,
+             22
+            ],
+            "expand": true,
+            "motion": {
+             "preset": "value_change",
+             "from": 10,
+             "to": 65
+            }
+           }
+          ]
+         },
+         {
+          "type": "HBox",
+          "separation": "m",
+          "children": [
+           {
+            "type": "Label",
+            "text": "MP",
+            "text_style": "caption",
+            "min_size": [
+             40,
+             0
+            ]
+           },
+           {
+            "type": "Gauge",
+            "value": 8,
+            "max": 100,
+            "segments": 40,
+            "min_size": [
+             0,
+             22
+            ],
+            "expand": true,
+            "motion": {
+             "preset": "value_change",
+             "from": 8,
+             "to": 40
+            }
+           }
+          ]
+         },
+         {
+          "type": "Button",
+          "text": "ゲームにもどる",
+          "min_size": [
+           0,
+           48
+          ],
+          "font_size": 20
+         },
+         {
+          "type": "Button",
+          "text": "アイテム",
+          "min_size": [
+           0,
+           48
+          ],
+          "font_size": 20
+         },
+         {
+          "type": "Button",
+          "text": "せってい",
+          "min_size": [
+           0,
+           48
+          ],
+          "font_size": 20
+         },
+         {
+          "type": "Button",
+          "text": "タイトルへ",
+          "min_size": [
+           0,
+           48
+          ],
+          "font_size": 20
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

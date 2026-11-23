@@ -1,0 +1,56 @@
+{
+ "scene": "res://screens/sf_talk.tscn",
+ "theme": {
+  "world": "sf",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Ribbon",
+    "text": "第壱章　真夜中のステーション",
+    "anchor": "top",
+    "offset": [
+     0,
+     28
+    ],
+    "size": [
+     440,
+     54
+    ]
+   },
+   {
+    "type": "Label",
+    "text": "CHAPTER 1",
+    "text_style": "caption",
+    "font_color": "#7ff0ff",
+    "align": "center",
+    "anchor": "top",
+    "offset": [
+     0,
+     94
+    ],
+    "size": [
+     440,
+     24
+    ]
+   },
+   {
+    "type": "Talk",
+    "speaker": "不明な信号",
+    "text": "真夜中まであと少し。コアは三つ、ステーションのどこかに眠っている。急げ、夜が明ける前に。",
+    "anchor": "bottom_wide",
+    "offset": [
+     48,
+     36
+    ],
+    "size": [
+     1056,
+     190
+    ],
+    "motion": "appear"
+   }
+  ]
+ }
+}

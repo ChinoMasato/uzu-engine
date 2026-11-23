@@ -1,0 +1,262 @@
+{
+  "format": "uzu-ui-quality/1",
+  "theme": "sf",
+  "verdict": "pass",
+  "checks": {
+    "texture_sheet": {
+      "pass": true,
+      "sheets": [
+        {
+          "image": "sf_sheet.png",
+          "window_px": [
+            512,
+            160
+          ],
+          "index": 0.1234,
+          "threshold": 0.3,
+          "channels": {
+            "luminance": {
+              "std": 4.629,
+              "band_peak": 0.5136,
+              "band_lag_px": [
+                0,
+                159
+              ],
+              "mode": "visibility",
+              "visibility": 0.1189,
+              "index": 0.1189,
+              "pass": true
+            },
+            "red_excess": {
+              "std": 4.568,
+              "band_peak": 0.5403,
+              "band_lag_px": [
+                127,
+                0
+              ],
+              "mode": "visibility",
+              "visibility": 0.1234,
+              "index": 0.1234,
+              "pass": true
+            }
+          },
+          "pass": true
+        }
+      ],
+      "coverage": {
+        "pass": true,
+        "center_alpha_min": 0.8392,
+        "center_alpha_mean": 0.8808
+      }
+    },
+    "contrast": {
+      "pass": true,
+      "pairs": [
+        {
+          "pair": "body: Label text on panel",
+          "ratio": 9.826,
+          "min": 4.5,
+          "fg": [
+            0.8471,
+            0.9647,
+            1.0,
+            1.0
+          ],
+          "bg": [
+            0.0431,
+            0.1294,
+            0.1922,
+            0.8706
+          ],
+          "pass": true
+        },
+        {
+          "pair": "heading: Button text on button",
+          "ratio": 9.037,
+          "min": 3.0,
+          "fg": [
+            0.8471,
+            0.9647,
+            1.0,
+            1.0
+          ],
+          "bg": [
+            0.051,
+            0.1569,
+            0.2196,
+            0.8706
+          ],
+          "pass": true
+        },
+        {
+          "pair": "slider groove on panel",
+          "ratio": 2.446,
+          "min": 2.0,
+          "fg": [
+            0.4231,
+            0.4692,
+            0.5021,
+            1.0
+          ],
+          "bg": [
+            0.0431,
+            0.1294,
+            0.1922,
+            0.8706
+          ],
+          "pass": true
+        },
+        {
+          "pair": "slider fill on groove",
+          "ratio": 2.898,
+          "min": 2.0,
+          "fg": [
+            0.2196,
+            0.8824,
+            1.0,
+            1.0
+          ],
+          "bg": [
+            0.4231,
+            0.4692,
+            0.5021,
+            1.0
+          ],
+          "pass": true
+        }
+      ],
+      "body_min": 4.5,
+      "heading_min": 3.0,
+      "slider_min": 2.0
+    },
+    "state_completeness": {
+      "pass": true,
+      "states": {
+        "normal": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "hover": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "pressed": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "disabled": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "focus": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxFlat"
+        }
+      }
+    },
+    "coverage": {
+      "pass": true,
+      "ratio": 1.0,
+      "covered": [
+        "PanelContainer",
+        "Button",
+        "CheckBox",
+        "OptionButton",
+        "HSlider",
+        "VSlider",
+        "LineEdit",
+        "SpinBox",
+        "HScrollBar",
+        "VScrollBar",
+        "PopupMenu",
+        "Tree",
+        "TabContainer",
+        "ItemList",
+        "ProgressBar",
+        "TooltipPanel"
+      ],
+      "missing": []
+    },
+    "scale": {
+      "spacing_off_scale": [],
+      "radius_off_scale": [],
+      "shadow_off_scale": [],
+      "counts": {
+        "spacing": 107,
+        "radius": 46,
+        "shadow": 23
+      },
+      "pass": true
+    },
+    "containment": {
+      "pass": true,
+      "screens": {
+        "pixel_hud": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "pixel_menu": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "pixel_settings": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "pixel_talk": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "pixel_title": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "sf_hud": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "sf_menu": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "sf_settings": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "sf_talk": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "sf_title": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        }
+      }
+    }
+  }
+}
