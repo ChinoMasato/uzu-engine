@@ -17,11 +17,16 @@ honestly (the showcase's recorded compromise):
   entries_pano.jpg  the sky / grandstand strip behind the entries
                     reference's header;
   sim_map.jpg       the map's centre, reframed to 16:9 -- the one
-                    genuinely clean art cut. Four of the reference's
+                    genuinely clean art cut. Three of the reference's
                     baked facility labels stay visible in open ground
-                    (ironworks, lumber mill, warehouse, port) and read
-                    as map labels; the showcase's own labels are placed
-                    on the facilities the crop leaves unlabelled.
+                    (ironworks, lumber mill, port) and read as map
+                    labels; the showcase's own labels are placed on
+                    the facilities the crop leaves unlabelled.
+                    B-1328: the quarry / research lab / warehouse
+                    labels and the reference task panel's sliver are
+                    painted out of the map (they were cut by the crop
+                    or by the showcase's own panels) and the spec
+                    labels those three facilities itself.
 Outputs (into the showcase project's art/):
   stable_pano.jpg / entries_pano.jpg / sim_map.jpg   as above
   horse_cut.png     the horse cut out with B-1324's texture-separation
@@ -69,13 +74,50 @@ def make_panos():
     print("entries_pano.jpg", pano.size)
 
 
+def _erase(arr, box, src_offset):
+    """B-1328: paint out a baked-in label in the reference with a clone
+    of nearby texture. The mask is fully opaque over the box and
+    feathers outward over a padded ring, so the label's own hard
+    edges (border, glyph tops) never sit in the falloff zone. The
+    clone source is chosen per label (rock face, facade, roof tiles,
+    field) to match what the label covered."""
+    from PIL import ImageDraw, ImageFilter
+    x0, y0, x1, y1 = box
+    dx, dy = src_offset
+    pad = 7
+    ex0, ey0, ex1, ey1 = x0 - pad, y0 - pad, x1 + pad, y1 + pad
+    patch = arr[ey0 + dy:ey1 + dy, ex0 + dx:ex1 + dx].astype(np.float32)
+    h, w = ey1 - ey0, ex1 - ex0
+    mask_im = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask_im).rectangle([pad, pad, w - pad - 1, h - pad - 1],
+                                      fill=255)
+    mask_im = mask_im.filter(ImageFilter.GaussianBlur(pad * 0.7))
+    mask = (np.asarray(mask_im).astype(np.float32) / 255.0)[..., None]
+    region = arr[ey0:ey1, ex0:ex1].astype(np.float32)
+    arr[ey0:ey1, ex0:ex1] = (patch * mask + region * (1.0 - mask)).astype(np.uint8)
+
+
 def make_sim_map():
     sim = Image.open(f"{REFS}/ref_sim_management.png").convert("RGB")
+    # B-1328: three baked labels and the task panel's sliver did not
+    # survive the crop cleanly -- the quarry label is cut by the
+    # crop's left edge, the research lab's label straddles the
+    # showcase's calendar, the warehouse label's left half hides
+    # behind the showcase's task panel (its "Lv.4" tail reads as a
+    # stray fragment), and the reference task panel's number column
+    # peeks along the left edge. Paint them out here; the showcase
+    # spec places its own labels for the quarry, the lab and the
+    # warehouse instead. (The ironworks, lumber mill, port and
+    # housing labels stay: they land whole in open ground and read
+    # as map labels, as recorded in B-1326.)
+    arr = np.asarray(sim).copy()
+    _erase(arr, (276, 214, 516, 282), (0, 62))      # quarry pill -> rock face
+    _erase(arr, (1030, 266, 1216, 322), (-232, 0))  # lab pill -> facade
+    _erase(arr, (505, 542, 690, 610), (0, 72))      # warehouse pill -> roof
+    _erase(arr, (346, 516, 400, 778), (54, 0))      # task sliver -> field
+    sim = Image.fromarray(arr)
     # 16:9 centre cut: right edge stays clear of the calendar panel,
-    # the task panel's remnant at the lower left lands under the
-    # showcase's own task panel, the advisor bubble's tail under the
-    # top resource bar, and the research lab's baked label under the
-    # showcase's calendar.
+    # the advisor bubble's tail under the top resource bar.
     m = sim.crop((350, 170, 1374, 776)).resize((1600, 900), Image.LANCZOS)
     m.save(f"{ART}/sim_map.jpg", quality=90)
     print("sim_map.jpg", m.size)

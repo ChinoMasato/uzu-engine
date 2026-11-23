@@ -2,7 +2,8 @@
  "scene": "res://screens/racing_stable.tscn",
  "theme": {
   "world": "racing",
-  "font": "res://art/game_font_jp.ttf"
+  "font": "res://art/game_font_jp.ttf",
+  "font_size": 16
  },
  "root": {
   "type": "Screen",
@@ -182,39 +183,39 @@
      },
      {
       "title": "馬名",
-      "width": 132
+      "width": 150
      },
      {
       "align": "center",
       "title": "年齢",
-      "width": 36
+      "width": 34
      },
      {
       "align": "center",
       "title": "性別",
-      "width": 36
+      "width": 34
      },
      {
       "title": "スピード",
-      "width": 94
+      "width": 87
      },
      {
       "title": "スタミナ",
-      "width": 94
+      "width": 87
      },
      {
       "title": "調子",
-      "width": 86
+      "width": 82
      },
      {
       "align": "center",
       "title": "芝",
-      "width": 30
+      "width": 26
      },
      {
       "align": "center",
       "title": "ダート",
-      "width": 30
+      "width": 50
      },
      {
       "align": "center",
@@ -224,7 +225,7 @@
      {
       "align": "center",
       "title": "厩舎",
-      "width": 42
+      "width": 36
      }
     ],
     "name": "Table",

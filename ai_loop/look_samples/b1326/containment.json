@@ -61,6 +61,30 @@
 			"rest": [],
 			"world": "horror"
 		},
+		"persona_arthud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_artmenu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_artsettings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_arttalk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
 		"persona_arttitle": {
 			"pass": true,
 			"peak": [],

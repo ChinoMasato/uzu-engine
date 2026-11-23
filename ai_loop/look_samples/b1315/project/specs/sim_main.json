@@ -965,6 +965,114 @@
     ]
    },
    {
+    "name": "FacQuarry",
+    "style": {
+     "bg": "#0a1626cc",
+     "border": "#d9a441",
+     "border_width": 1,
+     "radius": 12,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     16,
+     94
+    ],
+    "size": [
+     104,
+     23
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 12,
+    "name": "FacQuarryText",
+    "text": "採石場 Lv.4",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     16,
+     94
+    ],
+    "size": [
+     104,
+     23
+    ]
+   },
+   {
+    "name": "FacLab",
+    "style": {
+     "bg": "#0a1626cc",
+     "border": "#d9a441",
+     "border_width": 1,
+     "radius": 12,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     730,
+     140
+    ],
+    "size": [
+     104,
+     23
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 12,
+    "name": "FacLabText",
+    "text": "研究所 Lv.3",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     730,
+     140
+    ],
+    "size": [
+     104,
+     23
+    ]
+   },
+   {
+    "name": "FacWarehouse",
+    "style": {
+     "bg": "#0a1626cc",
+     "border": "#d9a441",
+     "border_width": 1,
+     "radius": 12,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     312,
+     460
+    ],
+    "size": [
+     98,
+     23
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 12,
+    "name": "FacWarehouseText",
+    "text": "倉庫 Lv.4",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     312,
+     460
+    ],
+    "size": [
+     98,
+     23
+    ]
+   },
+   {
     "children": [
      {
       "min_size": [
