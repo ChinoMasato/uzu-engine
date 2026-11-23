@@ -1,0 +1,406 @@
+{
+  "format": "uzu-ui-quality/1",
+  "theme": "sim",
+  "verdict": "pass",
+  "checks": {
+    "texture_sheet": {
+      "pass": true,
+      "sheets": [
+        {
+          "image": "sheet_sim.png",
+          "window_px": [
+            512,
+            200
+          ],
+          "index": 0.1535,
+          "threshold": 0.3,
+          "channels": {
+            "luminance": {
+              "std": 4.963,
+              "band_peak": 0.6186,
+              "band_lag_px": [
+                40,
+                0
+              ],
+              "mode": "visibility",
+              "visibility": 0.1535,
+              "index": 0.1535,
+              "pass": true
+            },
+            "red_excess": {
+              "std": 2.613,
+              "band_peak": 0.3146,
+              "band_lag_px": [
+                0,
+                199
+              ],
+              "mode": "visibility",
+              "visibility": 0.0411,
+              "index": 0.0411,
+              "pass": true
+            }
+          },
+          "pass": true
+        }
+      ],
+      "coverage": {
+        "pass": true,
+        "center_alpha_min": 1.0,
+        "center_alpha_mean": 1.0
+      }
+    },
+    "contrast": {
+      "pass": true,
+      "pairs": [
+        {
+          "pair": "body: Label text on panel",
+          "ratio": 10.905,
+          "min": 4.5,
+          "fg": [
+            0.949,
+            0.9255,
+            0.851,
+            1.0
+          ],
+          "bg": [
+            0.1333,
+            0.2,
+            0.2745,
+            1.0
+          ],
+          "pass": true
+        },
+        {
+          "pair": "heading: Button text on button",
+          "ratio": 10.26,
+          "min": 3.0,
+          "fg": [
+            0.9608,
+            0.9373,
+            0.8667,
+            1.0
+          ],
+          "bg": [
+            0.1294,
+            0.2235,
+            0.3333,
+            1.0
+          ],
+          "pass": true
+        },
+        {
+          "pair": "slider groove on panel",
+          "ratio": 2.33,
+          "min": 2.0,
+          "fg": [
+            0.3723,
+            0.4133,
+            0.4731,
+            1.0
+          ],
+          "bg": [
+            0.1333,
+            0.2,
+            0.2745,
+            1.0
+          ],
+          "pass": true
+        },
+        {
+          "pair": "slider fill on groove",
+          "ratio": 2.459,
+          "min": 2.0,
+          "fg": [
+            0.851,
+            0.6431,
+            0.2549,
+            1.0
+          ],
+          "bg": [
+            0.3723,
+            0.4133,
+            0.4731,
+            1.0
+          ],
+          "pass": true
+        }
+      ],
+      "body_min": 4.5,
+      "heading_min": 3.0,
+      "slider_min": 2.0
+    },
+    "state_completeness": {
+      "pass": true,
+      "states": {
+        "normal": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "hover": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "pressed": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "disabled": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "focus": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxFlat"
+        }
+      }
+    },
+    "coverage": {
+      "pass": true,
+      "ratio": 1.0,
+      "covered": [
+        "PanelContainer",
+        "Button",
+        "CheckBox",
+        "OptionButton",
+        "HSlider",
+        "VSlider",
+        "LineEdit",
+        "SpinBox",
+        "HScrollBar",
+        "VScrollBar",
+        "PopupMenu",
+        "Tree",
+        "TabContainer",
+        "ItemList",
+        "ProgressBar",
+        "TooltipPanel"
+      ],
+      "missing": []
+    },
+    "scale": {
+      "spacing_off_scale": [],
+      "radius_off_scale": [],
+      "shadow_off_scale": [],
+      "counts": {
+        "spacing": 105,
+        "radius": 46,
+        "shadow": 24
+      },
+      "pass": true
+    },
+    "containment": {
+      "pass": true,
+      "screens": {
+        "fantasy_hud": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "fantasy_menu": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "fantasy_settings": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "fantasy_talk": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "fantasy_title": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "horror_hud": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "horror_menu": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "horror_settings": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "horror_talk": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "horror_title": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "persona_arttitle": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "persona_hud": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "persona_menu": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "persona_settings": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "persona_talk": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "persona_title": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "pixel_hud": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "pixel_menu": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "pixel_settings": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "pixel_talk": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "pixel_title": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "racing_entries": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "racing_stable": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "sf_hud": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "sf_menu": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "sf_settings": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "sf_talk": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "sf_title": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "sim_main": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "wafu_hud": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "wafu_menu": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "wafu_settings": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "wafu_talk": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "wafu_title": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        }
+      }
+    }
+  }
+}

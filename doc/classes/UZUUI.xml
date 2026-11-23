@@ -144,7 +144,7 @@
 		<method name="get_world_names" qualifiers="static">
 			<return type="PackedStringArray" />
 			<description>
-				Returns the world themes: [code]fantasy[/code], [code]wafu[/code], [code]sf[/code], [code]horror[/code], [code]persona[/code] and [code]pixel[/code].
+				Returns the world themes: [code]fantasy[/code], [code]wafu[/code], [code]sf[/code], [code]horror[/code], [code]persona[/code], [code]pixel[/code], [code]racing[/code] and [code]sim[/code].
 			</description>
 		</method>
 		<method name="get_world_options" qualifiers="static">
@@ -228,6 +228,57 @@
 			<return type="Control" />
 			<description>
 				Returns a decorated divider: a line that fades at both ends, with a diamond in the middle.
+			</description>
+		</method>
+		<method name="make_stat_bar" qualifiers="static">
+			<return type="Control" />
+			<param index="0" name="caption" type="String" />
+			<param index="1" name="value" type="float" />
+			<param index="2" name="max" type="float" default="100.0" />
+			<param index="3" name="options" type="Dictionary" default="{}" />
+			<description>
+				Returns a data row of the kit (B-1326): a caption label, a smooth bar (a [ProgressBar] with the theme's [code]UZUStatBar[/code] variation) and its value, in one [HBoxContainer] named [code]StatBar[/code] with children [code]Caption[/code], [code]Bar[/code] and [code]Value[/code]. [param options] takes [code]caption_width[/code] / [code]value_width[/code] / [code]bar_height[/code] (pixels) and [code]fill[/code] (a color overriding the theme's bar fill for this bar only).
+			</description>
+		</method>
+		<method name="make_status_chip" qualifiers="static">
+			<return type="Control" />
+			<param index="0" name="caption" type="String" />
+			<param index="1" name="value" type="String" />
+			<param index="2" name="options" type="Dictionary" default="{}" />
+			<description>
+				Returns a status chip (B-1326): a small pill (the theme's [code]UZUChip[/code] variation) holding an accent caption and a value, with an optional [code]delta[/code] note in [param options] (its color overridable by [code]delta_color[/code]). Children: [code]Box/Caption[/code], [code]Box/Value[/code], [code]Box/Delta[/code].
+			</description>
+		</method>
+		<method name="make_data_table" qualifiers="static">
+			<return type="Control" />
+			<param index="0" name="columns" type="Array" />
+			<param index="1" name="rows" type="Array" />
+			<param index="2" name="options" type="Dictionary" default="{}" />
+			<description>
+				Returns a data table (B-1326): a header (the theme's [code]UZUTableHeader[/code] variation) and one toggle [Button] row per data row, all rows in one button group so exactly one is selected. [param columns] are Dictionaries [code]{"title", "width", "align", "expand"}[/code]. A cell is a [String] (plain text) or a Dictionary: [code]{"text", "color", "align"}[/code] for text, [code]{"bar", "max", "fill"}[/code] for a mini stat bar, [code]{"face", "text", "color"}[/code] for a condition face (level 0..4) with its word, [code]{"image"}[/code] for a [Texture2D], [code]{"chip", "text"}[/code] for a colored number chip. Each row carries its row [Array] as [code]row_data[/code] metadata; connecting a row's [code]pressed[/code] signal is the selection hook. [param options] takes [code]row_height[/code] (pixels).
+			</description>
+		</method>
+		<method name="select_table_row" qualifiers="static">
+			<return type="Control" />
+			<param index="0" name="table" type="Control" />
+			<param index="1" name="index" type="int" />
+			<description>
+				Presses one row of a table made by [method make_data_table] (the button group releases the others) and returns the row, or [code]null[/code] when there is no such row.
+			</description>
+		</method>
+		<method name="make_detail_panel" qualifiers="static">
+			<return type="Control" />
+			<param index="0" name="options" type="Dictionary" default="{}" />
+			<description>
+				Returns the detail panel that follows a table's selection (B-1326): a [PanelContainer] named [code]Detail[/code] holding a title, a portrait and two stacks ([code]Rows[/code], [code]Bars[/code]) that [method set_detail_panel] refills. [param options] takes [code]portrait_height[/code] / [code]key_width[/code] / [code]bar_caption_width[/code] (pixels) and [code]data[/code] (an initial data Dictionary).
+			</description>
+		</method>
+		<method name="set_detail_panel" qualifiers="static">
+			<return type="void" />
+			<param index="0" name="panel" type="Control" />
+			<param index="1" name="data" type="Dictionary" />
+			<description>
+				Refills a detail panel made by [method make_detail_panel]. [param data] takes [code]title[/code], [code]portrait[/code] (a [Texture2D] or [code]null[/code]), [code]rows[/code] (an Array of [code]{"key", "value", "color"}[/code] Dictionaries or [code][key, value][/code] Arrays) and [code]bars[/code] (an Array of [code]{"caption", "value", "max", "fill"}[/code] Dictionaries).
 			</description>
 		</method>
 		<method name="get_skew_safe_margins" qualifiers="static">

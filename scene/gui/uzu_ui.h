@@ -107,7 +107,7 @@ public:
 	// the image repeats, so the texture keeps its scale at any size.
 	static Ref<Image> draw_frame(const Dictionary &p_style);
 	static Ref<StyleBox> create_frame_style(const Dictionary &p_style);
-	// World themes: fantasy, wafu, sf, horror, persona, pixel. One name switches the
+	// World themes: fantasy, wafu, sf, horror, persona, pixel, racing, sim. One name switches the
 	// frames, colors and parts; p_overrides changes any option of the world.
 	static PackedStringArray get_world_names();
 	static Dictionary get_world_options(const String &p_world);
@@ -123,6 +123,52 @@ public:
 	static Control *make_item_slot(const String &p_label = String(), int p_count = 0);
 	static Control *make_ribbon(const String &p_text);
 	static Control *make_separator();
+
+	// Data parts (B-1326), styled by the theme's UZUStatBar / UZUChip /
+	// UZUTableHeader / UZUTableRow variations, so they change with the
+	// world like every other part. The vocabulary of the data-dense
+	// screens (racing, simulation): a labelled bar with its number, a
+	// status chip, a selectable table and the detail panel that
+	// follows the selection.
+	// A caption, a smooth bar and its value in one row. Options:
+	// "caption_width" / "value_width" (px), "bar_height" (px), "fill"
+	// (a colour overriding the theme's bar fill for this bar only).
+	// Children: "Caption", "Bar" (ProgressBar), "Value".
+	static Control *make_stat_bar(const String &p_caption, double p_value, double p_max = 100.0, const Dictionary &p_options = Dictionary());
+	// A small pill: an accent caption and a value, with an optional
+	// "delta" note (its colour overridable by "delta_color").
+	// Children: "Box/Caption", "Box/Value", "Box/Delta".
+	static Control *make_status_chip(const String &p_caption, const String &p_value, const Dictionary &p_options = Dictionary());
+	// A table from column and row data. Columns: Dictionaries
+	// {"title", "width", "align" (left|center|right), "expand"}.
+	// A column's width is its cells' minimum width; a row also
+	// spends 4 px of separation between cells and 8 px of margin at
+	// both ends, so a table of fixed columns fits when the widths
+	// plus those add up to the table's width (an "expand" column
+	// absorbs whatever is left instead).
+	// Cells: a String (plain text) or a Dictionary -- {"text",
+	// "color", "align"} for text, {"bar", "max", "fill"} for a mini
+	// stat bar, {"face" (0..4), "text", "color"} for a condition face
+	// with its word, {"image" (a Texture2D)} for a picture, {"chip"
+	// (a colour), "text"} for a coloured number chip. Rows are
+	// toggle Buttons in one group (children "Row0", "Row1", ...),
+	// each carrying its row Array as "row_data" metadata; connecting
+	// a row's "pressed" signal is the selection hook. Options:
+	// "row_height" (px).
+	static Control *make_data_table(const Array &p_columns, const Array &p_rows, const Dictionary &p_options = Dictionary());
+	// Presses one row of a table made by make_data_table (the group
+	// releases the others) and returns the row, or null.
+	static Control *select_table_row(Control *p_table, int p_index);
+	// The detail panel that follows a table's selection: a title, a
+	// portrait and two stacks ("Rows", "Bars") that set_detail_panel
+	// refills. Options: "portrait_height" (px), "key_width" (px),
+	// "bar_caption_width" (px), "data" (an initial data Dictionary).
+	static Control *make_detail_panel(const Dictionary &p_options = Dictionary());
+	// Refills a detail panel. Data: {"title", "portrait" (a
+	// Texture2D or null), "rows" (an Array of {"key", "value",
+	// "color"} Dictionaries or [key, value] Arrays), "bars" (an
+	// Array of {"caption", "value", "max", "fill"} Dictionaries)}.
+	static void set_detail_panel(Control *p_panel, const Dictionary &p_data);
 
 	// The moving decoration of a world's frames (B-1307 stage 2): a canvas shader that
 	// glints, pulses, flickers or flows over the frame (never over the text). Null for an

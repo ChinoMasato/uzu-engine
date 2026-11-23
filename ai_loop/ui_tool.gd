@@ -7,7 +7,7 @@ extends SceneTree
 ##
 ## Spec (colors "#rrggbb" or "#rrggbbaa"; an unknown key is an error that names where it is):
 ##   {"scene": "res://ui/hud.tscn",
-##    "theme": {"world": "fantasy" | "wafu" | "sf" | "horror" | "persona" | "pixel" (B-1307: textured game
+##    "theme": {"world": "fantasy" | "wafu" | "sf" | "horror" | "persona" | "pixel" | "racing" | "sim" (B-1307: textured game
 ##              frames, colors and parts in one name; then panel/button/bar are not used),
 ##              "font": "res://fonts/x.ttf", "font_fallback": "res://fonts/ja.woff2" (glyphs the font lacks),
 ##              "font_size": 20, "font_color": "#f4ead2", "accent": "#d9a441",
@@ -24,6 +24,15 @@ extends SceneTree
 ##          game parts (B-1307, styled by the world): Gauge ("value", "max", "segments"),
 ##          Talk ("speaker", "text": a talk window with a name tag and a next mark),
 ##          Slot ("text", "count"), Ribbon ("text"), Separator,
+##          data parts (B-1326, styled by the world): StatBar ("caption", "value", "max",
+##          "fill", "caption_width", "value_width": a labelled smooth bar with its number),
+##          Chip ("caption", "value", "delta", "delta_color": a status pill),
+##          DataTable ("columns", "rows", "row_height": a selectable table; a cell is a
+##          string or {"text"/"color"/"align"}, {"bar"/"max"/"fill"}, {"face"/"text"},
+##          {"image"} (a res:// path) or {"chip"/"text"}),
+##          DetailPanel ("portrait_height", "key_width", "data": the panel that follows
+##          a table's selection; "data" is UZUUI.set_detail_panel's data, its "portrait"
+##          a res:// path),
 ##          touch parts (B-1315, styled by the theme): Stick (a UZUTouchStick),
 ##          TouchButton ("text": a round pad button)
 ##   placement (outside containers): "anchor": top_left | top | top_right | left | center | right |
@@ -71,6 +80,7 @@ const TYPES := {
 	"Slider": "HSlider", "Check": "CheckBox", "Option": "OptionButton",
 	"Gauge": "", "Talk": "", "Slot": "", "Ribbon": "", "Separator": "",
 	"Stick": "", "TouchButton": "",
+	"StatBar": "", "Chip": "", "DataTable": "", "DetailPanel": "",
 }
 const COMMON := ["type", "name", "children", "anchor", "offset", "size", "min_size", "expand", "visible", "tooltip", "style", "font_size", "font_color", "letter_spacing", "align", "motion", "rotation"]
 const MOTION_KEYS := ["preset", "duration", "strength", "from", "to"]
@@ -81,6 +91,10 @@ const EXTRA := {
 	"Gauge": ["value", "max", "segments"], "Talk": ["speaker", "text"], "Slot": ["text", "count"], "Ribbon": ["text"],
 	"Slider": ["value", "min", "max", "step"], "Check": ["text", "pressed"], "Option": ["items", "selected"],
 	"TouchButton": ["text"],
+	"StatBar": ["caption", "value", "max", "fill", "caption_width", "value_width"],
+	"Chip": ["caption", "value", "delta", "delta_color"],
+	"DataTable": ["columns", "rows", "row_height"],
+	"DetailPanel": ["portrait_height", "key_width", "bar_caption_width", "data"],
 }
 const ANCHORS := {
 	"top_left": Control.PRESET_TOP_LEFT, "top": Control.PRESET_CENTER_TOP, "top_right": Control.PRESET_TOP_RIGHT,
@@ -325,6 +339,38 @@ func _node(where: String, d, parent: Control, owner_root: Control) -> Control:
 			c = UZUUI.make_touch_stick()
 		"TouchButton":
 			c = UZUUI.make_touch_button(str(d.get("text", "")))
+		"StatBar":
+			var bar_opts := {}
+			if d.has("fill"):
+				bar_opts["fill"] = _color(where + ".fill", d.fill)
+			if d.has("caption_width"):
+				bar_opts["caption_width"] = int(d.caption_width)
+			if d.has("value_width"):
+				bar_opts["value_width"] = int(d.value_width)
+			c = UZUUI.make_stat_bar(str(d.get("caption", "")), float(d.get("value", 0)), float(d.get("max", 100)), bar_opts)
+		"Chip":
+			var chip_opts := {}
+			if d.has("delta"):
+				chip_opts["delta"] = str(d.delta)
+			if d.has("delta_color"):
+				chip_opts["delta_color"] = _color(where + ".delta_color", d.delta_color)
+			c = UZUUI.make_status_chip(str(d.get("caption", "")), str(d.get("value", "")), chip_opts)
+		"DataTable":
+			var table_opts := {}
+			if d.has("row_height"):
+				table_opts["row_height"] = int(d.row_height)
+			c = UZUUI.make_data_table(_table_columns(where, d.get("columns", [])), _table_rows(where, d.get("rows", [])), table_opts)
+		"DetailPanel":
+			var detail_opts := {}
+			if d.has("portrait_height"):
+				detail_opts["portrait_height"] = int(d.portrait_height)
+			if d.has("key_width"):
+				detail_opts["key_width"] = int(d.key_width)
+			if d.has("bar_caption_width"):
+				detail_opts["bar_caption_width"] = int(d.bar_caption_width)
+			if d.has("data"):
+				detail_opts["data"] = _detail_data(where, d.data)
+			c = UZUUI.make_detail_panel(detail_opts)
 		_:
 			c = ClassDB.instantiate(TYPES[type])
 	c.name = d.get("name", type)
@@ -480,6 +526,66 @@ func _node(where: String, d, parent: Control, owner_root: Control) -> Control:
 		for k in kids.size():
 			_node("%s.children[%d]" % [where, k], kids[k], c, owner_root if parent else c)
 	return c
+
+
+## A DataTable's columns, checked: a list of {"title", "width", "align", "expand"}.
+func _table_columns(where: String, v) -> Array:
+	if not v is Array:
+		_err(where + ".columns", "must be a list")
+		return []
+	var out := []
+	for k in v.size():
+		var col = v[k]
+		if not col is Dictionary:
+			_err("%s.columns[%d]" % [where, k], "must be an object")
+			continue
+		for key in col:
+			if not key in ["title", "width", "align", "expand"]:
+				_err("%s.columns[%d]" % [where, k], "unknown key '%s' (allowed: title, width, align, expand)" % key)
+		out.append(col)
+	return out
+
+
+## A DataTable's rows, checked: a list of rows, each a list of cells.
+## A cell's "image" path becomes the loaded texture here, so the spec
+## itself stays text-only.
+func _table_rows(where: String, v) -> Array:
+	if not v is Array:
+		_err(where + ".rows", "must be a list")
+		return []
+	var out := []
+	for k in v.size():
+		var row = v[k]
+		if not row is Array:
+			_err("%s.rows[%d]" % [where, k], "must be a list of cells")
+			continue
+		var new_row := []
+		for cell in row:
+			if cell is Dictionary and cell.has("image"):
+				var copy: Dictionary = cell.duplicate()
+				var tex = load(cell.image) if cell.image is String and ResourceLoader.exists(str(cell.image)) else null
+				if not tex is Texture2D:
+					_err("%s.rows[%d]" % [where, k], "a cell's image needs a res:// image")
+				copy["image"] = tex
+				new_row.append(copy)
+			else:
+				new_row.append(cell)
+		out.append(new_row)
+	return out
+
+
+## A DetailPanel's data, checked: the portrait path becomes a texture.
+func _detail_data(where: String, v) -> Dictionary:
+	if not v is Dictionary:
+		_err(where + ".data", "must be an object")
+		return {}
+	var out: Dictionary = v.duplicate()
+	if out.has("portrait"):
+		var tex = load(out.portrait) if out.portrait is String and ResourceLoader.exists(str(out.portrait)) else null
+		if not tex is Texture2D:
+			_err(where + ".data.portrait", "needs a res:// image")
+		out["portrait"] = tex
+	return out
 
 
 func _build(spec_path: String) -> Dictionary:

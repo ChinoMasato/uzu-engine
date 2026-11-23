@@ -1,0 +1,1048 @@
+{
+ "scene": "res://screens/sim_main.tscn",
+ "theme": {
+  "world": "sim",
+  "font": "res://art/game_font_jp.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "name": "SimMain",
+    "style": {
+     "bg": "#0a141f",
+     "border_width": 0,
+     "radius": 0,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     648
+    ]
+   },
+   {
+    "name": "Map",
+    "stretch": "cover",
+    "texture": "res://art/sim_map.jpg",
+    "type": "Image",
+    "anchor": "top_left",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     648
+    ]
+   },
+   {
+    "name": "TopBar",
+    "style": {
+     "bg": "#0a1626f2",
+     "border_width": 0,
+     "radius": 0,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     46
+    ]
+   },
+   {
+    "font_size": 17,
+    "name": "Title",
+    "text": "領地管理",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     14,
+     9
+    ],
+    "size": [
+     108,
+     29
+    ]
+   },
+   {
+    "children": [
+     {
+      "caption": "資金",
+      "delta": "+320",
+      "name": "ChipFunds",
+      "type": "Chip",
+      "value": "12,450"
+     },
+     {
+      "caption": "木材",
+      "delta": "+24",
+      "name": "ChipWood",
+      "type": "Chip",
+      "value": "860"
+     },
+     {
+      "caption": "石材",
+      "delta": "-12",
+      "delta_color": "#e88a7a",
+      "name": "ChipStone",
+      "type": "Chip",
+      "value": "645"
+     },
+     {
+      "caption": "鉄",
+      "delta": "+8",
+      "name": "ChipIron",
+      "type": "Chip",
+      "value": "312"
+     },
+     {
+      "caption": "労働力",
+      "name": "ChipLabor",
+      "type": "Chip",
+      "value": "342/360"
+     },
+     {
+      "caption": "住民",
+      "name": "ChipPop",
+      "type": "Chip",
+      "value": "1,284"
+     },
+     {
+      "caption": "支持率",
+      "delta": "+2",
+      "name": "ChipSupport",
+      "type": "Chip",
+      "value": "78%"
+     }
+    ],
+    "name": "Chips",
+    "separation": 6,
+    "type": "HBox",
+    "anchor": "top_left",
+    "offset": [
+     134,
+     9
+    ],
+    "size": [
+     1007,
+     29
+    ]
+   },
+   {
+    "name": "Calendar",
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     876,
+     63
+    ],
+    "size": [
+     265,
+     238
+    ]
+   },
+   {
+    "font_size": 17,
+    "name": "WeekTitle",
+    "text": "第42週",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     893,
+     75
+    ],
+    "size": [
+     108,
+     26
+    ]
+   },
+   {
+    "align": "right",
+    "font_size": 12,
+    "name": "Season",
+    "text": "春 ・ 2年目",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     1008,
+     78
+    ],
+    "size": [
+     115,
+     23
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 9,
+    "name": "Wd0",
+    "text": "月",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     893,
+     107
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 9,
+    "name": "Wd1",
+    "text": "火",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     926,
+     107
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 9,
+    "name": "Wd2",
+    "text": "水",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     959,
+     107
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 9,
+    "name": "Wd3",
+    "text": "木",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     992,
+     107
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 9,
+    "name": "Wd4",
+    "text": "金",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     1025,
+     107
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 9,
+    "name": "Wd5",
+    "text": "土",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     1058,
+     107
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 9,
+    "name": "Wd6",
+    "text": "日",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     1092,
+     107
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "name": "TodayMark",
+    "style": {
+     "bg": "#d9a441",
+     "border_width": 0,
+     "radius": 6,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     1024,
+     125
+    ],
+    "size": [
+     32,
+     20
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D12",
+    "text": "12",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     893,
+     127
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D13",
+    "text": "13",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     926,
+     127
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D14",
+    "text": "14",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     959,
+     127
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D15",
+    "text": "15",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     992,
+     127
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_color": "#0a1626",
+    "font_size": 10,
+    "name": "D16",
+    "text": "16",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     1025,
+     127
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D17",
+    "text": "17",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     1058,
+     127
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D18",
+    "text": "18",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     1092,
+     127
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D19",
+    "text": "19",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     893,
+     148
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D20",
+    "text": "20",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     926,
+     148
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D21",
+    "text": "21",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     959,
+     148
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D22",
+    "text": "22",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     992,
+     148
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D23",
+    "text": "23",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     1025,
+     148
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D24",
+    "text": "24",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     1058,
+     148
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 10,
+    "name": "D25",
+    "text": "25",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     1092,
+     148
+    ],
+    "size": [
+     29,
+     17
+    ]
+   },
+   {
+    "font_size": 12,
+    "name": "SchedTitle",
+    "text": "今週の予定",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     893,
+     179
+    ],
+    "size": [
+     144,
+     20
+    ]
+   },
+   {
+    "font_size": 10,
+    "name": "Sched0",
+    "text": "月：評議会",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     893,
+     203
+    ],
+    "size": [
+     230,
+     19
+    ]
+   },
+   {
+    "font_size": 10,
+    "name": "Sched1",
+    "text": "水：市場調査",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     893,
+     226
+    ],
+    "size": [
+     230,
+     19
+    ]
+   },
+   {
+    "font_size": 10,
+    "name": "Sched2",
+    "text": "木：港の視察",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     893,
+     249
+    ],
+    "size": [
+     230,
+     19
+    ]
+   },
+   {
+    "font_size": 10,
+    "name": "Sched3",
+    "text": "土：徴税会議",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     893,
+     272
+    ],
+    "size": [
+     230,
+     19
+    ]
+   },
+   {
+    "name": "Tasks",
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     12,
+     338
+    ],
+    "size": [
+     291,
+     238
+    ]
+   },
+   {
+    "font_size": 14,
+    "name": "TasksTitle",
+    "text": "タスク一覧",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     26,
+     350
+    ],
+    "size": [
+     144,
+     23
+    ]
+   },
+   {
+    "name": "Task0Box",
+    "style": {
+     "bg": "#00000000",
+     "border": "#d9a441",
+     "border_width": 2,
+     "radius": 4,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     26,
+     384
+    ],
+    "size": [
+     14,
+     14
+    ]
+   },
+   {
+    "font_size": 12,
+    "name": "Task0Name",
+    "text": "港の拡張工事",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     48,
+     382
+    ],
+    "size": [
+     173,
+     20
+    ]
+   },
+   {
+    "align": "right",
+    "font_size": 10,
+    "name": "Task0Prog",
+    "text": "(3/5)",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     228,
+     382
+    ],
+    "size": [
+     60,
+     20
+    ]
+   },
+   {
+    "font_size": 9,
+    "name": "Task0State",
+    "text": "進行中",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     48,
+     402
+    ],
+    "size": [
+     144,
+     16
+    ]
+   },
+   {
+    "name": "Task1Box",
+    "style": {
+     "bg": "#d9a441",
+     "border_width": 0,
+     "radius": 4,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     26,
+     431
+    ],
+    "size": [
+     14,
+     14
+    ]
+   },
+   {
+    "align": "center",
+    "font_color": "#0a1626",
+    "font_size": 10,
+    "name": "Task1Check",
+    "text": "✓",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     26,
+     428
+    ],
+    "size": [
+     14,
+     17
+    ]
+   },
+   {
+    "font_size": 12,
+    "name": "Task1Name",
+    "text": "小麦畑の収穫",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     48,
+     428
+    ],
+    "size": [
+     173,
+     20
+    ]
+   },
+   {
+    "align": "right",
+    "font_size": 10,
+    "name": "Task1Prog",
+    "text": "(10/10)",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     228,
+     428
+    ],
+    "size": [
+     60,
+     20
+    ]
+   },
+   {
+    "font_size": 9,
+    "name": "Task1State",
+    "text": "完了",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     48,
+     448
+    ],
+    "size": [
+     144,
+     16
+    ]
+   },
+   {
+    "name": "Task2Box",
+    "style": {
+     "bg": "#00000000",
+     "border": "#d9a441",
+     "border_width": 2,
+     "radius": 4,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     26,
+     477
+    ],
+    "size": [
+     14,
+     14
+    ]
+   },
+   {
+    "font_size": 12,
+    "name": "Task2Name",
+    "text": "兵舎の訓練",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     48,
+     474
+    ],
+    "size": [
+     173,
+     20
+    ]
+   },
+   {
+    "align": "right",
+    "font_size": 10,
+    "name": "Task2Prog",
+    "text": "(0/1)",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     228,
+     474
+    ],
+    "size": [
+     60,
+     20
+    ]
+   },
+   {
+    "font_size": 9,
+    "name": "Task2State",
+    "text": "進行中",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     48,
+     494
+    ],
+    "size": [
+     144,
+     16
+    ]
+   },
+   {
+    "name": "FacPalace",
+    "style": {
+     "bg": "#0a1626cc",
+     "border": "#d9a441",
+     "border_width": 1,
+     "radius": 12,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     488,
+     168
+    ],
+    "size": [
+     104,
+     23
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 12,
+    "name": "FacPalaceText",
+    "text": "王宮 Lv.5",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     488,
+     168
+    ],
+    "size": [
+     104,
+     23
+    ]
+   },
+   {
+    "name": "FacMarket",
+    "style": {
+     "bg": "#0a1626cc",
+     "border": "#d9a441",
+     "border_width": 1,
+     "radius": 12,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     181,
+     279
+    ],
+    "size": [
+     98,
+     23
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 12,
+    "name": "FacMarketText",
+    "text": "市場 Lv.4",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     181,
+     279
+    ],
+    "size": [
+     98,
+     23
+    ]
+   },
+   {
+    "name": "FacFarm",
+    "style": {
+     "bg": "#0a1626cc",
+     "border": "#d9a441",
+     "border_width": 1,
+     "radius": 12,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     767,
+     351
+    ],
+    "size": [
+     98,
+     23
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 12,
+    "name": "FacFarmText",
+    "text": "農園 Lv.3",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     767,
+     351
+    ],
+    "size": [
+     98,
+     23
+    ]
+   },
+   {
+    "children": [
+     {
+      "min_size": [
+       132,
+       49
+      ],
+      "text": "建設",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       132,
+       49
+      ],
+      "text": "研究",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       132,
+       49
+      ],
+      "text": "交易",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       132,
+       49
+      ],
+      "text": "防衛",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       132,
+       49
+      ],
+      "text": "外交",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       132,
+       49
+      ],
+      "text": "内政",
+      "type": "Button"
+     }
+    ],
+    "name": "Commands",
+    "separation": 6,
+    "type": "HBox",
+    "anchor": "top_left",
+    "offset": [
+     12,
+     588
+    ],
+    "size": [
+     828,
+     49
+    ]
+   },
+   {
+    "font_size": 17,
+    "name": "NextWeek",
+    "text": "次の週へ ▶",
+    "type": "Button",
+    "anchor": "top_left",
+    "offset": [
+     857,
+     582
+    ],
+    "size": [
+     284,
+     55
+    ]
+   }
+  ]
+ }
+}
