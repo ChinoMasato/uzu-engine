@@ -1,0 +1,126 @@
+{
+ "scene": "res://screens/sf_title.tscn",
+ "theme": {
+  "world": "sf",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Label",
+    "name": "Logo",
+    "text": "ミッドナイト・プロトコル",
+    "font_size": 76,
+    "outline_size": 12,
+    "outline_color": "#02141f",
+    "shadow_color": "#38e1ff",
+    "shadow_offset": [
+     7,
+     7
+    ],
+    "anchor": "top_left",
+    "offset": [
+     64,
+     64
+    ],
+    "size": [
+     980,
+     120
+    ],
+    "motion": "appear"
+   },
+   {
+    "type": "Label",
+    "text": "MIDNIGHT PROTOCOL",
+    "text_style": "caption",
+    "font_size": 28,
+    "font_color": "#7ff0ff",
+    "letter_spacing": 3,
+    "anchor": "top_left",
+    "offset": [
+     68,
+     200
+    ],
+    "size": [
+     560,
+     40
+    ]
+   },
+   {
+    "type": "Label",
+    "text": "奪われた中継衛星を、夜明け前に取り戻せ",
+    "text_style": "body",
+    "anchor": "top_left",
+    "offset": [
+     68,
+     252
+    ],
+    "size": [
+     560,
+     32
+    ]
+   },
+   {
+    "type": "Button",
+    "text": "はじめから",
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     64,
+     196
+    ],
+    "size": [
+     440,
+     56
+    ],
+    "font_size": 24
+   },
+   {
+    "type": "Button",
+    "text": "つづきから",
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     64,
+     128
+    ],
+    "size": [
+     440,
+     56
+    ],
+    "font_size": 24
+   },
+   {
+    "type": "Button",
+    "text": "せってい",
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     64,
+     60
+    ],
+    "size": [
+     440,
+     56
+    ],
+    "font_size": 24
+   },
+   {
+    "type": "Label",
+    "text": "U.ZU Engine sample",
+    "text_style": "caption",
+    "align": "right",
+    "anchor": "bottom_right",
+    "offset": [
+     28,
+     20
+    ],
+    "size": [
+     300,
+     24
+    ]
+   }
+  ]
+ }
+}

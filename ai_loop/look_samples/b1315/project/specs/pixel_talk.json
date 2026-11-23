@@ -1,0 +1,40 @@
+{
+ "scene": "res://screens/pixel_talk.tscn",
+ "theme": {
+  "world": "pixel",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Ribbon",
+    "text": "だいいっしょう　まよなかの としょかん",
+    "anchor": "top",
+    "offset": [
+     0,
+     28
+    ],
+    "size": [
+     440,
+     54
+    ]
+   },
+   {
+    "type": "Talk",
+    "speaker": "なぞの こえ",
+    "text": "まよなかまで あと すこし。かけらは みっつ、としょかんの どこかに ねむっている。いそげ、よが あける まえに。",
+    "anchor": "bottom_wide",
+    "offset": [
+     48,
+     36
+    ],
+    "size": [
+     1056,
+     190
+    ],
+    "motion": "appear"
+   }
+  ]
+ }
+}

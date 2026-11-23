@@ -1,0 +1,179 @@
+{
+ "scene": "res://screens/pixel_settings.tscn",
+ "theme": {
+  "world": "pixel",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Panel",
+    "anchor": "center",
+    "size": [
+     660,
+     430
+    ],
+    "motion": "appear",
+    "children": [
+     {
+      "type": "Margin",
+      "padding": [
+       16,
+       4,
+       16,
+       4
+      ],
+      "children": [
+       {
+        "type": "VBox",
+        "separation": "l",
+        "children": [
+         {
+          "type": "Label",
+          "text": "せってい",
+          "text_style": "heading",
+          "align": "center"
+         },
+         {
+          "type": "Label",
+          "text": "CONFIG",
+          "text_style": "caption",
+          "font_color": "#f4b41a",
+          "align": "center"
+         },
+         {
+          "type": "Color",
+          "color": "#f4b41a",
+          "min_size": [
+           0,
+           3
+          ]
+         },
+         {
+          "type": "HBox",
+          "separation": "m",
+          "children": [
+           {
+            "type": "Label",
+            "text": "おとの大きさ",
+            "text_style": "body",
+            "min_size": [
+             180,
+             0
+            ]
+           },
+           {
+            "type": "Slider",
+            "value": 70,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "min_size": [
+             0,
+             30
+            ],
+            "expand": true
+           }
+          ]
+         },
+         {
+          "type": "HBox",
+          "separation": "m",
+          "children": [
+           {
+            "type": "Label",
+            "text": "こうかおと",
+            "text_style": "body",
+            "min_size": [
+             180,
+             0
+            ]
+           },
+           {
+            "type": "Slider",
+            "value": 45,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "min_size": [
+             0,
+             30
+            ],
+            "expand": true
+           }
+          ]
+         },
+         {
+          "type": "HBox",
+          "separation": "m",
+          "children": [
+           {
+            "type": "Label",
+            "text": "がめんのゆれ",
+            "text_style": "body",
+            "min_size": [
+             180,
+             0
+            ]
+           },
+           {
+            "type": "Check",
+            "text": "ゆれる",
+            "pressed": true
+           }
+          ]
+         },
+         {
+          "type": "HBox",
+          "separation": "m",
+          "children": [
+           {
+            "type": "Label",
+            "text": "むずかしさ",
+            "text_style": "body",
+            "min_size": [
+             180,
+             0
+            ]
+           },
+           {
+            "type": "Option",
+            "items": [
+             "やさしい",
+             "ふつう",
+             "むずかしい"
+            ],
+            "selected": 1,
+            "min_size": [
+             220,
+             36
+            ]
+           }
+          ]
+         },
+         {
+          "type": "Spacer",
+          "min_size": [
+           0,
+           8
+          ]
+         },
+         {
+          "type": "Button",
+          "text": "もどる",
+          "min_size": [
+           0,
+           48
+          ],
+          "font_size": 20
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

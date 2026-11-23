@@ -1,0 +1,126 @@
+{
+ "scene": "res://screens/pixel_title.tscn",
+ "theme": {
+  "world": "pixel",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Label",
+    "name": "Logo",
+    "text": "まよなかクエスト",
+    "font_size": 68,
+    "outline_size": 10,
+    "outline_color": "#05060f",
+    "shadow_color": "#f4b41a",
+    "shadow_offset": [
+     6,
+     6
+    ],
+    "anchor": "top_left",
+    "offset": [
+     64,
+     64
+    ],
+    "size": [
+     760,
+     110
+    ],
+    "motion": "appear"
+   },
+   {
+    "type": "Label",
+    "text": "MIDNIGHT QUEST",
+    "text_style": "caption",
+    "font_size": 24,
+    "font_color": "#f4b41a",
+    "letter_spacing": 2,
+    "anchor": "top_left",
+    "offset": [
+     68,
+     190
+    ],
+    "size": [
+     480,
+     36
+    ]
+   },
+   {
+    "type": "Label",
+    "text": "よるの としょかんを とりもどせ",
+    "text_style": "body",
+    "anchor": "top_left",
+    "offset": [
+     68,
+     240
+    ],
+    "size": [
+     480,
+     30
+    ]
+   },
+   {
+    "type": "Button",
+    "text": "はじめから",
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     64,
+     188
+    ],
+    "size": [
+     400,
+     52
+    ],
+    "font_size": 20
+   },
+   {
+    "type": "Button",
+    "text": "つづきから",
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     64,
+     124
+    ],
+    "size": [
+     400,
+     52
+    ],
+    "font_size": 20
+   },
+   {
+    "type": "Button",
+    "text": "せってい",
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     64,
+     60
+    ],
+    "size": [
+     400,
+     52
+    ],
+    "font_size": 20
+   },
+   {
+    "type": "Label",
+    "text": "U.ZU Engine sample",
+    "text_style": "caption",
+    "align": "right",
+    "anchor": "bottom_right",
+    "offset": [
+     28,
+     20
+    ],
+    "size": [
+     300,
+     24
+    ]
+   }
+  ]
+ }
+}
