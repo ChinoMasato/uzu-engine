@@ -202,7 +202,7 @@
      {
       "align": "center",
       "title": "馬番",
-      "width": 37
+      "width": 38
      },
      {
       "expand": true,
@@ -221,7 +221,7 @@
      {
       "align": "center",
       "title": "負担重量",
-      "width": 60
+      "width": 76
      },
      {
       "align": "right",
