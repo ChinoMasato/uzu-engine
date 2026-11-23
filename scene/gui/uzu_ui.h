@@ -96,7 +96,10 @@ public:
 	// level), "ornament" (none, rivets, nails, brackets, diamonds), "padding" (px or a
 	// spacing step name), "seed", "scale" (1 or 2: generate at twice the resolution, for
 	// high-DPI), "inner_shadow" / "highlight" / "glow" (0..1 depth layers over the
-	// material, B-1318; all off by default except the glow of glass). Lengths snap to
+	// material, B-1318; all off by default except the glow of glass), "gradient_to" /
+	// "gradient_dir" (a colour run under the material, B-1321; the axis it runs along
+	// stretches instead of tiling), "halftone_cells" / "halftone_dot" (the halftone
+	// print's pitch in cells per tile and its ink colour, B-1321). Lengths snap to
 	// the layout scale (see get_layout_scale). The middle of
 	// the image repeats, so the texture keeps its scale at any size.
 	static Ref<Image> draw_frame(const Dictionary &p_style);
@@ -137,7 +140,10 @@ public:
 	// "glow2" / "glow2_pos" / "glow2_strength", "stars" (a count of
 	// four-point sparkles scattered over the upper field, B-1320) and
 	// "star" (their color), "vignette" (0..1
-	// edge darkening), "seed". get_backdrop_options returns a world's
+	// edge darkening), "seed", "gradient_to" / "gradient_dir" (a colour
+	// run under the ground, B-1321), "band_gradient_to" (the band's own
+	// run across its width) and "halftone_cells" / "halftone_dot" (the
+	// bands' print). get_backdrop_options returns a world's
 	// composition; make_backdrop builds it as a full-rect TextureRect
 	// (mouse-transparent, aspect-covered) ready to add first in a screen.
 	static Ref<Image> draw_backdrop(const Dictionary &p_style);

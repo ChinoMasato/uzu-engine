@@ -87,7 +87,8 @@ REPETITION_LAG_MAX = 300
 SLIDER_CONTRAST_MIN = 2.0
 
 # Texture-sheet measurement (B-1315). A designed pattern's period is at most
-# this many px (persona's halftone cell is 8); anything longer is texture,
+# this many px (the halftone pitch is a style parameter since B-1321 --
+# halftone_cells; persona uses a 4 px cell); anything longer is texture,
 # not print. The residue and visibility bars are the audit's 0.30, unchanged.
 SHEET_PERIOD_MAX = 24
 SHEET_RESIDUE_MAX = 0.30

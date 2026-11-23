@@ -1212,12 +1212,65 @@ float frame_distance(const String &p_shape, const Vector2 &p, const Vector2 &c, 
 	return rounded_rect_distance(p, c, h, r);
 }
 
+// The halftone print's options (B-1321), read from a style dictionary:
+// "halftone_cells" is the dot grid's pitch as cells per tile (32 gives
+// the original 8 px cell at the 256 tile; persona prints 64, a 4 px
+// cell — the finest pitch under it whose period stays a whole number
+// of px, which the quality gate's pattern judgement requires: a
+// non-integer period is the signature of a rescaling moire, not of a
+// designed print). "halftone_dot" is the dots' ink; unset, the dots
+// keep the legacy ink, the ground darkened toward black.
+struct HalftoneSpec {
+	float cells = 32.0f;
+	Color dot;
+	bool dot_set = false;
+};
+
+HalftoneSpec halftone_of(const Dictionary &p_style) {
+	HalftoneSpec h;
+	h.cells = CLAMP(float(p_style.get("halftone_cells", 32.0)), 8.0f, 128.0f);
+	if (p_style.has("halftone_dot")) {
+		h.dot = color_of(p_style.get("halftone_dot", Variant()), Color(0, 0, 0));
+		h.dot_set = true;
+	}
+	return h;
+}
+
+// A style's gradient (B-1321): "gradient_to" is the colour the ground
+// runs to from "base", "gradient_dir" the run's direction ("down"
+// unless named: "up", "left", "right", and on backdrops "diag").
+// Returns false when the style names no gradient.
+bool gradient_of(const Dictionary &p_style, Color &r_to, String &r_dir) {
+	if (!p_style.has("gradient_to")) {
+		return false;
+	}
+	r_to = color_of(p_style.get("gradient_to", Variant()), Color());
+	r_dir = p_style.get("gradient_dir", "down");
+	return true;
+}
+
+float gradient_t(const String &p_dir, float p_x, float p_y, float p_w, float p_h) {
+	if (p_dir == "up") {
+		return 1.0f - p_y / p_h;
+	}
+	if (p_dir == "right") {
+		return p_x / p_w;
+	}
+	if (p_dir == "left") {
+		return 1.0f - p_x / p_w;
+	}
+	if (p_dir == "diag") {
+		return 0.5f * (p_x / p_w + p_y / p_h);
+	}
+	return p_y / p_h; // "down", and anything unknown.
+}
+
 // Every layer is built from the periodic fbm above, in three scales —
 // broad swells, a mid texture and a fine grain — so no single period is
 // left for the eye to catch when the tile repeats (B-1311). p_tile is
 // the tile size in px (FRAME_TILE × the generation scale) and p_scale
 // the generation scale itself; lengths below are in scale-1 px.
-Color material_color(const String &p_material, const Color &p_base, float x, float y, float d, uint32_t seed, int p_tile, int p_scale) {
+Color material_color(const String &p_material, const Color &p_base, float x, float y, float d, uint32_t seed, int p_tile, int p_scale, const HalftoneSpec &p_ht = HalftoneSpec()) {
 	const float warp = p_tile * 0.125f;
 	const float grain = value_noise(x, y, p_tile, 128, 128, seed + 7);
 	Color c = p_base;
@@ -1257,13 +1310,22 @@ Color material_color(const String &p_material, const Color &p_base, float x, flo
 		c = c.darkened(0.05f * sheen);
 	} else if (p_material == "halftone") {
 		// Dots on a grid whose cell divides the tile; the radius grows
-		// down one tile period and wraps with the tile.
-		const float cell = p_tile / 32.0f;
+		// down one tile period and wraps with the tile. The print was
+		// reworked in B-1321 on the owner's word that the dots were
+		// coarse and the black ink cheap on the red: the pitch is the
+		// style's cell count, the ink is the style's dot colour — a
+		// shade of the ground (persona prints a deep maroon on its
+		// signal red), never raw black, which read as holes punched
+		// in the surface — and the rim is anti-aliased over about a
+		// px, where the old print stepped hard from ground to dot.
+		const float cell = p_tile / p_ht.cells;
 		const Vector2 g(Math::fposmod(x, cell) - cell * 0.5f, Math::fposmod(y, cell) - cell * 0.5f);
 		const float ly = Math::fposmod(y, float(p_tile));
-		const float rad = (1.0f + 1.6f * CLAMP((ly - 4.0f * p_scale) / (40.0f * p_scale), 0.0f, 1.0f)) * p_scale;
-		if (g.length() < rad) {
-			c = c.darkened(0.3f);
+		const float rad = cell * (0.17f + 0.25f * CLAMP((ly - 4.0f * p_scale) / (40.0f * p_scale), 0.0f, 1.0f));
+		const float cover = CLAMP((rad - g.length()) / MAX(1.1f * p_scale, 0.6f) + 0.5f, 0.0f, 1.0f);
+		if (cover > 0.0f) {
+			const Color ink = p_ht.dot_set ? p_ht.dot : c.darkened(0.3f);
+			c = Color(c.r + (ink.r - c.r) * cover, c.g + (ink.g - c.g) * cover, c.b + (ink.b - c.b) * cover, c.a);
 		}
 	} else if (p_material == "grime") {
 		const float n = fbm_warped(x, y, p_tile, 4, seed, warp);
@@ -1311,10 +1373,21 @@ Ref<Image> draw_frame_impl(const Dictionary &p_style, float p_shadow_alpha) {
 	const float inner_shadow = CLAMP(float(p_style.get("inner_shadow", 0.0)), 0.0f, 1.0f);
 	const float highlight = CLAMP(float(p_style.get("highlight", 0.0)), 0.0f, 1.0f);
 	const float glow = CLAMP(float(p_style.get("glow", material == "glass" ? 0.35f : 0.0f)), 0.0f, 1.0f);
+	// The halftone print's pitch and ink (B-1321), and an optional
+	// gradient under the material: the ground runs from "base" to
+	// "gradient_to" along "gradient_dir", so a panel can carry a
+	// light direction instead of one flat colour. Flat is still the
+	// default, and stays right where a shape must read as a pure
+	// colour (persona's inverted focus bar is a button, not a frame).
+	const HalftoneSpec ht = halftone_of(p_style);
+	Color grad_to;
+	String grad_dir;
+	const bool has_grad = gradient_of(p_style, grad_to, grad_dir);
 	// For skew the 9-slice middle is half a tile wide (create_frame_style),
 	// so an fbm material must repeat at that period or the tiled middle
 	// prints the seam as a pattern jump. Halftone is exempt: its dot
-	// cell (tile / 32) divides the half tile exactly.
+	// cell (the tile over the style's cell count) divides the half
+	// tile exactly.
 	const int mat_tile = shape == "skew" && material != "halftone" ? tile / 2 : tile;
 	// The corner the 9-slice keeps must contain the whole ornament: an
 	// ornament sits bw + 3 in from the frame edge and reaches orn px
@@ -1341,7 +1414,8 @@ Ref<Image> draw_frame_impl(const Dictionary &p_style, float p_shadow_alpha) {
 				}
 			}
 			const float inside = pixel ? (d <= 0.0f ? 1.0f : 0.0f) : CLAMP(0.5f - d, 0.0f, 1.0f);
-			Color c = material_color(material, base, p.x, p.y, d, seed, mat_tile, scale);
+			const Color ground = has_grad ? base.lerp(grad_to, gradient_t(grad_dir, p.x, p.y, float(w), float(h))) : base;
+			Color c = material_color(material, ground, p.x, p.y, d, seed, mat_tile, scale, ht);
 			// Bevel: light from the top, dark at the bottom, just inside the border.
 			if (d > -(bw * 2.0f + 2.0f * scale) && d < -bw && !pixel) {
 				c = (p.y < center.y) ? c.lightened(0.18f) : c.darkened(0.18f);
@@ -1519,6 +1593,24 @@ Ref<StyleBox> UZUUI::create_frame_style(const Dictionary &p_style) {
 		// cannot open a seam in the silhouette.
 		sb->set_v_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
 	}
+	if (style.has("gradient_to") && String(style.get("shape", "")) != "pixel") {
+		// A gradient lives in the texture as one run from edge to
+		// edge: tiling would repeat it per tile and TILE_FIT would
+		// rescale it per panel, so the axis it runs along stretches
+		// (the skew rule above, for the same reason — the run's ends
+		// stay pinned to the panel's edges). A horizontal run is not
+		// forced on the halftone print: its dots must tile at native
+		// size across the width, and a rescaled dot grid moires
+		// (B-1315), so a halftone frame's gradient runs vertically.
+		const String gdir = String(style.get("gradient_dir", "down"));
+		if (gdir == "right" || gdir == "left") {
+			if (String(style.get("material", "")) != "halftone") {
+				sb->set_h_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
+			}
+		} else {
+			sb->set_v_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
+		}
+	}
 	sb->set_content_margin_all(style_padding(style, 12));
 	if (String(style.get("shape", "")) == "pixel") {
 		sb->set_texture(ImageTexture::create_from_image(img));
@@ -1566,6 +1658,14 @@ Dictionary UZUUI::get_world_options(const String &p_world) {
 		set(frame, "material", "halftone"), set(frame, "base", "#e60012"), set(frame, "edge", "#000000"), set(frame, "accent", "#ffffff");
 		set(frame, "shape", "skew"), set(frame, "border_width", 4), set(frame, "shadow", 12);
 		set(frame, "inner_shadow", 0.3), set(frame, "highlight", 0.3);
+		// The print, reworked (B-1321): a finer pitch (64 cells per
+		// tile, a 4 px cell) inked in the red's own shade — a deep
+		// maroon, not black — and a gentle gradient down the panel,
+		// the red deepening toward the bottom so the surface carries
+		// a light direction. The buttons stay flat: the inverted
+		// focus bar must read as one pure colour.
+		set(frame, "halftone_cells", 64), set(frame, "halftone_dot", "#7d000d");
+		set(frame, "gradient_to", "#c40010"), set(frame, "gradient_dir", "down");
 		set(button, "material", "flat"), set(button, "base", "#111111"), set(button, "edge", "#ffffff"), set(button, "shape", "skew"), set(button, "border_width", 3), set(button, "shadow", 8);
 		// Hover and focus invert the bar to the signal red (B-1320):
 		// the reference menu's selected item is a red slash, not a
@@ -2039,6 +2139,14 @@ Dictionary UZUUI::get_backdrop_options(const String &p_world) {
 		set(o, "base", "#0b0508"), set(o, "mottle", 0.5), set(o, "seed", 7);
 		set(o, "band", "#e60012"), set(o, "band_y", 0.60), set(o, "band_h", 118), set(o, "band_halftone", true);
 		set(o, "band_slope", 0.30);
+		// Texture craft (B-1321): the ground warms almost
+		// imperceptibly toward the bottom, the band's red deepens
+		// across its own width (lit rule at the top, shade at the
+		// bottom), and the band's print matches the frames' — the
+		// fine pitch inked in maroon, not black.
+		set(o, "gradient_to", "#180409"), set(o, "gradient_dir", "down");
+		set(o, "band_gradient_to", "#a80010");
+		set(o, "halftone_cells", 64), set(o, "halftone_dot", "#7d000d");
 		set(o, "band_under", "#030203"), set(o, "band_under_h", 22);
 		set(o, "line", "#ffffff"), set(o, "vignette", 0.35);
 		// B-1320: a deep-red counter-slash crossing the main band and a
@@ -2139,10 +2247,25 @@ Ref<Image> UZUUI::draw_backdrop(const Dictionary &p_style) {
 		}
 	}
 	const float vignette = CLAMP(float(p_style.get("vignette", 0.0)), 0.0f, 1.0f);
+	// Gradients (B-1321): the ground runs from "base" to
+	// "gradient_to" along "gradient_dir" under everything else, and
+	// the band can carry its own run, "band_gradient_to", along its
+	// width — lit at the upper edge, shaded at the lower. The
+	// halftone print on the bands takes the style's pitch and ink,
+	// like a frame's.
+	const HalftoneSpec ht = halftone_of(p_style);
+	Color grad_to;
+	String grad_dir;
+	const bool has_grad = gradient_of(p_style, grad_to, grad_dir);
+	const bool has_band_grad = p_style.has("band_gradient_to");
+	const Color band_grad_to = color_of(p_style.get("band_gradient_to", Variant()), band);
 	Ref<Image> img = Image::create_empty(size.x, size.y, false, Image::FORMAT_RGBA8);
 	for (int y = 0; y < size.y; y++) {
 		for (int x = 0; x < size.x; x++) {
 			Color c = base;
+			if (has_grad) {
+				c = base.lerp(grad_to, gradient_t(grad_dir, float(x), float(y), float(size.x), float(size.y)));
+			}
 			if (mottle > 0.0f) {
 				// One fbm field over the whole canvas (its period is
 				// the canvas width), so the ground has a grain but no
@@ -2168,7 +2291,8 @@ Ref<Image> UZUUI::draw_backdrop(const Dictionary &p_style) {
 				// graphic slant of the persona composition.
 				const float s = (y - band_y) + (x - size.x * 0.5f) * band_slope;
 				if (has_band && Math::abs(s) < band_h * 0.5f) {
-					c = band_halftone ? material_color("halftone", band, x, y, 0.0f, seed, 256, 1) : band;
+					const Color bc = has_band_grad ? band.lerp(band_grad_to, CLAMP(s / band_h + 0.5f, 0.0f, 1.0f)) : band;
+					c = band_halftone ? material_color("halftone", bc, x, y, 0.0f, seed, 256, 1, ht) : bc;
 				} else if (has_under && s >= band_h * 0.5f && s < band_h * 0.5f + under_h) {
 					c = under;
 				}
@@ -2182,7 +2306,7 @@ Ref<Image> UZUUI::draw_backdrop(const Dictionary &p_style) {
 				// gains a layer.
 				const float s2 = (y - band2_y) + (x - size.x * 0.5f) * band2_slope;
 				if (Math::abs(s2) < band2_h * 0.5f) {
-					c = band2_halftone ? material_color("halftone", band2, x, y, 0.0f, seed, 256, 1) : band2;
+					c = band2_halftone ? material_color("halftone", band2, x, y, 0.0f, seed, 256, 1, ht) : band2;
 				}
 			}
 			for (const Sparkle &sp : sparkles) {

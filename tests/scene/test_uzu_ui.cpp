@@ -1122,6 +1122,146 @@ TEST_CASE("[SceneTree][UZUUI] Backdrop accents and persona button inversion (B-1
 	CHECK(wtheme->get_stylebox("focus", "Button")->get_class() == "StyleBoxFlat");
 }
 
+TEST_CASE("[SceneTree][UZUUI] Halftone print and gradients (B-1321)") {
+	// The mean spacing of the ink runs along a row: the print's pitch
+	// as drawn, in px.
+	auto dot_spacing = [](const Ref<Image> &p_img, int y, int x0, int x1, float ink_r) {
+		Vector<float> centers;
+		int run_start = -1;
+		for (int x = x0; x <= x1; x++) {
+			const bool ink = p_img->get_pixel(x, y).r < ink_r;
+			if (ink && run_start < 0) {
+				run_start = x;
+			}
+			if (!ink && run_start >= 0) {
+				centers.push_back((run_start + x - 1) * 0.5f);
+				run_start = -1;
+			}
+		}
+		if (centers.size() < 4) {
+			return -1.0f;
+		}
+		float sum = 0.0f;
+		for (int i = 1; i < centers.size(); i++) {
+			sum += centers[i] - centers[i - 1];
+		}
+		return sum / float(centers.size() - 1);
+	};
+	// A halftone frame with the print spelled out: pitch and ink are
+	// the style's, not constants.
+	Dictionary print;
+	print["material"] = "halftone";
+	print["base"] = "#e60012";
+	print["halftone_dot"] = "#7d000d";
+	print["border_width"] = 0;
+	print["shadow"] = 0;
+	print["halftone_cells"] = 64;
+	const Ref<Image> fine = UZUUI::draw_frame(print);
+	REQUIRE(fine.is_valid());
+	// The pitch follows the style: 64 cells per 256 tile is a 4 px
+	// cell, half the legacy print's 8. (The threshold reads the ink's
+	// core: at this pitch the dots nearly touch along a centre row,
+	// and their anti-aliased rims bridge the gap.)
+	CHECK(dot_spacing(fine, 138, 40, 236, 0.55f) == doctest::Approx(4.0).epsilon(0.08));
+	Dictionary legacy = print.duplicate();
+	legacy["halftone_cells"] = 32;
+	const Ref<Image> coarse = UZUUI::draw_frame(legacy);
+	REQUIRE(coarse.is_valid());
+	CHECK(dot_spacing(coarse, 138, 40, 236, 0.55f) == doctest::Approx(8.0).epsilon(0.08));
+	// The ink is the named shade: at a dot centre the pixel is the
+	// maroon itself — a red, not a black hole.
+	const Color dot = fine->get_pixel(138, 138);
+	CHECK(dot.r == doctest::Approx(0.49).epsilon(0.04));
+	CHECK(dot.g < 0.05f);
+	CHECK(dot.r > 0.3f);
+	// The rim is anti-aliased: along the row some pixel sits strictly
+	// between ink and ground (the old print stepped in one px).
+	bool edge_found = false;
+	for (int x = 40; x < 236; x++) {
+		const float r = fine->get_pixel(x, 138).r;
+		edge_found |= r > 0.58f && r < 0.84f;
+	}
+	CHECK(edge_found);
+	// Persona's preset carries the reworked print, and its frame's
+	// centre — the pixel the gate samples — is a maroon dot.
+	const Dictionary pframe = Dictionary(UZUUI::get_world_options("persona")["frame"]);
+	CHECK(int(pframe["halftone_cells"]) == 64);
+	CHECK(pframe.has("halftone_dot"));
+	const Ref<Image> pimg = UZUUI::draw_frame(pframe);
+	REQUIRE(pimg.is_valid());
+	const Color pc = pimg->get_pixel(pimg->get_width() / 2, pimg->get_height() / 2);
+	CHECK(pc.r > 0.35f);
+	CHECK(pc.r < 0.65f);
+	CHECK(pc.g < 0.06f);
+	const Dictionary pback = UZUUI::get_backdrop_options("persona");
+	CHECK(int(pback["halftone_cells"]) == 64);
+	CHECK(pback.has("halftone_dot"));
+	CHECK(pback.has("gradient_to"));
+	CHECK(pback.has("band_gradient_to"));
+	// A frame gradient runs under the material: the flat frame's top
+	// sits near the base, its bottom near the named colour, and
+	// without the key the two ends are identical.
+	Dictionary grad;
+	grad["material"] = "flat";
+	grad["base"] = "#404040";
+	grad["gradient_to"] = "#d9d9d9";
+	grad["border_width"] = 0;
+	grad["shadow"] = 0;
+	const Ref<Image> gimg = UZUUI::draw_frame(grad);
+	REQUIRE(gimg.is_valid());
+	const int mid_x = gimg->get_width() / 2;
+	CHECK(gimg->get_pixel(mid_x, 20).r < 0.35f);
+	CHECK(gimg->get_pixel(mid_x, gimg->get_height() - 21).r > 0.75f);
+	Dictionary flat = grad.duplicate();
+	flat.erase("gradient_to");
+	const Ref<Image> fimg = UZUUI::draw_frame(flat);
+	REQUIRE(fimg.is_valid());
+	CHECK(fimg->get_pixel(mid_x, 20).r == doctest::Approx(fimg->get_pixel(mid_x, fimg->get_height() - 21).r));
+	// The gradient's axis stretches in the stylebox (it must span the
+	// panel once); a halftone frame without one keeps its native
+	// vertical tiling (this style is not skew).
+	const Ref<StyleBoxTexture> gbox = UZUUI::create_frame_style(grad);
+	REQUIRE(gbox.is_valid());
+	CHECK(gbox->get_v_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
+	Dictionary ht_grad = print.duplicate();
+	ht_grad["gradient_to"] = "#c40010";
+	const Ref<StyleBoxTexture> hgbox = UZUUI::create_frame_style(ht_grad);
+	REQUIRE(hgbox.is_valid());
+	CHECK(hgbox->get_v_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
+	CHECK(hgbox->get_h_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_TILE);
+	const Ref<StyleBoxTexture> hbox = UZUUI::create_frame_style(print);
+	REQUIRE(hbox.is_valid());
+	CHECK(hbox->get_v_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_TILE);
+	// Backdrop gradients: the ground runs base -> gradient_to, and
+	// the band runs along its own width.
+	Dictionary bd;
+	bd["size"] = Vector2i(240, 240);
+	bd["base"] = "#000000";
+	bd["gradient_to"] = "#ffffff";
+	bd["mottle"] = 0.0;
+	const Ref<Image> bdimg = UZUUI::draw_backdrop(bd);
+	REQUIRE(bdimg.is_valid());
+	CHECK(bdimg->get_pixel(120, 12).r < 0.12f);
+	CHECK(bdimg->get_pixel(120, 228).r > 0.88f);
+	Dictionary band;
+	band["size"] = Vector2i(240, 240);
+	band["base"] = "#000000";
+	band["mottle"] = 0.0;
+	band["band"] = "#ff0000";
+	band["band_gradient_to"] = "#0000ff";
+	band["band_y"] = 0.5;
+	band["band_h"] = 100;
+	band["band_slope"] = 0.0;
+	const Ref<Image> bandimg = UZUUI::draw_backdrop(band);
+	REQUIRE(bandimg.is_valid());
+	const Color btop = bandimg->get_pixel(120, 80);
+	CHECK(btop.r > 0.8f);
+	CHECK(btop.b < 0.25f);
+	const Color bbot = bandimg->get_pixel(120, 160);
+	CHECK(bbot.b > 0.8f);
+	CHECK(bbot.r < 0.25f);
+}
+
 TEST_CASE("[SceneTree][UZUUI] World themes and game parts") {
 	const PackedStringArray worlds = UZUUI::get_world_names();
 	CHECK(worlds.size() == 6);

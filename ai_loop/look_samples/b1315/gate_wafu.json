@@ -10,33 +10,33 @@
           "image": "sheet.png",
           "window_px": [
             512,
-            256
+            200
           ],
-          "index": 0.0714,
+          "index": 0.0709,
           "threshold": 0.3,
           "channels": {
             "luminance": {
-              "std": 2.22,
-              "band_peak": 0.643,
+              "std": 2.171,
+              "band_peak": 0.6536,
               "band_lag_px": [
                 0,
-                255
+                199
               ],
               "mode": "visibility",
-              "visibility": 0.0714,
-              "index": 0.0714,
+              "visibility": 0.0709,
+              "index": 0.0709,
               "pass": true
             },
             "red_excess": {
-              "std": 0.463,
-              "band_peak": 0.5156,
+              "std": 0.46,
+              "band_peak": 0.1877,
               "band_lag_px": [
-                247,
-                0
+                0,
+                199
               ],
               "mode": "visibility",
-              "visibility": 0.0119,
-              "index": 0.0119,
+              "visibility": 0.0043,
+              "index": 0.0043,
               "pass": true
             }
           },
