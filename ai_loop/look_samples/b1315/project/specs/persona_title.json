@@ -75,7 +75,9 @@
     "size": [
      460,
      58
-    ]
+    ],
+    "font_size": 27,
+    "letter_spacing": -1
    },
    {
     "type": "Button",
@@ -90,7 +92,9 @@
     "size": [
      460,
      58
-    ]
+    ],
+    "font_size": 27,
+    "letter_spacing": -1
    },
    {
     "type": "Button",
@@ -105,7 +109,9 @@
     "size": [
      460,
      58
-    ]
+    ],
+    "font_size": 27,
+    "letter_spacing": -1
    },
    {
     "type": "Label",

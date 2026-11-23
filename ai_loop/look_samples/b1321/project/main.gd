@@ -10,6 +10,10 @@ extends Node3D
 ##   UZU_B1321_SCREEN = title | menu   (default title)
 ##   UZU_B1321_STILL  = 1: settled pose, no reel (for still captures)
 ##
+## B-1322: the rake light drifts and flares on focus changes, the rig
+## holds a slight base angle, and the title watermark moves behind
+## the bands (dimmer, higher) so it stops fighting the bars.
+##
 ## Without STILL the scene plays a reel: a staggered slash-in on 3D
 ## transforms (the UZUUIJuice idea, re-done in 3D), focus walking the
 ## bars, a slow camera sway. Recorded with --write-movie.
@@ -33,6 +37,8 @@ var _sparkles: Array = [] # {node, base, phase}
 var _mat_red: StandardMaterial3D
 var _mat_black: StandardMaterial3D
 var _mat_white: StandardMaterial3D
+var _sun: DirectionalLight3D
+var _rake: OmniLight3D
 
 
 func _wx(px: float) -> float:
@@ -126,7 +132,7 @@ func _bar(text: String, w: float, focused: bool) -> Node3D:
 	var face := _solid(_prism(w, 0.58, 0.22, 0.25), _mat_red if focused else _mat_black, Vector3(0, 0, 0.02))
 	g.add_child(face)
 	_bar_faces.append(face)
-	var l := _label(text, 30, Color.WHITE)
+	var l := _label(text, 34, Color.WHITE)
 	l.position = Vector3(0.07, 0, 0.17)
 	g.add_child(l)
 	g.rotation_degrees.z = 2.0
@@ -237,8 +243,11 @@ func _title() -> void:
 	_register(logo, 0.0, Vector3(0, 3.4, -2.0), -14.0)
 
 	# The watermark behind the bars, huge and nearly lost in the dark.
-	var wm := _label("MIDNIGHT", 170, Color(0.35, 0.02, 0.05, 0.30))
-	wm.position = Vector3(-0.4, -0.55, -0.95)
+	# B-1322: at z=-0.95 its glyphs struck through the bars at nearly
+	# their own depth and fought them; it now sits behind the bands,
+	# higher and dimmer — a texture in the dark, not a second title.
+	var wm := _label("MIDNIGHT", 150, Color(0.35, 0.02, 0.05, 0.16))
+	wm.position = Vector3(0.6, -0.05, -1.8)
 	wm.rotation_degrees.z = 4
 	add_child(wm)
 
@@ -350,9 +359,25 @@ func _update(t: float) -> void:
 		if holder:
 			holder.scale = Vector3.ONE * pulse
 	# The camera rig sways; layers at different depths answer
-	# differently — that difference is the parallax.
+	# differently — that difference is the parallax. B-1322: the rig
+	# also holds a slight base angle (a low three-quarter view), so
+	# the bars' thickness and the bands' edges read in a still too,
+	# not only while the sway moves them.
 	_rig.position = Vector3(0.14 * sin(t * 0.45), 0.09 * sin(t * 0.62 + 1.3), 0.30 * sin(t * 0.21))
-	_rig.rotation_degrees.y = 1.1 * sin(t * 0.30)
+	_rig.rotation_degrees.y = -1.6 + 1.1 * sin(t * 0.30)
+	_rig.rotation_degrees.x = 1.2 + 0.5 * sin(t * 0.24 + 0.7)
+	# The rake light works (B-1322): it drifts slowly across the
+	# stage, so the specular streaks on the black bars and the torus
+	# crawl instead of sitting frozen, and it flares for a beat when
+	# focus lands — the light answers the hand.
+	if _rake:
+		_rake.position = Vector3(-4.5 + 1.3 * sin(t * 0.35), 2.5 + 0.5 * sin(t * 0.5 + 1.0), 4.0)
+		var boost := 0.0
+		if _focus >= 0:
+			boost = 0.7 * exp(-(t - _focus_since) * 3.0)
+		_rake.light_energy = 0.8 + 0.18 * sin(t * 0.8) + boost
+	if _sun:
+		_sun.rotation_degrees.y = -28.0 + 3.0 * sin(t * 0.23)
 	for s in _sparkles:
 		var mi: Node3D = s["node"]
 		var sc: float = float(s["base"]) * (1.0 + 0.16 * sin(t * 2.2 + float(s["phase"])))
@@ -395,18 +420,18 @@ func _ready() -> void:
 	we.environment = env
 	add_child(we)
 
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-38, -28, 0)
-	sun.light_color = Color(1.0, 0.95, 0.88)
-	sun.light_energy = 1.15
-	sun.shadow_enabled = true
-	add_child(sun)
-	var rake := OmniLight3D.new()
-	rake.position = Vector3(-4.5, 2.5, 4.0)
-	rake.light_color = Color(1.0, 0.85, 0.75)
-	rake.light_energy = 0.8
-	rake.omni_range = 14.0
-	add_child(rake)
+	_sun = DirectionalLight3D.new()
+	_sun.rotation_degrees = Vector3(-38, -28, 0)
+	_sun.light_color = Color(1.0, 0.95, 0.88)
+	_sun.light_energy = 1.15
+	_sun.shadow_enabled = true
+	add_child(_sun)
+	_rake = OmniLight3D.new()
+	_rake.position = Vector3(-4.5, 2.5, 4.0)
+	_rake.light_color = Color(1.0, 0.85, 0.75)
+	_rake.light_energy = 0.8
+	_rake.omni_range = 14.0
+	add_child(_rake)
 
 	_rig = Node3D.new()
 	add_child(_rig)
