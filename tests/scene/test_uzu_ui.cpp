@@ -1424,9 +1424,138 @@ TEST_CASE("[SceneTree][UZUUI] SF and pixel showcase presets (B-1323)") {
 	CHECK(!pframe.has("gradient_to"));
 }
 
+TEST_CASE("[SceneTree][UZUUI] Racing and sim presets, data parts (B-1326)") {
+	// The two data-dense worlds: green-and-gold racing, navy-and-
+	// brass sim. Both darken down the frame, compose a radial
+	// backdrop, and keep their motion calm (no overshoot -- a table
+	// row must not bounce while it is read).
+	for (const String &w : { String("racing"), String("sim") }) {
+		const Dictionary frame = Dictionary(UZUUI::get_world_options(w)["frame"]);
+		CHECK(String(frame["material"]) == "metal");
+		CHECK(String(frame["accent"]) == "#d9a441");
+		CHECK(Array(frame["gradient_stops"]).size() == 2);
+		const Dictionary back = UZUUI::get_backdrop_options(w);
+		CHECK(String(back["gradient_dir"]) == "radial");
+		CHECK(back.has("vignette"));
+		CHECK(double(UZUUI::get_world_motion(w)["overshoot"]) == doctest::Approx(0.0));
+	}
+	const Ref<Image> racing_frame = UZUUI::draw_frame(Dictionary(UZUUI::get_world_options("racing")["frame"]));
+	const Ref<Image> sim_frame = UZUUI::draw_frame(Dictionary(UZUUI::get_world_options("sim")["frame"]));
+	REQUIRE(racing_frame.is_valid());
+	REQUIRE(sim_frame.is_valid());
+	CHECK(racing_frame->get_data() != sim_frame->get_data());
+	// Every theme styles the data parts.
+	PackedStringArray names;
+	names.push_back("default");
+	for (const String &world : UZUUI::get_world_names()) {
+		names.push_back(world);
+	}
+	for (const String &name : names) {
+		const Ref<Theme> theme = name == "default" ? UZUUI::create_theme({}) : UZUUI::create_world_theme(name);
+		REQUIRE_MESSAGE(theme.is_valid(), name);
+		CHECK_MESSAGE(theme->is_type_variation("UZUStatBar", "ProgressBar"), name);
+		CHECK_MESSAGE(theme->is_type_variation("UZUChip", "PanelContainer"), name);
+		CHECK_MESSAGE(theme->is_type_variation("UZUTableHeader", "PanelContainer"), name);
+		CHECK_MESSAGE(theme->is_type_variation("UZUTableRow", "Button"), name);
+	}
+	// The stat bar: caption, bar and the number, in one row.
+	Control *bar = UZUUI::make_stat_bar("Speed", 92, 100, Dictionary());
+	CHECK(bar->get_name() == "StatBar");
+	CHECK(Object::cast_to<Label>(bar->get_node(NodePath("Caption")))->get_text() == "Speed");
+	CHECK(Object::cast_to<ProgressBar>(bar->get_node(NodePath("Bar")))->get_value() == doctest::Approx(92));
+	CHECK(Object::cast_to<Label>(bar->get_node(NodePath("Value")))->get_text() == "92");
+	memdelete(bar);
+	// The chip: caption, value and the delta note.
+	Dictionary chip_opts;
+	chip_opts["delta"] = "(+12)";
+	Control *chip = UZUUI::make_status_chip("Workers", "342/360", chip_opts);
+	CHECK(Object::cast_to<Label>(chip->get_node(NodePath("Box/Value")))->get_text() == "342/360");
+	CHECK(Object::cast_to<Label>(chip->get_node(NodePath("Box/Delta")))->get_text() == "(+12)");
+	memdelete(chip);
+	// The table: header plus one toggle row per data row, cells of
+	// every kind, one selection at a time.
+	Array columns;
+	Dictionary c0;
+	c0["title"] = "Name";
+	c0["width"] = 120;
+	columns.push_back(c0);
+	Dictionary c1;
+	c1["title"] = "Speed";
+	c1["width"] = 140;
+	columns.push_back(c1);
+	Dictionary c2;
+	c2["title"] = "Form";
+	c2["width"] = 90;
+	columns.push_back(c2);
+	Dictionary c3;
+	c3["title"] = "Post";
+	c3["width"] = 40;
+	columns.push_back(c3);
+	Array rows;
+	for (int i = 0; i < 2; i++) {
+		Array row;
+		row.push_back("Horse " + itos(i));
+		Dictionary bar_cell;
+		bar_cell["bar"] = 90 - i * 5;
+		row.push_back(bar_cell);
+		Dictionary face_cell;
+		face_cell["face"] = 3;
+		face_cell["text"] = "Good";
+		row.push_back(face_cell);
+		Dictionary chip_cell;
+		chip_cell["chip"] = "#e60012";
+		chip_cell["text"] = "5";
+		row.push_back(chip_cell);
+		rows.push_back(row);
+	}
+	Control *table = UZUUI::make_data_table(columns, rows);
+	REQUIRE(table->get_child_count() == 3); // Header + 2 rows.
+	Button *row0 = Object::cast_to<Button>(table->get_child(1));
+	Button *row1 = Object::cast_to<Button>(table->get_child(2));
+	REQUIRE(row0 != nullptr);
+	REQUIRE(row1 != nullptr);
+	CHECK(row0->get_theme_type_variation() == "UZUTableRow");
+	CHECK(int(row1->get_meta("row_index")) == 1);
+	Control *picked = UZUUI::select_table_row(table, 1);
+	CHECK(picked == row1);
+	CHECK(row1->is_pressed());
+	CHECK(!row0->is_pressed());
+	UZUUI::select_table_row(table, 0);
+	CHECK(row0->is_pressed());
+	CHECK(!row1->is_pressed()); // The group keeps one selection.
+	memdelete(table);
+	// The detail panel: set_detail_panel refills title, rows and
+	// bars, and a second fill replaces the first.
+	Control *detail = UZUUI::make_detail_panel(Dictionary());
+	Dictionary data;
+	data["title"] = "White Ocean";
+	Array drows;
+	Array pair;
+	pair.push_back("Record");
+	pair.push_back("12 starts 5 wins");
+	drows.push_back(pair);
+	data["rows"] = drows;
+	Array dbars;
+	Dictionary dbar;
+	dbar["caption"] = "Speed";
+	dbar["value"] = 90;
+	dbars.push_back(dbar);
+	data["bars"] = dbars;
+	UZUUI::set_detail_panel(detail, data);
+	CHECK(Object::cast_to<Label>(detail->get_node(NodePath("Box/Title")))->get_text() == "White Ocean");
+	CHECK(detail->get_node(NodePath("Box/Rows"))->get_child_count() == 1);
+	CHECK(detail->get_node(NodePath("Box/Bars"))->get_child_count() == 1);
+	Dictionary smaller;
+	smaller["title"] = "Next";
+	UZUUI::set_detail_panel(detail, smaller);
+	CHECK(detail->get_node(NodePath("Box/Rows"))->get_child_count() == 0);
+	CHECK(detail->get_node(NodePath("Box/Bars"))->get_child_count() == 0);
+	memdelete(detail);
+}
+
 TEST_CASE("[SceneTree][UZUUI] World themes and game parts") {
 	const PackedStringArray worlds = UZUUI::get_world_names();
-	CHECK(worlds.size() == 6);
+	CHECK(worlds.size() == 8);
 	for (const String &world : worlds) {
 		const Ref<Theme> theme = UZUUI::create_world_theme(world);
 		REQUIRE_MESSAGE(theme.is_valid(), world);

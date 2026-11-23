@@ -1,0 +1,662 @@
+{
+ "scene": "res://screens/racing_entries.tscn",
+ "theme": {
+  "world": "racing",
+  "font": "res://art/game_font_jp.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "name": "RacingEntries",
+    "style": {
+     "bg": "#0b1a10",
+     "border_width": 0,
+     "radius": 0,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     648
+    ]
+   },
+   {
+    "name": "Pano",
+    "stretch": "cover",
+    "texture": "res://art/entries_pano.jpg",
+    "type": "Image",
+    "anchor": "top_left",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     127
+    ]
+   },
+   {
+    "name": "PanoShade",
+    "style": {
+     "bg": "#0b1a104d",
+     "border_width": 0,
+     "radius": 0,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     127
+    ]
+   },
+   {
+    "name": "RaceHead",
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     17,
+     46
+    ],
+    "size": [
+     1117,
+     66
+    ]
+   },
+   {
+    "name": "TablePanel",
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     12,
+     121
+    ],
+    "size": [
+     755,
+     438
+    ]
+   },
+   {
+    "align": "center",
+    "font_size": 19,
+    "name": "RaceNo",
+    "text": "中山\n11R",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     32,
+     48
+    ],
+    "size": [
+     94,
+     60
+    ]
+   },
+   {
+    "font_size": 24,
+    "name": "RaceName",
+    "text": "春風ステークス",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     147,
+     52
+    ],
+    "size": [
+     317,
+     35
+    ]
+   },
+   {
+    "font_size": 11,
+    "name": "RaceClass",
+    "text": "4歳以上 オープン（別定）",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     147,
+     88
+    ],
+    "size": [
+     317,
+     19
+    ]
+   },
+   {
+    "font_size": 14,
+    "name": "RaceCourse",
+    "text": "中山競馬場",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     504,
+     66
+    ],
+    "size": [
+     122,
+     29
+    ]
+   },
+   {
+    "font_size": 16,
+    "name": "RaceDist",
+    "text": "芝 1800m",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     662,
+     65
+    ],
+    "size": [
+     122,
+     29
+    ]
+   },
+   {
+    "font_size": 16,
+    "name": "RaceWeather",
+    "text": "晴",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     821,
+     65
+    ],
+    "size": [
+     65,
+     29
+    ]
+   },
+   {
+    "font_size": 16,
+    "name": "RaceGoing",
+    "text": "馬場：良",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     929,
+     65
+    ],
+    "size": [
+     122,
+     29
+    ]
+   },
+   {
+    "columns": [
+     {
+      "align": "center",
+      "title": "枠",
+      "width": 40
+     },
+     {
+      "align": "center",
+      "title": "馬番",
+      "width": 37
+     },
+     {
+      "expand": true,
+      "title": "馬名",
+      "width": 180
+     },
+     {
+      "align": "center",
+      "title": "性齢",
+      "width": 46
+     },
+     {
+      "title": "騎手",
+      "width": 108
+     },
+     {
+      "align": "center",
+      "title": "負担重量",
+      "width": 60
+     },
+     {
+      "align": "right",
+      "title": "オッズ",
+      "width": 79
+     },
+     {
+      "align": "center",
+      "title": "人気",
+      "width": 46
+     }
+    ],
+    "name": "Table",
+    "row_height": 30,
+    "rows": [
+     [
+      {
+       "chip": "#f5f5f5",
+       "text": "1"
+      },
+      {
+       "align": "center",
+       "text": "1"
+      },
+      "ゴールデンホーン",
+      {
+       "align": "center",
+       "text": "牡4"
+      },
+      "藤原和真",
+      {
+       "align": "center",
+       "text": "57"
+      },
+      {
+       "align": "right",
+       "text": "8.4"
+      },
+      {
+       "align": "center",
+       "text": "4"
+      }
+     ],
+     [
+      {
+       "chip": "#f5f5f5",
+       "text": "1"
+      },
+      {
+       "align": "center",
+       "text": "2"
+      },
+      "サンライズエース",
+      {
+       "align": "center",
+       "text": "牡3"
+      },
+      "佐々木蓮",
+      {
+       "align": "center",
+       "text": "56"
+      },
+      {
+       "align": "right",
+       "text": "12.6"
+      },
+      {
+       "align": "center",
+       "text": "6"
+      }
+     ],
+     [
+      {
+       "chip": "#2b2b30",
+       "text": "2"
+      },
+      {
+       "align": "center",
+       "text": "3"
+      },
+      "ミライノカゼ",
+      {
+       "align": "center",
+       "text": "牝4"
+      },
+      "高橋宗一郎",
+      {
+       "align": "center",
+       "text": "55"
+      },
+      {
+       "align": "right",
+       "text": "6.2"
+      },
+      {
+       "align": "center",
+       "text": "3"
+      }
+     ],
+     [
+      {
+       "chip": "#2b2b30",
+       "text": "2"
+      },
+      {
+       "align": "center",
+       "text": "4"
+      },
+      "キングスパーク",
+      {
+       "align": "center",
+       "text": "牡6"
+      },
+      "中村恵太",
+      {
+       "align": "center",
+       "text": "58"
+      },
+      {
+       "align": "right",
+       "text": "21.8"
+      },
+      {
+       "align": "center",
+       "text": "9"
+      }
+     ],
+     [
+      {
+       "chip": "#e60012",
+       "text": "3"
+      },
+      {
+       "align": "center",
+       "text": "5"
+      },
+      "ホワイトオーシャン",
+      {
+       "align": "center",
+       "text": "牡5"
+      },
+      "小林直樹",
+      {
+       "align": "center",
+       "text": "57"
+      },
+      {
+       "align": "right",
+       "text": "3.1"
+      },
+      {
+       "align": "center",
+       "text": "1"
+      }
+     ],
+     [
+      {
+       "chip": "#e60012",
+       "text": "3"
+      },
+      {
+       "align": "center",
+       "text": "6"
+      },
+      "レッドヴァルキリー",
+      {
+       "align": "center",
+       "text": "牝3"
+      },
+      "山田悠真",
+      {
+       "align": "center",
+       "text": "54"
+      },
+      {
+       "align": "right",
+       "text": "9.7"
+      },
+      {
+       "align": "center",
+       "text": "5"
+      }
+     ],
+     [
+      {
+       "chip": "#0057b8",
+       "text": "4"
+      },
+      {
+       "align": "center",
+       "text": "7"
+      },
+      "ブルームスター",
+      {
+       "align": "center",
+       "text": "牝2"
+      },
+      "鈴木健吾",
+      {
+       "align": "center",
+       "text": "54"
+      },
+      {
+       "align": "right",
+       "text": "15.3"
+      },
+      {
+       "align": "center",
+       "text": "7"
+      }
+     ],
+     [
+      {
+       "chip": "#0057b8",
+       "text": "4"
+      },
+      {
+       "align": "center",
+       "text": "8"
+      },
+      "シルバーグローリー",
+      {
+       "align": "center",
+       "text": "牡4"
+      },
+      "田村亮太",
+      {
+       "align": "center",
+       "text": "57"
+      },
+      {
+       "align": "right",
+       "text": "4.8"
+      },
+      {
+       "align": "center",
+       "text": "2"
+      }
+     ],
+     [
+      {
+       "chip": "#ffd400",
+       "text": "5"
+      },
+      {
+       "align": "center",
+       "text": "9"
+      },
+      "ハヤテノツバサ",
+      {
+       "align": "center",
+       "text": "牡3"
+      },
+      "井上翔太",
+      {
+       "align": "center",
+       "text": "56"
+      },
+      {
+       "align": "right",
+       "text": "18.9"
+      },
+      {
+       "align": "center",
+       "text": "8"
+      }
+     ],
+     [
+      {
+       "chip": "#ffd400",
+       "text": "5"
+      },
+      {
+       "align": "center",
+       "text": "10"
+      },
+      "ディープスカイ",
+      {
+       "align": "center",
+       "text": "牡5"
+      },
+      "木村拓也",
+      {
+       "align": "center",
+       "text": "57"
+      },
+      {
+       "align": "right",
+       "text": "26.4"
+      },
+      {
+       "align": "center",
+       "text": "10"
+      }
+     ],
+     [
+      {
+       "chip": "#009444",
+       "text": "6"
+      },
+      {
+       "align": "center",
+       "text": "11"
+      },
+      "ムーンライト",
+      {
+       "align": "center",
+       "text": "牡4"
+      },
+      "岡田健一",
+      {
+       "align": "center",
+       "text": "57"
+      },
+      {
+       "align": "right",
+       "text": "34.2"
+      },
+      {
+       "align": "center",
+       "text": "11"
+      }
+     ],
+     [
+      {
+       "chip": "#009444",
+       "text": "6"
+      },
+      {
+       "align": "center",
+       "text": "12"
+      },
+      "スターゲイザー",
+      {
+       "align": "center",
+       "text": "牡3"
+      },
+      "加藤大輔",
+      {
+       "align": "center",
+       "text": "56"
+      },
+      {
+       "align": "right",
+       "text": "48.7"
+      },
+      {
+       "align": "center",
+       "text": "12"
+      }
+     ]
+    ],
+    "type": "DataTable",
+    "anchor": "top_left",
+    "offset": [
+     17,
+     127
+    ],
+    "size": [
+     743,
+     426
+    ]
+   },
+   {
+    "bar_caption_width": 66,
+    "key_width": 70,
+    "name": "Detail",
+    "portrait_height": 110,
+    "type": "DetailPanel",
+    "anchor": "top_left",
+    "offset": [
+     778,
+     127
+    ],
+    "size": [
+     357,
+     426
+    ]
+   },
+   {
+    "children": [
+     {
+      "min_size": [
+       217,
+       60
+      ],
+      "text": "出走取消",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       217,
+       60
+      ],
+      "text": "騎手変更",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       217,
+       60
+      ],
+      "text": "オッズ確認",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       217,
+       60
+      ],
+      "text": "レース映像",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       219,
+       60
+      ],
+      "text": "戻る",
+      "type": "Button"
+     }
+    ],
+    "name": "Commands",
+    "separation": 7,
+    "type": "HBox",
+    "anchor": "top_left",
+    "offset": [
+     17,
+     570
+    ],
+    "size": [
+     1117,
+     60
+    ]
+   }
+  ]
+ }
+}

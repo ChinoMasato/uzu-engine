@@ -691,6 +691,78 @@ void style_touch_parts(const Ref<Theme> &p_theme, const Color &p_accent, const C
 	p_theme->set_color("font_disabled_color", "UZUTouchButton", Color(p_disc_text, 0.4f));
 }
 
+// The smooth bar of the data parts (B-1326): a vertical run in one
+// colour, lit at the top -- the ability and resource bars of the
+// racing / sim screens. Drawn as a small texture so the run survives
+// any width, like the segmented gauge's print.
+Ref<StyleBoxTexture> stat_bar_box(const Color &p_color, bool p_background) {
+	const int w = 8;
+	const int h = 16;
+	Ref<Image> img = Image::create_empty(w, h, false, Image::FORMAT_RGBA8);
+	for (int y = 0; y < h; y++) {
+		const float t = y / float(h - 1);
+		const Color c = p_background ? Color(0, 0, 0, 0.55f) : p_color.lightened(0.25f * (1.0f - t)).darkened(0.15f * t);
+		for (int x = 0; x < w; x++) {
+			img->set_pixel(x, y, c);
+		}
+	}
+	Ref<StyleBoxTexture> sb;
+	sb.instantiate();
+	sb->set_texture(ImageTexture::create_from_image(img));
+	sb->set_h_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_TILE);
+	sb->set_v_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
+	return sb;
+}
+
+// The data parts of the kit (B-1326): a smooth stat bar, a status
+// chip, a table header and a table row -- the vocabulary of the
+// data-dense screens (racing, simulation), styled from the same
+// colours as everything else so they follow any theme.
+void style_data_parts(const Ref<Theme> &p_theme, const Color &p_base, const Color &p_accent, const Color &p_text, const Color &p_fill) {
+	p_theme->set_type_variation("UZUStatBar", "ProgressBar");
+	p_theme->set_stylebox("background", "UZUStatBar", stat_bar_box(Color(), true));
+	p_theme->set_stylebox("fill", "UZUStatBar", stat_bar_box(p_fill, false));
+	// Chip: a dark pill with the accent for a rim; its caption is
+	// the accent, its value the text colour.
+	p_theme->set_type_variation("UZUChip", "PanelContainer");
+	Ref<StyleBoxFlat> chip = flat_box(Color(p_base.darkened(0.15f), 0.95f), 12, 6, p_accent, 1);
+	chip->set_content_margin(SIDE_LEFT, 12);
+	chip->set_content_margin(SIDE_RIGHT, 12);
+	p_theme->set_stylebox("panel", "UZUChip", chip);
+	p_theme->set_type_variation("UZUChipCaption", "Label");
+	p_theme->set_color("font_color", "UZUChipCaption", p_accent);
+	// Table header: the panel sunk, ruled in the accent below.
+	p_theme->set_type_variation("UZUTableHeader", "PanelContainer");
+	Ref<StyleBoxFlat> header = flat_box(Color(p_base.darkened(0.45f), 0.95f), 4, 4);
+	header->set_border_width(SIDE_BOTTOM, 2);
+	header->set_border_color(p_accent);
+	header->set_content_margin(SIDE_LEFT, 8);
+	header->set_content_margin(SIDE_RIGHT, 8);
+	p_theme->set_stylebox("panel", "UZUTableHeader", header);
+	// Table rows: quiet at rest, a step lighter under the hand, and
+	// the accent takes the row when it is selected (pressed).
+	p_theme->set_type_variation("UZUTableRow", "Button");
+	Ref<StyleBoxFlat> row_normal = flat_box(Color(p_base.lightened(0.05f), 0.45f), 4, 2);
+	row_normal->set_content_margin(SIDE_LEFT, 8);
+	row_normal->set_content_margin(SIDE_RIGHT, 8);
+	p_theme->set_stylebox("normal", "UZUTableRow", row_normal);
+	Ref<StyleBoxFlat> row_hover = flat_box(Color(p_base.lightened(0.22f), 0.75f), 4, 2);
+	row_hover->set_content_margin(SIDE_LEFT, 8);
+	row_hover->set_content_margin(SIDE_RIGHT, 8);
+	p_theme->set_stylebox("hover", "UZUTableRow", row_hover);
+	Ref<StyleBoxFlat> row_pressed = flat_box(Color(p_base.lerp(p_accent, 0.30f), 0.95f), 4, 2, p_accent, 2);
+	row_pressed->set_content_margin(SIDE_LEFT, 8);
+	row_pressed->set_content_margin(SIDE_RIGHT, 8);
+	p_theme->set_stylebox("pressed", "UZUTableRow", row_pressed);
+	p_theme->set_stylebox("hover_pressed", "UZUTableRow", row_pressed);
+	p_theme->set_stylebox("disabled", "UZUTableRow", flat_box(Color(0, 0, 0, 0), 4, 2));
+	p_theme->set_stylebox("focus", "UZUTableRow", flat_box(Color(0, 0, 0, 0), 4, 0, p_accent, 2));
+	for (const char *name : { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color" }) {
+		p_theme->set_color(name, "UZUTableRow", p_text);
+	}
+	p_theme->set_color("font_disabled_color", "UZUTableRow", Color(p_text, 0.4f));
+}
+
 // Styles every standard control create_theme / create_world_theme used to
 // leave at the default Godot look, from boxes and colors the caller built
 // in its own idiom (procedural panels for create_theme, world frames for
@@ -1132,6 +1204,7 @@ Ref<Theme> UZUUI::create_theme(const Dictionary &p_options) {
 	style_touch_parts(theme, accent, text, panel_bg,
 			color_of(button.get("top", Variant()), color_of(button.get("bg", Variant()), accent)),
 			accent, text);
+	style_data_parts(theme, panel_bg, accent, text, color_of(bar.get("fill", Variant()), accent));
 	return theme;
 }
 
@@ -1667,7 +1740,7 @@ Ref<StyleBox> UZUUI::create_frame_style(const Dictionary &p_style) {
 }
 
 PackedStringArray UZUUI::get_world_names() {
-	return PackedStringArray({ "fantasy", "wafu", "sf", "horror", "persona", "pixel" });
+	return PackedStringArray({ "fantasy", "wafu", "sf", "horror", "persona", "pixel", "racing", "sim" });
 }
 
 Dictionary UZUUI::get_world_options(const String &p_world) {
@@ -1770,6 +1843,38 @@ Dictionary UZUUI::get_world_options(const String &p_world) {
 		set(frame, "shape", "pixel"), set(frame, "border_width", 3), set(frame, "shadow", 4);
 		set(button, "material", "flat"), set(button, "base", "#3b4a8c"), set(button, "edge", "#f4f4f4"), set(button, "shape", "pixel"), set(button, "border_width", 3), set(button, "shadow", 4);
 		set(o, "text", "#f4f4f4"), set(o, "button_text", "#f4f4f4"), set(o, "accent", "#f4b41a"), set(o, "fill", "#5bd46a");
+	} else if (p_world == "racing") {
+		// The racing stable (B-1326): deep-green panels rimmed in
+		// gold -- the leather-and-brass data screens of the
+		// reference. The metal print gives the green a brushed
+		// grain, the frame darkens down the panel so a tall table
+		// grounds at its foot, and the buttons carry the gold rim
+		// the reference draws around every command.
+		set(frame, "material", "metal"), set(frame, "base", "#17452c"), set(frame, "edge", "#0a2417"), set(frame, "accent", "#d9a441");
+		set(frame, "ornament", "brackets"), set(frame, "radius", 8), set(frame, "border_width", 3), set(frame, "shadow", 8);
+		set(frame, "inner_shadow", 0.35), set(frame, "highlight", 0.3);
+		Array rstops;
+		rstops.push_back("#123a24");
+		rstops.push_back("#081f13");
+		set(frame, "gradient_stops", rstops), set(frame, "gradient_dir", "down");
+		set(button, "material", "metal"), set(button, "base", "#1d5233"), set(button, "edge", "#d9a441"), set(button, "radius", 6), set(button, "border_width", 2), set(button, "shadow", 4);
+		set(button, "gradient_to", "#123a24");
+		set(o, "text", "#f4ecd4"), set(o, "button_text", "#f7efdb"), set(o, "accent", "#d9a441"), set(o, "fill", "#59c93e");
+	} else if (p_world == "sim") {
+		// The management sim (B-1326): navy panels and brass --
+		// the reference's map-room instruments. Rivets on the
+		// frame, the same downward darkening, and a gold fill for
+		// the bars (resources read as coin and grain, not health).
+		set(frame, "material", "metal"), set(frame, "base", "#1c3252"), set(frame, "edge", "#0a1626"), set(frame, "accent", "#d9a441");
+		set(frame, "ornament", "rivets"), set(frame, "radius", 6), set(frame, "border_width", 3), set(frame, "shadow", 8);
+		set(frame, "inner_shadow", 0.3), set(frame, "highlight", 0.35);
+		Array nstops;
+		nstops.push_back("#16293f");
+		nstops.push_back("#0a1828");
+		set(frame, "gradient_stops", nstops), set(frame, "gradient_dir", "down");
+		set(button, "material", "metal"), set(button, "base", "#24466e"), set(button, "edge", "#d9a441"), set(button, "radius", 6), set(button, "border_width", 2), set(button, "shadow", 4);
+		set(button, "gradient_to", "#16293f");
+		set(o, "text", "#f2ecd9"), set(o, "button_text", "#f5efdd"), set(o, "accent", "#d9a441"), set(o, "fill", "#d9a441");
 	} else {
 		ERR_FAIL_V_MSG(Dictionary(), vformat("UZUUI: unknown world \"%s\" (see get_world_names).", p_world));
 	}
@@ -1799,6 +1904,10 @@ Dictionary UZUUI::get_world_motion(const String &p_world) {
 		m["transition"] = "linear", m["overshoot"] = 0.0, m["steps"] = 4, m["duration"] = 0.2;
 	} else if (p_world == "wafu") {
 		m["transition"] = "quart", m["ease"] = "out", m["overshoot"] = 0.0, m["duration"] = 0.35;
+	} else if (p_world == "racing" || p_world == "sim") {
+		// Data screens stay calm (B-1326): a plain ease-out and no
+		// overshoot -- a table row must not bounce while it is read.
+		m["transition"] = "quart", m["ease"] = "out", m["overshoot"] = 0.0, m["duration"] = p_world == "racing" ? 0.3 : 0.35;
 	}
 	return m;
 }
@@ -2014,6 +2123,7 @@ Ref<Theme> UZUUI::create_world_theme(const String &p_world, const Dictionary &p_
 		theme->set_stylebox(i == 0 ? "fill" : "background", "UZUGauge", sb);
 	}
 	theme->set_type_variation("UZUGauge", "ProgressBar");
+	style_data_parts(theme, color_of(frame["base"], Color(0.1, 0.1, 0.14)), accent, text, fill);
 	// Separator: a line in the accent with a diamond in the middle (drawn by make_separator).
 	theme->set_color("font_color", "Label", text);
 	theme->set_meta("uzu_world", p_world);
@@ -2137,6 +2247,419 @@ Control *UZUUI::make_separator() {
 	return sep;
 }
 
+// A condition face (B-1326): a small disc with two eyes and a mouth
+// whose arc follows the level (0 frown .. 4 broad smile) -- the
+// racing screens' condition icon. Drawn per call on purpose: a
+// shared cache in a function-static Ref would outlive the servers
+// at process exit.
+static Ref<Image> condition_face_image(int p_level, const Color &p_face) {
+	const int s = 28;
+	const Color ink(0.10, 0.11, 0.13);
+	Ref<Image> img = Image::create_empty(s, s, false, Image::FORMAT_RGBA8);
+	const float c = (s - 1) * 0.5f;
+	const float smile = (CLAMP(p_level, 0, 4) - 2) * 0.5f; // -1 frown .. +1 smile.
+	for (int y = 0; y < s; y++) {
+		for (int x = 0; x < s; x++) {
+			const float dx = x - c;
+			const float dy = y - c;
+			Color col(0, 0, 0, 0);
+			if (Math::sqrt(dx * dx + dy * dy) <= c) {
+				col = p_face;
+				const float e1 = Math::sqrt((dx + 4.5f) * (dx + 4.5f) + (dy + 2.5f) * (dy + 2.5f));
+				const float e2 = Math::sqrt((dx - 4.5f) * (dx - 4.5f) + (dy + 2.5f) * (dy + 2.5f));
+				if (e1 < 1.7f || e2 < 1.7f) {
+					col = ink; // Eyes.
+				}
+				const float mx = dx / 6.0f;
+				if (Math::abs(mx) <= 1.0f) {
+					const float my = 3.0f + smile * 2.5f * (1.0f - mx * mx);
+					if (Math::abs(dy - my) < 1.1f) {
+						col = ink; // Mouth: a smile's bowl, a frown's arch.
+					}
+				}
+			}
+			img->set_pixel(x, y, col);
+		}
+	}
+	return img;
+}
+
+Control *UZUUI::make_stat_bar(const String &p_caption, double p_value, double p_max, const Dictionary &p_options) {
+	HBoxContainer *root = memnew(HBoxContainer);
+	root->set_name("StatBar");
+	root->add_theme_constant_override("separation", 8);
+	if (!p_caption.is_empty()) {
+		Label *caption = memnew(Label);
+		caption->set_name("Caption");
+		caption->set_theme_type_variation("UZUCaptionLabel");
+		caption->set_text(p_caption);
+		if (p_options.has("caption_width")) {
+			caption->set_custom_minimum_size(Size2(double(p_options["caption_width"]), 0));
+		}
+		root->add_child(caption);
+	}
+	ProgressBar *bar = memnew(ProgressBar);
+	bar->set_name("Bar");
+	bar->set_theme_type_variation("UZUStatBar");
+	bar->set_max(p_max);
+	bar->set_value(p_value);
+	bar->set_show_percentage(false);
+	bar->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	bar->set_v_size_flags(Control::SIZE_SHRINK_CENTER);
+	bar->set_custom_minimum_size(Size2(0, double(p_options.get("bar_height", 14))));
+	if (p_options.has("fill")) {
+		bar->add_theme_style_override("fill", stat_bar_box(color_of(p_options["fill"], Color(0.4, 0.8, 0.3)), false));
+	}
+	root->add_child(bar);
+	Label *value = memnew(Label);
+	value->set_name("Value");
+	value->set_text(Math::is_equal_approx(p_value, Math::round(p_value)) ? itos(int64_t(Math::round(p_value))) : String::num(p_value, 1));
+	value->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_RIGHT);
+	value->set_custom_minimum_size(Size2(double(p_options.get("value_width", 36)), 0));
+	root->add_child(value);
+	return root;
+}
+
+Control *UZUUI::make_status_chip(const String &p_caption, const String &p_value, const Dictionary &p_options) {
+	PanelContainer *chip = memnew(PanelContainer);
+	chip->set_name("Chip");
+	chip->set_theme_type_variation("UZUChip");
+	HBoxContainer *box = memnew(HBoxContainer);
+	box->set_name("Box");
+	box->add_theme_constant_override("separation", 8);
+	if (!p_caption.is_empty()) {
+		Label *caption = memnew(Label);
+		caption->set_name("Caption");
+		caption->set_theme_type_variation("UZUChipCaption");
+		caption->set_text(p_caption);
+		box->add_child(caption);
+	}
+	Label *value = memnew(Label);
+	value->set_name("Value");
+	value->set_text(p_value);
+	box->add_child(value);
+	if (p_options.has("delta")) {
+		Label *delta = memnew(Label);
+		delta->set_name("Delta");
+		delta->set_theme_type_variation("UZUCaptionLabel");
+		delta->set_text(String(p_options["delta"]));
+		delta->add_theme_color_override("font_color", color_of(p_options.get("delta_color", Variant()), Color(0.45, 0.9, 0.5)));
+		box->add_child(delta);
+	}
+	chip->add_child(box);
+	return chip;
+}
+
+Control *UZUUI::make_data_table(const Array &p_columns, const Array &p_rows, const Dictionary &p_options) {
+	struct Column {
+		String title;
+		float width = 80.0f;
+		HorizontalAlignment align = HORIZONTAL_ALIGNMENT_LEFT;
+		bool expand = false;
+	};
+	Vector<Column> cols;
+	for (const Variant &cv : p_columns) {
+		Column col;
+		if (cv.get_type() == Variant::DICTIONARY) {
+			const Dictionary cd = cv;
+			col.title = String(cd.get("title", ""));
+			col.width = float(double(cd.get("width", 80)));
+			col.expand = bool(cd.get("expand", false));
+			const String a = String(cd.get("align", "left"));
+			col.align = a == "right" ? HORIZONTAL_ALIGNMENT_RIGHT : (a == "center" ? HORIZONTAL_ALIGNMENT_CENTER : HORIZONTAL_ALIGNMENT_LEFT);
+		} else {
+			col.title = String(cv);
+		}
+		cols.push_back(col);
+	}
+	auto cell_box = [&cols](HBoxContainer *p_box) {
+		p_box->add_theme_constant_override("separation", 4);
+	};
+	auto size_cell = [&cols](Control *p_cell, int p_index) {
+		if (p_index < cols.size()) {
+			if (cols[p_index].expand) {
+				p_cell->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+				p_cell->set_custom_minimum_size(Size2(40, 0));
+			} else {
+				p_cell->set_custom_minimum_size(Size2(cols[p_index].width, 0));
+			}
+		}
+	};
+
+	VBoxContainer *root = memnew(VBoxContainer);
+	root->set_name("Table");
+	root->add_theme_constant_override("separation", 2);
+	// Header: the column titles in the sunk, accent-ruled band.
+	PanelContainer *header = memnew(PanelContainer);
+	header->set_name("Header");
+	header->set_theme_type_variation("UZUTableHeader");
+	HBoxContainer *hrow = memnew(HBoxContainer);
+	hrow->set_anchors_preset(Control::PRESET_FULL_RECT);
+	// No manual offsets: the PanelContainer fits this row to its
+	// content rect, and the UZUTableHeader stylebox already carries
+	// the 8/4 margins the row buttons apply by hand -- padding twice
+	// would shift the header out of line with the rows.
+	cell_box(hrow);
+	for (int j = 0; j < cols.size(); j++) {
+		Label *cell = memnew(Label);
+		cell->set_text(cols[j].title);
+		cell->set_theme_type_variation("UZUChipCaption");
+		cell->set_horizontal_alignment(cols[j].align);
+		size_cell(cell, j);
+		hrow->add_child(cell);
+	}
+	header->add_child(hrow);
+	header->set_custom_minimum_size(Size2(0, 30));
+	root->add_child(header);
+
+	Ref<ButtonGroup> group;
+	group.instantiate();
+	const float row_height = float(double(p_options.get("row_height", 36)));
+	for (int i = 0; i < p_rows.size(); i++) {
+		const Array row_data = p_rows[i];
+		Button *row = memnew(Button);
+		row->set_name("Row" + itos(i));
+		row->set_theme_type_variation("UZUTableRow");
+		row->set_toggle_mode(true);
+		row->set_button_group(group);
+		row->set_focus_mode(Control::FOCUS_ALL);
+		row->set_clip_contents(true);
+		row->set_custom_minimum_size(Size2(0, row_height));
+		row->set_meta("row_index", i);
+		row->set_meta("row_data", row_data);
+		HBoxContainer *cells = memnew(HBoxContainer);
+		cells->set_name("Cells");
+		cells->set_anchors_preset(Control::PRESET_FULL_RECT);
+		cells->set_offset(SIDE_LEFT, 8);
+		cells->set_offset(SIDE_TOP, 2);
+		cells->set_offset(SIDE_RIGHT, -8);
+		cells->set_offset(SIDE_BOTTOM, -2);
+		cells->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
+		cell_box(cells);
+		for (int j = 0; j < row_data.size() && j < cols.size(); j++) {
+			const Variant cell_v = row_data[j];
+			Dictionary cell;
+			if (cell_v.get_type() == Variant::DICTIONARY) {
+				cell = cell_v;
+			} else {
+				cell["text"] = String(cell_v);
+			}
+			Control *made = nullptr;
+			if (cell.has("bar")) {
+				Dictionary opts;
+				if (cell.has("fill")) {
+					opts["fill"] = cell["fill"];
+				}
+				opts["bar_height"] = 12;
+				made = make_stat_bar("", double(cell["bar"]), double(cell.get("max", 100)), opts);
+			} else if (cell.has("face")) {
+				static const Color face_colors[5] = { Color(0.48, 0.53, 0.63), Color(0.62, 0.70, 0.78), Color(0.85, 0.81, 0.62), Color(0.49, 0.85, 0.34), Color(1.0, 0.49, 0.61) };
+				const int level = CLAMP(int(cell["face"]), 0, 4);
+				HBoxContainer *face_box = memnew(HBoxContainer);
+				face_box->add_theme_constant_override("separation", 4);
+				TextureRect *face = memnew(TextureRect);
+				face->set_name("Face");
+				face->set_texture(ImageTexture::create_from_image(condition_face_image(level, face_colors[level])));
+				face->set_expand_mode(TextureRect::EXPAND_IGNORE_SIZE);
+				face->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
+				face->set_custom_minimum_size(Size2(28, 28));
+				face->set_v_size_flags(Control::SIZE_SHRINK_CENTER);
+				face_box->add_child(face);
+				Label *word = memnew(Label);
+				word->set_name("Word");
+				word->set_text(String(cell.get("text", "")));
+				if (cell.has("color")) {
+					word->add_theme_color_override("font_color", color_of(cell["color"], Color(1, 1, 1)));
+				}
+				word->set_v_size_flags(Control::SIZE_SHRINK_CENTER);
+				face_box->add_child(word);
+				made = face_box;
+			} else if (cell.has("image")) {
+				TextureRect *img = memnew(TextureRect);
+				img->set_name("Image");
+				if (cell["image"].get_type() == Variant::OBJECT) {
+					img->set_texture(Ref<Texture2D>(cell["image"]));
+				}
+				img->set_expand_mode(TextureRect::EXPAND_IGNORE_SIZE);
+				img->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
+				img->set_custom_minimum_size(Size2(0, row_height - 6));
+				made = img;
+			} else if (cell.has("chip")) {
+				PanelContainer *chip = memnew(PanelContainer);
+				chip->set_name("Chip");
+				const Color chip_color = color_of(cell["chip"], Color(0.5, 0.5, 0.5));
+				Ref<StyleBoxFlat> chip_box_style = flat_box(chip_color, 4, 1);
+				chip_box_style->set_content_margin(SIDE_LEFT, 4);
+				chip_box_style->set_content_margin(SIDE_RIGHT, 4);
+				chip->add_theme_style_override("panel", chip_box_style);
+				Label *chip_label = memnew(Label);
+				chip_label->set_text(String(cell.get("text", "")));
+				chip_label->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_CENTER);
+				chip_label->add_theme_color_override("font_color", chip_color.get_luminance() > 0.55f ? Color(0.08, 0.08, 0.08) : Color(1, 1, 1));
+				chip->add_child(chip_label);
+				chip->set_v_size_flags(Control::SIZE_SHRINK_CENTER);
+				made = chip;
+			} else {
+				Label *label = memnew(Label);
+				label->set_text(String(cell.get("text", "")));
+				const String a = String(cell.get("align", ""));
+				label->set_horizontal_alignment(a == "right" ? HORIZONTAL_ALIGNMENT_RIGHT : (a == "center" ? HORIZONTAL_ALIGNMENT_CENTER : cols[j].align));
+				if (cell.has("color")) {
+					label->add_theme_color_override("font_color", color_of(cell["color"], Color(1, 1, 1)));
+				}
+				label->set_v_size_flags(Control::SIZE_SHRINK_CENTER);
+				made = label;
+			}
+			if (made) {
+				size_cell(made, j);
+				made->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
+				cells->add_child(made);
+			}
+		}
+		row->add_child(cells);
+		root->add_child(row);
+	}
+	return root;
+}
+
+Control *UZUUI::select_table_row(Control *p_table, int p_index) {
+	if (!p_table) {
+		return nullptr;
+	}
+	int i = 0;
+	for (int k = 0; k < p_table->get_child_count(); k++) {
+		Button *row = Object::cast_to<Button>(p_table->get_child(k));
+		if (!row) {
+			continue;
+		}
+		if (i == p_index) {
+			row->set_pressed(true);
+			return row;
+		}
+		i++;
+	}
+	return nullptr;
+}
+
+Control *UZUUI::make_detail_panel(const Dictionary &p_options) {
+	PanelContainer *panel = memnew(PanelContainer);
+	panel->set_name("Detail");
+	panel->set_meta("detail_options", p_options);
+	VBoxContainer *box = memnew(VBoxContainer);
+	box->set_name("Box");
+	box->add_theme_constant_override("separation", 8);
+	Label *title = memnew(Label);
+	title->set_name("Title");
+	title->set_theme_type_variation("UZUHeadingLabel");
+	box->add_child(title);
+	TextureRect *portrait = memnew(TextureRect);
+	portrait->set_name("Portrait");
+	portrait->set_expand_mode(TextureRect::EXPAND_IGNORE_SIZE);
+	portrait->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
+	portrait->set_custom_minimum_size(Size2(0, double(p_options.get("portrait_height", 132))));
+	box->add_child(portrait);
+	VBoxContainer *rows = memnew(VBoxContainer);
+	rows->set_name("Rows");
+	rows->add_theme_constant_override("separation", 4);
+	box->add_child(rows);
+	VBoxContainer *bars = memnew(VBoxContainer);
+	bars->set_name("Bars");
+	bars->add_theme_constant_override("separation", 4);
+	box->add_child(bars);
+	panel->add_child(box);
+	if (p_options.has("data")) {
+		set_detail_panel(panel, p_options["data"]);
+	}
+	return panel;
+}
+
+void UZUUI::set_detail_panel(Control *p_panel, const Dictionary &p_data) {
+	if (!p_panel) {
+		return;
+	}
+	const Dictionary options = p_panel->get_meta("detail_options", Dictionary());
+	const float key_width = float(double(options.get("key_width", 84)));
+	Label *title = Object::cast_to<Label>(p_panel->get_node_or_null(NodePath("Box/Title")));
+	if (title && p_data.has("title")) {
+		title->set_text(String(p_data["title"]));
+	}
+	TextureRect *portrait = Object::cast_to<TextureRect>(p_panel->get_node_or_null(NodePath("Box/Portrait")));
+	if (portrait) {
+		Ref<Texture2D> tex;
+		if (p_data.has("portrait") && p_data["portrait"].get_type() == Variant::OBJECT) {
+			tex = Ref<Texture2D>(p_data["portrait"]);
+		}
+		portrait->set_texture(tex);
+		portrait->set_visible(tex.is_valid());
+	}
+	VBoxContainer *rows = Object::cast_to<VBoxContainer>(p_panel->get_node_or_null(NodePath("Box/Rows")));
+	if (rows) {
+		while (rows->get_child_count() > 0) {
+			Node *child = rows->get_child(0);
+			rows->remove_child(child);
+			memdelete(child);
+		}
+		const Array data_rows = p_data.get("rows", Array());
+		for (const Variant &rv : data_rows) {
+			String key;
+			String value;
+			Variant color;
+			if (rv.get_type() == Variant::DICTIONARY) {
+				const Dictionary rd = rv;
+				key = String(rd.get("key", ""));
+				value = String(rd.get("value", ""));
+				color = rd.get("color", Variant());
+			} else if (rv.get_type() == Variant::ARRAY) {
+				const Array ra = rv;
+				if (ra.size() > 0) {
+					key = String(ra[0]);
+				}
+				if (ra.size() > 1) {
+					value = String(ra[1]);
+				}
+			}
+			HBoxContainer *line = memnew(HBoxContainer);
+			line->add_theme_constant_override("separation", 8);
+			Label *key_label = memnew(Label);
+			key_label->set_name("Key");
+			key_label->set_theme_type_variation("UZUCaptionLabel");
+			key_label->set_text(key);
+			key_label->set_custom_minimum_size(Size2(key_width, 0));
+			line->add_child(key_label);
+			Label *value_label = memnew(Label);
+			value_label->set_name("Value");
+			value_label->set_text(value);
+			value_label->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+			if (color.get_type() == Variant::COLOR || (color.get_type() == Variant::STRING && Color::html_is_valid(color))) {
+				value_label->add_theme_color_override("font_color", color_of(color, Color(1, 1, 1)));
+			}
+			line->add_child(value_label);
+			rows->add_child(line);
+		}
+	}
+	VBoxContainer *bars = Object::cast_to<VBoxContainer>(p_panel->get_node_or_null(NodePath("Box/Bars")));
+	if (bars) {
+		while (bars->get_child_count() > 0) {
+			Node *child = bars->get_child(0);
+			bars->remove_child(child);
+			memdelete(child);
+		}
+		const Array data_bars = p_data.get("bars", Array());
+		for (const Variant &bv : data_bars) {
+			if (bv.get_type() != Variant::DICTIONARY) {
+				continue;
+			}
+			const Dictionary bd = bv;
+			Dictionary opts;
+			opts["caption_width"] = double(bd.get("caption_width", options.get("bar_caption_width", 84)));
+			if (bd.has("fill")) {
+				opts["fill"] = bd["fill"];
+			}
+			bars->add_child(make_stat_bar(String(bd.get("caption", "")), double(bd.get("value", 0)), double(bd.get("max", 100)), opts));
+		}
+	}
+}
+
 static const char *WORLD_FRAME_SHADER = R"(
 shader_type canvas_item;
 // The moving decoration of world UI frames (UZUUI, B-1307): a glint that sweeps across,
@@ -2250,6 +2773,8 @@ Ref<ShaderMaterial> UZUUI::create_world_material(const String &p_world) {
 		{ "horror", 3, "#000000", 1.0f, 0.60f, 0.0f, 0.90f, 0.99f, 0.0f, 0.12f, 0.0f }, // A failing light (B-1323: the flicker bites harder, a faint cold rim).
 		{ "persona", 1, "#ffffff", 0.9f, 0.30f, 0.0f, 0.90f, 0.99f, 0.30f, 0.45f, 0.22f }, // A fast white flash.
 		{ "pixel", 2, "#ffffff", 0.5f, 0.14f, 4.0f, 0.90f, 0.99f, 0.0f, 0.0f, 0.0f }, // A stepped blink.
+		{ "racing", 1, "#ffd977", 0.22f, 0.22f, 0.0f, 0.90f, 0.99f, 0.12f, 0.30f, 0.08f }, // A slow gold glint over the brass (B-1326).
+		{ "sim", 1, "#ffe9b0", 0.16f, 0.18f, 0.0f, 0.90f, 0.99f, 0.10f, 0.28f, 0.06f }, // A quieter glint: instruments, not jewellery (B-1326).
 	};
 	for (const Decor &d : DECOR) {
 		if (p_world != d.world) {
@@ -2378,6 +2903,29 @@ Dictionary UZUUI::get_backdrop_options(const String &p_world) {
 		set(o, "band", "#1b1f3a"), set(o, "band_y", 0.80), set(o, "band_h", 56), set(o, "band_slope", 0.0);
 		set(o, "band2", "#141830"), set(o, "band2_y", 0.30), set(o, "band2_h", 28), set(o, "band2_slope", 0.0);
 		set(o, "line", "#f4b41a"), set(o, "vignette", 0.3);
+	} else if (p_world == "racing") {
+		// A paddock at dusk (B-1326): a green field lit from high
+		// centre, darkening toward the fence line at the corners.
+		set(o, "base", "#0b1a10"), set(o, "mottle", 0.55), set(o, "seed", 21);
+		Array gstops;
+		gstops.push_back("#1d3a22");
+		gstops.push_back("#050b06");
+		set(o, "gradient_stops", gstops), set(o, "gradient_dir", "radial");
+		set(o, "gradient_center", Vector2(0.5, 0.30)), set(o, "gradient_radius", 0.95);
+		set(o, "glow", "#2e5224"), set(o, "glow_pos", Vector2(0.5, 0.26)), set(o, "glow_strength", 0.5);
+		set(o, "vignette", 0.5);
+	} else if (p_world == "sim") {
+		// The map room after dark (B-1326): a navy field with a
+		// lamp-lit core, and a few far lights read as stars.
+		set(o, "base", "#0a141f"), set(o, "mottle", 0.5), set(o, "seed", 17);
+		Array nstops;
+		nstops.push_back("#1d3a5c");
+		nstops.push_back("#040910");
+		set(o, "gradient_stops", nstops), set(o, "gradient_dir", "radial");
+		set(o, "gradient_center", Vector2(0.5, 0.32)), set(o, "gradient_radius", 0.95);
+		set(o, "glow", "#2a4d73"), set(o, "glow_pos", Vector2(0.5, 0.30)), set(o, "glow_strength", 0.5);
+		set(o, "stars", 5), set(o, "star", "#cfe4ff");
+		set(o, "vignette", 0.55);
 	} else {
 		ERR_FAIL_V_MSG(Dictionary(), vformat("UZUUI: unknown world \"%s\" (see get_world_names).", p_world));
 	}
@@ -2837,6 +3385,12 @@ void UZUUI::_bind_methods() {
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_item_slot", "label", "count"), &UZUUI::make_item_slot, DEFVAL(String()), DEFVAL(0));
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_ribbon", "text"), &UZUUI::make_ribbon);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("make_separator"), &UZUUI::make_separator);
+	ClassDB::bind_static_method("UZUUI", D_METHOD("make_stat_bar", "caption", "value", "max", "options"), &UZUUI::make_stat_bar, DEFVAL(100.0), DEFVAL(Dictionary()));
+	ClassDB::bind_static_method("UZUUI", D_METHOD("make_status_chip", "caption", "value", "options"), &UZUUI::make_status_chip, DEFVAL(Dictionary()));
+	ClassDB::bind_static_method("UZUUI", D_METHOD("make_data_table", "columns", "rows", "options"), &UZUUI::make_data_table, DEFVAL(Dictionary()));
+	ClassDB::bind_static_method("UZUUI", D_METHOD("select_table_row", "table", "index"), &UZUUI::select_table_row);
+	ClassDB::bind_static_method("UZUUI", D_METHOD("make_detail_panel", "options"), &UZUUI::make_detail_panel, DEFVAL(Dictionary()));
+	ClassDB::bind_static_method("UZUUI", D_METHOD("set_detail_panel", "panel", "data"), &UZUUI::set_detail_panel);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("create_world_material", "world"), &UZUUI::create_world_material);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("draw_backdrop", "style"), &UZUUI::draw_backdrop);
 	ClassDB::bind_static_method("UZUUI", D_METHOD("get_backdrop_options", "world"), &UZUUI::get_backdrop_options);

@@ -10,8 +10,11 @@ extends Control
 ## forward user args to the scene):
 ##   UZU_B1315_WORLD = persona | wafu | sf | pixel   (default persona;
 ##        sf and pixel dressed in B-1323)
+##        | racing | sim (B-1326: the data-dense screens -- no deco
+##        dressing; the tables and panels are the picture)
 ##   UZU_B1315_SCREEN = title | menu | settings | hud | talk | sheet | touch
 ##        | arttitle (B-1324: persona only -- the art-driven title)
+##        | stable | entries (racing) | main (sim)
 ##   UZU_B1315_FRAME_OUT = where the sheet mode saves the frame PNG
 ##   UZU_B1315_FOCUS = 1: after the opening, focus the first button
 ##        (a still then shows the focused state -- persona's red flip)
@@ -103,11 +106,21 @@ func _ready() -> void:
 	add_child(_fx_front)
 	_dress(screen)
 	_wire_fx(_current)
+	if world == "racing":
+		_wire_data(_current)
 
 	if OS.get_environment("UZU_B1315_FLOW") == "1":
-		_flow()
+		if world == "racing":
+			_data_flow()
+		elif world == "sim":
+			_sim_flow()
+		else:
+			_flow()
 	elif OS.get_environment("UZU_B1315_FOCUS") == "1":
-		_settle_focus()
+		if world == "racing":
+			_settle_data_focus()
+		else:
+			_settle_focus()
 
 
 ## B-1324: the art-driven title. The reference structure inverts the
@@ -705,3 +718,122 @@ func _touch() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	(stick as UZUTouchStick).press_at(stick.size * Vector2(0.78, 0.34))
+
+
+# ------------------------------------------------------------------
+# B-1326: the data-dense screens (racing). The table and the detail
+# panel are kit parts (UZUUI.make_data_table / make_detail_panel);
+# this driver owns the DATA -- one detail record per row -- and the
+# wiring: a row's press, or focus landing on a row, refills the
+# detail panel, so the selection highlight and the detail never
+# disagree. The still (UZU_B1315_FOCUS=1) settles focus on the
+# selected row; the reel walks the selection down the table.
+
+var _data_table: Control
+var _data_detail: Control
+var _data_records: Array = []
+var _data_index := 0
+
+
+func _rec(title: String, face: int, rows: Array, bars: Array) -> Dictionary:
+	return {"title": title, "portrait": load("res://art/face_%d.png" % face), "rows": rows, "bars": bars}
+
+
+func _wire_data(scr: Control) -> void:
+	_data_table = scr.get_node_or_null("Table") as Control
+	_data_detail = scr.get_node_or_null("Detail") as Control
+	if _data_table == null or _data_detail == null:
+		return
+	_data_records = _stable_records() if screen == "stable" else _entries_records()
+	for child in _data_table.get_children():
+		var b := child as Button
+		if b != null and b.has_meta("row_index"):
+			var i := int(b.get_meta("row_index"))
+			b.pressed.connect(_on_data_row.bind(i))
+			b.focus_entered.connect(_on_data_row_focus.bind(i))
+	_data_index = 2 if screen == "stable" else 4
+	UZUUI.select_table_row(_data_table, _data_index)
+	UZUUI.set_detail_panel(_data_detail, _data_records[_data_index])
+
+
+func _on_data_row(i: int) -> void:
+	if i < 0 or i >= _data_records.size() or _data_detail == null:
+		return
+	_data_index = i
+	UZUUI.set_detail_panel(_data_detail, _data_records[i])
+
+
+func _on_data_row_focus(i: int) -> void:
+	if i == _data_index:
+		return
+	if _data_table != null:
+		UZUUI.select_table_row(_data_table, i)
+	_on_data_row(i)
+
+
+func _settle_data_focus() -> void:
+	await get_tree().create_timer(0.6).timeout
+	if _data_table != null:
+		var row := UZUUI.select_table_row(_data_table, _data_index) as Control
+		if row != null:
+			row.grab_focus()
+
+
+## The data reel: after the opening, the selection walks the table
+## and the detail panel follows -- the link the still cannot show.
+func _data_flow() -> void:
+	await _choreograph(_current)
+	await get_tree().create_timer(0.7).timeout
+	for s in 5:
+		if _data_table == null or _data_records.is_empty():
+			return
+		var next := (_data_index + 1) % _data_records.size()
+		var row := UZUUI.select_table_row(_data_table, next) as Control
+		if row != null:
+			row.grab_focus()
+		_on_data_row(next)
+		await get_tree().create_timer(1.05).timeout
+	await get_tree().create_timer(1.0).timeout
+
+
+## The sim reel: no table to walk -- the opening plays, then focus
+## visits the "next week" button and the first commands.
+func _sim_flow() -> void:
+	await _choreograph(_current)
+	await get_tree().create_timer(0.6).timeout
+	_focus_button(_current, 0)
+	await get_tree().create_timer(1.1).timeout
+	_focus_button(_current, 1)
+	await get_tree().create_timer(1.1).timeout
+	_focus_button(_current, 2)
+	await get_tree().create_timer(1.6).timeout
+
+
+func _stable_records() -> Array:
+	return [
+		_rec("サンライズエース", 0, [["年齢", "3歳 牡"], ["戦績", "12戦 5勝"], ["馬体重", "480kg"], ["厩舎", "美浦"], ["調子", "絶好調"], ["次走", "日本ダービー"]], [{"caption": "スピード", "value": 92}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 78}]),
+		_rec("ミライノカゼ", 1, [["年齢", "4歳 牝"], ["戦績", "15戦 4勝"], ["馬体重", "452kg"], ["厩舎", "美浦"], ["調子", "好調"], ["次走", "安田記念"]], [{"caption": "スピード", "value": 85}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 88}]),
+		_rec("ホワイトオーシャン", 2, [["年齢", "5歳 牡"], ["戦績", "18戦 7勝"], ["馬体重", "512kg"], ["厩舎", "栗東"], ["調子", "絶好調"], ["次走", "春風ステークス"]], [{"caption": "スピード", "value": 90}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 95}]),
+		_rec("レッドヴァルキリー", 3, [["年齢", "3歳 牝"], ["戦績", "8戦 3勝"], ["馬体重", "446kg"], ["厩舎", "美浦"], ["調子", "好調"], ["次走", "桜花賞"]], [{"caption": "スピード", "value": 78}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 72}]),
+		_rec("キングスパーク", 4, [["年齢", "6歳 牡"], ["戦績", "24戦 6勝"], ["馬体重", "498kg"], ["厩舎", "栗東"], ["調子", "普通"], ["次走", "春風ステークス"]], [{"caption": "スピード", "value": 88}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 65}]),
+		_rec("ブルームスター", 5, [["年齢", "2歳 牝"], ["戦績", "3戦 1勝"], ["馬体重", "430kg"], ["厩舎", "美浦"], ["調子", "絶好調"], ["次走", "未定"]], [{"caption": "スピード", "value": 72}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 80}]),
+		_rec("シルバーグローリー", 6, [["年齢", "4歳 牡"], ["戦績", "14戦 5勝"], ["馬体重", "486kg"], ["厩舎", "栗東"], ["調子", "好調"], ["次走", "青葉賞"]], [{"caption": "スピード", "value": 83}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 90}]),
+		_rec("ハヤテノツバサ", 7, [["年齢", "3歳 牡"], ["戦績", "9戦 2勝"], ["馬体重", "468kg"], ["厩舎", "美浦"], ["調子", "普通"], ["次走", "皐月賞"]], [{"caption": "スピード", "value": 95}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 60}]),
+	]
+
+
+func _entries_records() -> Array:
+	return [
+		_rec("ゴールデンホーン", 0, [["枠・馬番", "1枠 1番"], ["性齢", "牡4"], ["騎手", "藤原和真"], ["負担重量", "57kg"], ["オッズ", "8.4"], ["人気", "4番人気"]], [{"caption": "スピード", "value": 88}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 82}]),
+		_rec("サンライズエース", 1, [["枠・馬番", "1枠 2番"], ["性齢", "牡3"], ["騎手", "佐々木蓮"], ["負担重量", "56kg"], ["オッズ", "12.6"], ["人気", "6番人気"]], [{"caption": "スピード", "value": 92}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 78}]),
+		_rec("ミライノカゼ", 2, [["枠・馬番", "2枠 3番"], ["性齢", "牝4"], ["騎手", "高橋宗一郎"], ["負担重量", "55kg"], ["オッズ", "6.2"], ["人気", "3番人気"]], [{"caption": "スピード", "value": 85}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 88}]),
+		_rec("キングスパーク", 3, [["枠・馬番", "2枠 4番"], ["性齢", "牡6"], ["騎手", "中村恵太"], ["負担重量", "58kg"], ["オッズ", "21.8"], ["人気", "9番人気"]], [{"caption": "スピード", "value": 88}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 65}]),
+		_rec("ホワイトオーシャン", 4, [["枠・馬番", "3枠 5番"], ["性齢", "牡5"], ["騎手", "小林直樹"], ["負担重量", "57kg"], ["オッズ", "3.1"], ["人気", "1番人気"]], [{"caption": "スピード", "value": 90}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 95}]),
+		_rec("レッドヴァルキリー", 5, [["枠・馬番", "3枠 6番"], ["性齢", "牝3"], ["騎手", "山田悠真"], ["負担重量", "54kg"], ["オッズ", "9.7"], ["人気", "5番人気"]], [{"caption": "スピード", "value": 78}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 72}]),
+		_rec("ブルームスター", 6, [["枠・馬番", "4枠 7番"], ["性齢", "牝2"], ["騎手", "鈴木健吾"], ["負担重量", "54kg"], ["オッズ", "15.3"], ["人気", "7番人気"]], [{"caption": "スピード", "value": 72}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 80}]),
+		_rec("シルバーグローリー", 7, [["枠・馬番", "4枠 8番"], ["性齢", "牡4"], ["騎手", "田村亮太"], ["負担重量", "57kg"], ["オッズ", "4.8"], ["人気", "2番人気"]], [{"caption": "スピード", "value": 83}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 90}]),
+		_rec("ハヤテノツバサ", 0, [["枠・馬番", "5枠 9番"], ["性齢", "牡3"], ["騎手", "井上翔太"], ["負担重量", "56kg"], ["オッズ", "18.9"], ["人気", "8番人気"]], [{"caption": "スピード", "value": 95}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 60}]),
+		_rec("ディープスカイ", 1, [["枠・馬番", "5枠 10番"], ["性齢", "牡5"], ["騎手", "木村拓也"], ["負担重量", "57kg"], ["オッズ", "26.4"], ["人気", "10番人気"]], [{"caption": "スピード", "value": 86}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 84}]),
+		_rec("ムーンライト", 2, [["枠・馬番", "6枠 11番"], ["性齢", "牡4"], ["騎手", "岡田健一"], ["負担重量", "57kg"], ["オッズ", "34.2"], ["人気", "11番人気"]], [{"caption": "スピード", "value": 80}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 76}]),
+		_rec("スターゲイザー", 3, [["枠・馬番", "6枠 12番"], ["性齢", "牡3"], ["騎手", "加藤大輔"], ["負担重量", "56kg"], ["オッズ", "48.7"], ["人気", "12番人気"]], [{"caption": "スピード", "value": 75}, {"caption": "スタミナ", "fill": "#3f9fd8", "value": 70}]),
+	]
