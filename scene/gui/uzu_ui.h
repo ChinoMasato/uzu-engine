@@ -98,7 +98,10 @@ public:
 	// high-DPI), "inner_shadow" / "highlight" / "glow" (0..1 depth layers over the
 	// material, B-1318; all off by default except the glow of glass), "gradient_to" /
 	// "gradient_dir" (a colour run under the material, B-1321; the axis it runs along
-	// stretches instead of tiling), "halftone_cells" / "halftone_dot" (the halftone
+	// stretches instead of tiling), "gradient_stops" (the run's remaining stops as an
+	// Array of colours, for three stops and more, B-1322; "gradient_dir" also takes
+	// "radial", centred by "gradient_center" and reaching the last stop at
+	// "gradient_radius"), "halftone_cells" / "halftone_dot" (the halftone
 	// print's pitch in cells per tile and its ink colour, B-1321). Lengths snap to
 	// the layout scale (see get_layout_scale). The middle of
 	// the image repeats, so the texture keeps its scale at any size.
@@ -141,8 +144,11 @@ public:
 	// four-point sparkles scattered over the upper field, B-1320) and
 	// "star" (their color), "vignette" (0..1
 	// edge darkening), "seed", "gradient_to" / "gradient_dir" (a colour
-	// run under the ground, B-1321), "band_gradient_to" (the band's own
-	// run across its width) and "halftone_cells" / "halftone_dot" (the
+	// run under the ground, B-1321) with "gradient_stops" /
+	// "gradient_center" / "gradient_radius" (multi-stop and radial
+	// runs, B-1322), "band_gradient_to" / "band_gradient_stops" (the
+	// band's own run across its width) and "halftone_cells" /
+	// "halftone_dot" (the
 	// bands' print). get_backdrop_options returns a world's
 	// composition; make_backdrop builds it as a full-rect TextureRect
 	// (mouse-transparent, aspect-covered) ready to add first in a screen.

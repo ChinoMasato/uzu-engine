@@ -50,6 +50,9 @@ extends SceneTree
 ##          pivots on its top-left). Label also takes "outline_size" /
 ##          "outline_color" and a hard drop shadow, "shadow_color" with
 ##          "shadow_offset" ([x, y]) -- the logo treatment of a title.
+##   Common (B-1322): "letter_spacing" tracks a text node's glyphs by
+##          that many px (negative tightens) as a FontVariation over the
+##          theme's font; the theme must name a "font".
 ##   Label / RichText / Button: "text";  Bar: "value", "max", "show_percent"
 ##   Label: "text_style" names a step of the theme's type scale (B-1312: display | title |
 ##          heading | body | caption) instead of a raw "font_size"; the theme gives the
@@ -69,7 +72,7 @@ const TYPES := {
 	"Gauge": "", "Talk": "", "Slot": "", "Ribbon": "", "Separator": "",
 	"Stick": "", "TouchButton": "",
 }
-const COMMON := ["type", "name", "children", "anchor", "offset", "size", "min_size", "expand", "visible", "tooltip", "style", "font_size", "font_color", "align", "motion", "rotation"]
+const COMMON := ["type", "name", "children", "anchor", "offset", "size", "min_size", "expand", "visible", "tooltip", "style", "font_size", "font_color", "letter_spacing", "align", "motion", "rotation"]
 const MOTION_KEYS := ["preset", "duration", "strength", "from", "to"]
 const EXTRA := {
 	"Label": ["text", "text_style", "outline_size", "outline_color", "shadow_color", "shadow_offset"], "RichText": ["text"], "Button": ["text"], "Bar": ["value", "max", "show_percent"],
@@ -95,6 +98,7 @@ const THEME_KEYS := ["world", "font", "font_fallback", "font_size", "font_color"
 
 var errors := []
 var counts := {}
+var _spec_font: Font = null # The theme's font, loaded early so "letter_spacing" can track against it.
 
 
 func _initialize() -> void:
@@ -414,6 +418,19 @@ func _node(where: String, d, parent: Control, owner_root: Control) -> Control:
 		c.add_theme_font_size_override("font_size" if type != "RichText" else "normal_font_size", int(d.font_size))
 	if d.has("font_color"):
 		c.add_theme_color_override("font_color" if type != "RichText" else "default_color", _color(where + ".font_color", d.font_color))
+	if d.has("letter_spacing"):
+		# Tracking (B-1322): a FontVariation over the theme's font.
+		# Negative values tighten a display line; the variation rides
+		# in the saved scene like every other override.
+		if _spec_font == null:
+			_err(where + ".letter_spacing", "needs theme.font to track against")
+		elif not (d.letter_spacing is int or d.letter_spacing is float):
+			_err(where + ".letter_spacing", "needs a number of px")
+		else:
+			var fv := FontVariation.new()
+			fv.base_font = _spec_font
+			fv.spacing_glyph = int(d.letter_spacing)
+			c.add_theme_font_override("font", fv)
 	if d.has("align"):
 		var a = {"left": HORIZONTAL_ALIGNMENT_LEFT, "center": HORIZONTAL_ALIGNMENT_CENTER, "right": HORIZONTAL_ALIGNMENT_RIGHT}.get(d.align, -1)
 		if a < 0:
@@ -478,6 +495,12 @@ func _build(spec_path: String) -> Dictionary:
 	var root_spec = spec.get("root", {"type": "Screen"})
 	if root_spec is Dictionary and not root_spec.has("type"):
 		root_spec["type"] = "Screen"
+	_spec_font = null
+	var theme_pre = spec.get("theme", {})
+	if theme_pre is Dictionary and theme_pre.get("font") is String and ResourceLoader.exists(theme_pre.font):
+		var f = load(theme_pre.font)
+		if f is Font:
+			_spec_font = f
 	var root := _node("root", root_spec, null, null)
 	if root == null:
 		return {"ok": false, "error": "the spec has %d problem(s)" % errors.size(), "problems": errors}

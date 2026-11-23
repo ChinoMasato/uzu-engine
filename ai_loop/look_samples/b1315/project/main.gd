@@ -4,6 +4,8 @@ extends Control
 ## into screens/) dressed with the world's backdrop (B-1319) and a
 ## decoration layer (deco_layer.gd), or the empty-panel sheet for the
 ## texture measurement, or the kit touch parts in a HUD corner.
+## B-1322 adds the effect layers (fx_layer.gd): drifting dust behind,
+## focus bursts / press flashes / transition slashes in front.
 ## World and screen come from the environment (uzu.py look does not
 ## forward user args to the scene):
 ##   UZU_B1315_WORLD = persona | wafu        (default persona)
@@ -19,6 +21,7 @@ extends Control
 
 const FONT := preload("res://art/game_font.ttf")
 const DecoLayer := preload("res://deco_layer.gd")
+const FxLayer := preload("res://fx_layer.gd")
 
 const RED := Color(0.902, 0.0, 0.071)
 const YELLOW := Color(1.0, 0.882, 0.302)
@@ -28,6 +31,8 @@ var screen := "title"
 var _current: Control
 var _deco_back: Control
 var _deco_front: Control
+var _fx_back: Control
+var _fx_front: Control
 
 
 func _ready() -> void:
@@ -51,6 +56,16 @@ func _ready() -> void:
 		_touch()
 		return
 
+	# Effect layers (B-1322): dust drifts over the backdrop behind
+	# everything; bursts, flashes and slashes play in front.
+	_fx_back = FxLayer.new()
+	if world == "persona":
+		_fx_back.dust = 26
+		_fx_back.dust_color = Color(1, 1, 1, 0.5)
+	elif world == "wafu":
+		_fx_back.dust = 12
+		_fx_back.dust_color = Color(1.0, 0.85, 0.6, 0.35)
+	add_child(_fx_back)
 	_deco_back = DecoLayer.new()
 	_deco_back.font = FONT
 	add_child(_deco_back)
@@ -61,7 +76,10 @@ func _ready() -> void:
 	_deco_front = DecoLayer.new()
 	_deco_front.font = FONT
 	add_child(_deco_front)
+	_fx_front = FxLayer.new()
+	add_child(_fx_front)
 	_dress(screen)
+	_wire_fx(_current)
 
 	if OS.get_environment("UZU_B1315_FLOW") == "1":
 		_flow()
@@ -123,9 +141,15 @@ func _dress(name: String) -> void:
 					{"kind": "sparkle", "at": Vector2(560, 120), "r": 13.0, "color": Color(1, 1, 1, 0.7)},
 				]
 			"talk":
+				# B-1322: the talk screen's upper field was mostly
+				# empty air. The watermark grows and a second ring and
+				# a slash fill the mid-field, so the window sits in a
+				# composed scene instead of a void.
 				back = [
-					{"kind": "word", "text": "CHAPTER", "at": Vector2(280, 200), "size": 110, "angle": -6.0, "color": Color(RED, 0.10)},
+					{"kind": "word", "text": "CHAPTER", "at": Vector2(330, 190), "size": 130, "angle": -6.0, "color": Color(RED, 0.13)},
 					{"kind": "ring", "at": Vector2(118, 128), "r": 46.0, "width": 8.0, "color": Color(0.561, 0.0, 0.047, 0.8)},
+					{"kind": "ring", "at": Vector2(1012, 216), "r": 68.0, "width": 6.0, "color": Color(0.561, 0.0, 0.047, 0.45)},
+					{"kind": "slash", "at": Vector2(150, 336), "len": 190.0, "h": 10.0, "angle": -12.0, "color": Color(RED, 0.5)},
 				]
 				front = [
 					{"kind": "sparkle", "at": Vector2(905, 64), "r": 16.0, "color": Color.WHITE, "pulse": true},
@@ -179,6 +203,32 @@ func _buttons(scr: Control) -> Array:
 		var pb := b.get_global_rect().position
 		return pa.y < pb.y - 4.0 or (absf(pa.y - pb.y) <= 4.0 and pa.x < pb.x))
 	return out
+
+
+## Effects wiring (B-1322): focus landing on a button bursts a small
+## sparkle at its tip; a press flashes the bar and bursts again. The
+## reel's grab_focus / pressed.emit reach the same signals, so the
+## movie shows the effects exactly where a player's hand would.
+func _wire_fx(scr: Control) -> void:
+	for b in _buttons(scr):
+		var btn := b as BaseButton
+		if not btn.focus_entered.is_connected(_on_button_focus.bind(btn)):
+			btn.focus_entered.connect(_on_button_focus.bind(btn))
+		if not btn.pressed.is_connected(_on_button_press.bind(btn)):
+			btn.pressed.connect(_on_button_press.bind(btn))
+
+
+func _on_button_focus(btn: BaseButton) -> void:
+	if _fx_front:
+		var r := btn.get_global_rect()
+		_fx_front.burst(r.position + Vector2(14, r.size.y * 0.5), Color(1, 0.95, 0.75))
+
+
+func _on_button_press(btn: BaseButton) -> void:
+	if _fx_front:
+		_fx_front.flash(btn.get_global_transform(), btn.size, Color.WHITE)
+		var r := btn.get_global_rect()
+		_fx_front.burst(r.get_center(), Color(1, 0.9, 0.6))
 
 
 ## The opening choreography: whatever the world's own opening played
@@ -236,6 +286,9 @@ func _goto(next: String) -> void:
 	move_child(scr, old.get_index())
 	_current = scr
 	_dress(next)
+	_wire_fx(scr)
+	if _fx_front:
+		_fx_front.slash(Color(1, 1, 1, 0.9))
 	# The new screen's own opening is superseded by the transition and
 	# the choreography below; its world motion node must not open it.
 	var wm := scr.find_child("WorldMotion", true, false)

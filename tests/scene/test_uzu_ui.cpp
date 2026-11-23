@@ -1196,8 +1196,10 @@ TEST_CASE("[SceneTree][UZUUI] Halftone print and gradients (B-1321)") {
 	const Dictionary pback = UZUUI::get_backdrop_options("persona");
 	CHECK(int(pback["halftone_cells"]) == 64);
 	CHECK(pback.has("halftone_dot"));
-	CHECK(pback.has("gradient_to"));
-	CHECK(pback.has("band_gradient_to"));
+	// B-1322: the ground's run became a radial multi-stop ramp and
+	// the band's a three-stop one; the keys are the stops forms now.
+	CHECK(pback.has("gradient_stops"));
+	CHECK(pback.has("band_gradient_stops"));
 	// A frame gradient runs under the material: the flat frame's top
 	// sits near the base, its bottom near the named colour, and
 	// without the key the two ends are identical.
@@ -1260,6 +1262,120 @@ TEST_CASE("[SceneTree][UZUUI] Halftone print and gradients (B-1321)") {
 	const Color bbot = bandimg->get_pixel(120, 160);
 	CHECK(bbot.b > 0.8f);
 	CHECK(bbot.r < 0.25f);
+}
+
+TEST_CASE("[SceneTree][UZUUI] Gradient ramps, radial runs and frame lighting (B-1322)") {
+	// A multi-stop frame ramp: black -> white -> black down the tile.
+	// The middle row must sit near the middle stop, not on the
+	// two-stop lerp's line (which would read ~0.5 at a quarter height
+	// on its way up and never come back down).
+	Dictionary ramp;
+	ramp["material"] = "flat";
+	ramp["base"] = "#000000";
+	Array stops;
+	stops.push_back("#ffffff");
+	stops.push_back("#000000");
+	ramp["gradient_stops"] = stops;
+	ramp["border_width"] = 0;
+	ramp["shadow"] = 0;
+	const Ref<Image> rimg = UZUUI::draw_frame(ramp);
+	REQUIRE(rimg.is_valid());
+	const int rx = rimg->get_width() / 2;
+	const int rh = rimg->get_height();
+	CHECK(rimg->get_pixel(rx, 8).r < 0.15f); // The base, at the top.
+	CHECK(rimg->get_pixel(rx, rh / 2).r > 0.85f); // The middle stop, hit at the middle.
+	CHECK(rimg->get_pixel(rx, rh - 9).r < 0.15f); // And back down to the last stop.
+	// The ramp's axis stretches in the stylebox, like a two-stop run's.
+	const Ref<StyleBoxTexture> rbox = UZUUI::create_frame_style(ramp);
+	REQUIRE(rbox.is_valid());
+	CHECK(rbox->get_v_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
+	// A radial backdrop run: the centre holds the base, the far
+	// corner reaches the last stop, and the centre can sit off-middle
+	// (the key light's corner).
+	Dictionary rad;
+	rad["size"] = Vector2i(240, 240);
+	rad["base"] = "#000000";
+	Array rstops;
+	rstops.push_back("#666666");
+	rstops.push_back("#ffffff");
+	rad["gradient_stops"] = rstops;
+	rad["gradient_dir"] = "radial";
+	rad["gradient_center"] = Vector2(0.25, 0.25);
+	rad["gradient_radius"] = 0.8;
+	rad["mottle"] = 0.0;
+	const Ref<Image> radimg = UZUUI::draw_backdrop(rad);
+	REQUIRE(radimg.is_valid());
+	CHECK(radimg->get_pixel(60, 60).r < 0.1f); // At the centre: the base.
+	CHECK(radimg->get_pixel(120, 60).r > 0.15f); // Partway out (t=0.31): on the first run, 0.25.
+	CHECK(radimg->get_pixel(120, 60).r < 0.4f);
+	CHECK(radimg->get_pixel(232, 232).r > 0.9f); // The far corner: the last stop.
+	// A radial frame run stretches both axes (it is positional in
+	// both); the halftone print keeps its native horizontal tiling.
+	Dictionary frad = ramp.duplicate();
+	frad.erase("gradient_stops");
+	frad["gradient_to"] = "#ffffff";
+	frad["gradient_dir"] = "radial";
+	const Ref<StyleBoxTexture> frbox = UZUUI::create_frame_style(frad);
+	REQUIRE(frbox.is_valid());
+	CHECK(frbox->get_h_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
+	CHECK(frbox->get_v_axis_stretch_mode() == StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
+	// The band's own ramp: three stops across its width — the lit
+	// catch under the upper edge, then the shade.
+	Dictionary band;
+	band["size"] = Vector2i(240, 240);
+	band["base"] = "#000000";
+	band["mottle"] = 0.0;
+	band["band"] = "#400000";
+	Array bstops;
+	bstops.push_back("#ff0000");
+	bstops.push_back("#000040");
+	band["band_gradient_stops"] = bstops;
+	band["band_y"] = 0.5;
+	band["band_h"] = 100;
+	band["band_slope"] = 0.0;
+	const Ref<Image> bandimg = UZUUI::draw_backdrop(band);
+	REQUIRE(bandimg.is_valid());
+	CHECK(bandimg->get_pixel(120, 80).r == doctest::Approx(0.4).epsilon(0.08)); // Near the top edge (t=0.1): the band colour rising to the bright stop.
+	CHECK(bandimg->get_pixel(120, 120).r > 0.9f); // The bright stop at the band's middle.
+	const Color bbot = bandimg->get_pixel(120, 168);
+	CHECK(bbot.b > 0.2f); // The last stop shades the lower edge.
+	CHECK(bbot.r < 0.1f);
+	// Persona's presets carry the new runs.
+	const Dictionary pframe = Dictionary(UZUUI::get_world_options("persona")["frame"]);
+	CHECK(pframe.has("gradient_stops"));
+	CHECK(Array(pframe["gradient_stops"]).size() == 3);
+	const Dictionary pback = UZUUI::get_backdrop_options("persona");
+	CHECK(String(pback["gradient_dir"]) == "radial");
+	CHECK(Array(pback["gradient_stops"]).size() == 2);
+	CHECK(Array(pback["band_gradient_stops"]).size() == 2);
+	// The frame lighting (the shader pass): every world names the
+	// three uniforms inside their ranges, persona lights all three,
+	// and pixel — flat by design — lights none.
+	for (const String &w : UZUUI::get_world_names()) {
+		const Ref<ShaderMaterial> m = UZUUI::create_world_material(w);
+		REQUIRE(m.is_valid());
+		for (const char *key : { "sweep", "rim", "bloom" }) {
+			const float v = float(m->get_shader_parameter(key));
+			CHECK(v >= 0.0f);
+			CHECK(v <= 1.0f);
+		}
+	}
+	const Ref<ShaderMaterial> persona = UZUUI::create_world_material("persona");
+	REQUIRE(persona.is_valid());
+	CHECK(float(persona->get_shader_parameter("sweep")) > 0.0f);
+	CHECK(float(persona->get_shader_parameter("rim")) > 0.0f);
+	CHECK(float(persona->get_shader_parameter("bloom")) > 0.0f);
+	const Ref<ShaderMaterial> pixel = UZUUI::create_world_material("pixel");
+	REQUIRE(pixel.is_valid());
+	CHECK(float(pixel->get_shader_parameter("sweep")) == 0.0f);
+	CHECK(float(pixel->get_shader_parameter("rim")) == 0.0f);
+	CHECK(float(pixel->get_shader_parameter("bloom")) == 0.0f);
+	// The mechanisms themselves, pinned in the shader source.
+	const String code = persona->get_shader()->get_code();
+	CHECK(code.contains("uniform float sweep"));
+	CHECK(code.contains("uniform float rim"));
+	CHECK(code.contains("uniform float bloom"));
+	CHECK(code.contains("a_r - a_l")); // The rim reads the silhouette's gradient.
 }
 
 TEST_CASE("[SceneTree][UZUUI] World themes and game parts") {

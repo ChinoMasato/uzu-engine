@@ -1236,30 +1236,70 @@ HalftoneSpec halftone_of(const Dictionary &p_style) {
 	return h;
 }
 
-// A style's gradient (B-1321): "gradient_to" is the colour the ground
-// runs to from "base", "gradient_dir" the run's direction ("down"
-// unless named: "up", "left", "right", and on backdrops "diag").
-// Returns false when the style names no gradient.
-bool gradient_of(const Dictionary &p_style, Color &r_to, String &r_dir) {
-	if (!p_style.has("gradient_to")) {
-		return false;
+// A style's gradient (B-1321, extended B-1322): the ground runs along
+// a ramp of colours. "<prefix>to" names the end of a two-stop run from
+// the ground colour; "<prefix>stops" names the rest of the ramp (an
+// Array of colours, evenly spaced after the ground), so three stops
+// and more can carry a light's flow — lit, full, shaded — instead of
+// one flat lerp. "gradient_dir" is the run's direction: "down"
+// (default), "up", "left", "right", "diag", or "radial" — a radial
+// run measures distance from "gradient_center" (0..1 across the
+// canvas, default its middle) and reaches the ramp's end at
+// "gradient_radius" (a fraction of the canvas's longer side).
+Vector<Color> gradient_ramp(const Dictionary &p_style, const String &p_prefix, const Color &p_base) {
+	Vector<Color> ramp;
+	if (p_style.has(p_prefix + "stops")) {
+		const Array stops = p_style.get(p_prefix + "stops", Array());
+		if (!stops.is_empty()) {
+			ramp.push_back(p_base);
+			for (const Variant &v : stops) {
+				ramp.push_back(color_of(v, p_base));
+			}
+			return ramp;
+		}
 	}
-	r_to = color_of(p_style.get("gradient_to", Variant()), Color());
-	r_dir = p_style.get("gradient_dir", "down");
-	return true;
+	if (p_style.has(p_prefix + "to")) {
+		ramp.push_back(p_base);
+		ramp.push_back(color_of(p_style.get(p_prefix + "to", Variant()), p_base));
+	}
+	return ramp;
 }
 
-float gradient_t(const String &p_dir, float p_x, float p_y, float p_w, float p_h) {
-	if (p_dir == "up") {
+Color ramp_color(const Vector<Color> &p_ramp, float p_t) {
+	if (p_ramp.is_empty()) {
+		return Color();
+	}
+	if (p_ramp.size() == 1) {
+		return p_ramp[0];
+	}
+	const float f = CLAMP(p_t, 0.0f, 1.0f) * float(p_ramp.size() - 1);
+	const int i = MIN(int(f), p_ramp.size() - 2);
+	return p_ramp[i].lerp(p_ramp[i + 1], f - float(i));
+}
+
+float gradient_t(const Dictionary &p_style, float p_x, float p_y, float p_w, float p_h) {
+	const String dir = p_style.get("gradient_dir", "down");
+	if (dir == "radial") {
+		Vector2 center(0.5f, 0.5f);
+		const Variant c = p_style.get("gradient_center", Variant());
+		if (c.get_type() == Variant::VECTOR2) {
+			center = c;
+		} else if (c.get_type() == Variant::VECTOR2I) {
+			center = Vector2(Vector2i(c));
+		}
+		const float radius = CLAMP(float(p_style.get("gradient_radius", 0.75)), 0.05f, 2.0f) * MAX(p_w, p_h);
+		return CLAMP(Vector2(p_x, p_y).distance_to(Vector2(center.x * p_w, center.y * p_h)) / radius, 0.0f, 1.0f);
+	}
+	if (dir == "up") {
 		return 1.0f - p_y / p_h;
 	}
-	if (p_dir == "right") {
+	if (dir == "right") {
 		return p_x / p_w;
 	}
-	if (p_dir == "left") {
+	if (dir == "left") {
 		return 1.0f - p_x / p_w;
 	}
-	if (p_dir == "diag") {
+	if (dir == "diag") {
 		return 0.5f * (p_x / p_w + p_y / p_h);
 	}
 	return p_y / p_h; // "down", and anything unknown.
@@ -1380,9 +1420,8 @@ Ref<Image> draw_frame_impl(const Dictionary &p_style, float p_shadow_alpha) {
 	// default, and stays right where a shape must read as a pure
 	// colour (persona's inverted focus bar is a button, not a frame).
 	const HalftoneSpec ht = halftone_of(p_style);
-	Color grad_to;
-	String grad_dir;
-	const bool has_grad = gradient_of(p_style, grad_to, grad_dir);
+	const Vector<Color> grad_ramp = gradient_ramp(p_style, "gradient_", base);
+	const bool has_grad = !grad_ramp.is_empty();
 	// For skew the 9-slice middle is half a tile wide (create_frame_style),
 	// so an fbm material must repeat at that period or the tiled middle
 	// prints the seam as a pattern jump. Halftone is exempt: its dot
@@ -1414,7 +1453,7 @@ Ref<Image> draw_frame_impl(const Dictionary &p_style, float p_shadow_alpha) {
 				}
 			}
 			const float inside = pixel ? (d <= 0.0f ? 1.0f : 0.0f) : CLAMP(0.5f - d, 0.0f, 1.0f);
-			const Color ground = has_grad ? base.lerp(grad_to, gradient_t(grad_dir, p.x, p.y, float(w), float(h))) : base;
+			const Color ground = has_grad ? ramp_color(grad_ramp, gradient_t(p_style, p.x, p.y, float(w), float(h))) : base;
 			Color c = material_color(material, ground, p.x, p.y, d, seed, mat_tile, scale, ht);
 			// Bevel: light from the top, dark at the bottom, just inside the border.
 			if (d > -(bw * 2.0f + 2.0f * scale) && d < -bw && !pixel) {
@@ -1593,7 +1632,7 @@ Ref<StyleBox> UZUUI::create_frame_style(const Dictionary &p_style) {
 		// cannot open a seam in the silhouette.
 		sb->set_v_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
 	}
-	if (style.has("gradient_to") && String(style.get("shape", "")) != "pixel") {
+	if ((style.has("gradient_to") || style.has("gradient_stops")) && String(style.get("shape", "")) != "pixel") {
 		// A gradient lives in the texture as one run from edge to
 		// edge: tiling would repeat it per tile and TILE_FIT would
 		// rescale it per panel, so the axis it runs along stretches
@@ -1602,8 +1641,17 @@ Ref<StyleBox> UZUUI::create_frame_style(const Dictionary &p_style) {
 		// forced on the halftone print: its dots must tile at native
 		// size across the width, and a rescaled dot grid moires
 		// (B-1315), so a halftone frame's gradient runs vertically.
+		// A radial run (B-1322) is positional in both axes, so both
+		// stretch — except the halftone print's width, which keeps
+		// its native tiling for the same moire reason and reads the
+		// radial as its vertical component.
 		const String gdir = String(style.get("gradient_dir", "down"));
-		if (gdir == "right" || gdir == "left") {
+		if (gdir == "radial") {
+			sb->set_v_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
+			if (String(style.get("material", "")) != "halftone") {
+				sb->set_h_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
+			}
+		} else if (gdir == "right" || gdir == "left") {
 			if (String(style.get("material", "")) != "halftone") {
 				sb->set_h_axis_stretch_mode(StyleBoxTexture::AXIS_STRETCH_MODE_STRETCH);
 			}
@@ -1660,12 +1708,19 @@ Dictionary UZUUI::get_world_options(const String &p_world) {
 		set(frame, "inner_shadow", 0.3), set(frame, "highlight", 0.3);
 		// The print, reworked (B-1321): a finer pitch (64 cells per
 		// tile, a 4 px cell) inked in the red's own shade — a deep
-		// maroon, not black — and a gentle gradient down the panel,
-		// the red deepening toward the bottom so the surface carries
-		// a light direction. The buttons stay flat: the inverted
-		// focus bar must read as one pure colour.
+		// maroon, not black — and a gradient down the panel, the red
+		// deepening toward the bottom so the surface carries a light
+		// direction. B-1322 makes the run three stops past the base:
+		// the red holds through the middle, then falls to a deep
+		// shade, so a tall panel is lit at the top and grounded at
+		// the bottom instead of one even lerp. The buttons stay
+		// flat: the inverted focus bar must read as one pure colour.
 		set(frame, "halftone_cells", 64), set(frame, "halftone_dot", "#7d000d");
-		set(frame, "gradient_to", "#c40010"), set(frame, "gradient_dir", "down");
+		Array fstops;
+		fstops.push_back("#e60012");
+		fstops.push_back("#c40010");
+		fstops.push_back("#8f000c");
+		set(frame, "gradient_stops", fstops), set(frame, "gradient_dir", "down");
 		set(button, "material", "flat"), set(button, "base", "#111111"), set(button, "edge", "#ffffff"), set(button, "shape", "skew"), set(button, "border_width", 3), set(button, "shadow", 8);
 		// Hover and focus invert the bar to the signal red (B-1320):
 		// the reference menu's selected item is a red slash, not a
@@ -2050,6 +2105,17 @@ uniform float steps = 0.0;
 // frames sit at 1.0 over a shadow of at most 0.85, glass lower).
 uniform float mask_lo = 0.90;
 uniform float mask_hi = 0.99;
+// Lighting over the print (B-1322), all masked to the frame body like
+// the decoration above: "sweep" is a broad, soft light that crosses
+// the frame slowly — the scene's key light passing, where the glint
+// is only its sharpest glint; "rim" lights the silhouette edges that
+// face the light (the top and left, the same direction the baked
+// highlight and the offset shadows agree on); "bloom" lets the
+// print's own bright parts glow a little, a cheap stand-in for a
+// post-process bloom pass the 2D route does not have.
+uniform float sweep = 0.0;
+uniform float rim = 0.0;
+uniform float bloom = 0.0;
 varying vec2 local;
 
 void vertex() {
@@ -2077,8 +2143,34 @@ void fragment() {
 	} else if (mode == 4) {
 		k = 0.5 + 0.5 * sin((local.y - t * 80.0) * 0.35);
 	}
-	k *= smoothstep(mask_lo, mask_hi, c.a);
+	float mask = smoothstep(mask_lo, mask_hi, c.a);
+	k *= mask;
 	c.rgb = mix(c.rgb, glow_color.rgb, clamp(k * strength, 0.0, 1.0));
+	if (sweep > 0.0) {
+		// A wide pool of light on the glint's own slant, crossing at
+		// a third of its speed and far softer: the frame is lit, not
+		// just striped.
+		float sx = mod(local.x * 0.75 + local.y * 0.5 - t * 300.0, 2600.0);
+		float sw = smoothstep(0.0, 260.0, sx) * (1.0 - smoothstep(260.0, 640.0, sx));
+		c.rgb += glow_color.rgb * (sw * sweep * mask);
+	}
+	if (rim > 0.0) {
+		// The silhouette's gradient, sampled a few px out so the rim
+		// has width: alpha rises inward, so (right - left) marks a
+		// left edge and (below - above) a top edge — the two edges
+		// the key light (top left) can see.
+		vec2 px = TEXTURE_PIXEL_SIZE * 6.0;
+		float a_r = texture(TEXTURE, UV + vec2(px.x, 0.0)).a;
+		float a_l = texture(TEXTURE, UV - vec2(px.x, 0.0)).a;
+		float a_d = texture(TEXTURE, UV + vec2(0.0, px.y)).a;
+		float a_u = texture(TEXTURE, UV - vec2(0.0, px.y)).a;
+		float lit = clamp(((a_r - a_l) + (a_d - a_u)) * 0.5, 0.0, 1.0);
+		c.rgb += glow_color.rgb * (lit * rim * mask);
+	}
+	if (bloom > 0.0) {
+		float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+		c.rgb += c.rgb * (smoothstep(0.72, 1.0, lum) * bloom);
+	}
 	COLOR = c;
 }
 )";
@@ -2095,14 +2187,18 @@ Ref<ShaderMaterial> UZUUI::create_world_material(const String &p_world) {
 		// over a shadow of at most 0.85; sf's glass body is ~0.86
 		// over a soft shadow of at most 0.5.
 		float mask_lo, mask_hi;
+		// The lighting pass (B-1322): the broad light sweep, the rim
+		// light and the fake bloom, each 0..1 (0 = off). Pixel keeps
+		// all three off — its print stays flat by design.
+		float sweep, rim, bloom;
 	};
 	static const Decor DECOR[] = {
-		{ "fantasy", 1, "#fff1b0", 0.25f, 0.28f, 0.0f, 0.90f, 0.99f }, // A gold glint now and then.
-		{ "wafu", 1, "#fff8e6", 0.12f, 0.16f, 0.0f, 0.90f, 0.99f }, // A slow, quiet sheen.
-		{ "sf", 4, "#7ff0ff", 1.0f, 0.12f, 0.0f, 0.60f, 0.84f }, // Scan lines flowing down.
-		{ "horror", 3, "#000000", 1.0f, 0.45f, 0.0f, 0.90f, 0.99f }, // A failing light.
-		{ "persona", 1, "#ffffff", 0.9f, 0.30f, 0.0f, 0.90f, 0.99f }, // A fast white flash.
-		{ "pixel", 2, "#ffffff", 0.5f, 0.14f, 4.0f, 0.90f, 0.99f }, // A stepped blink.
+		{ "fantasy", 1, "#fff1b0", 0.25f, 0.28f, 0.0f, 0.90f, 0.99f, 0.10f, 0.30f, 0.10f }, // A gold glint now and then.
+		{ "wafu", 1, "#fff8e6", 0.12f, 0.16f, 0.0f, 0.90f, 0.99f, 0.06f, 0.18f, 0.05f }, // A slow, quiet sheen.
+		{ "sf", 4, "#7ff0ff", 1.0f, 0.12f, 0.0f, 0.60f, 0.84f, 0.0f, 0.25f, 0.30f }, // Scan lines flowing down.
+		{ "horror", 3, "#000000", 1.0f, 0.45f, 0.0f, 0.90f, 0.99f, 0.0f, 0.08f, 0.0f }, // A failing light.
+		{ "persona", 1, "#ffffff", 0.9f, 0.30f, 0.0f, 0.90f, 0.99f, 0.30f, 0.45f, 0.22f }, // A fast white flash.
+		{ "pixel", 2, "#ffffff", 0.5f, 0.14f, 4.0f, 0.90f, 0.99f, 0.0f, 0.0f, 0.0f }, // A stepped blink.
 	};
 	for (const Decor &d : DECOR) {
 		if (p_world != d.world) {
@@ -2121,6 +2217,9 @@ Ref<ShaderMaterial> UZUUI::create_world_material(const String &p_world) {
 		m->set_shader_parameter("steps", d.steps);
 		m->set_shader_parameter("mask_lo", d.mask_lo);
 		m->set_shader_parameter("mask_hi", d.mask_hi);
+		m->set_shader_parameter("sweep", d.sweep);
+		m->set_shader_parameter("rim", d.rim);
+		m->set_shader_parameter("bloom", d.bloom);
 		return m;
 	}
 	ERR_FAIL_V_MSG(Ref<ShaderMaterial>(), vformat("UZUUI: unknown world \"%s\" (see get_world_names).", p_world));
@@ -2139,13 +2238,22 @@ Dictionary UZUUI::get_backdrop_options(const String &p_world) {
 		set(o, "base", "#0b0508"), set(o, "mottle", 0.5), set(o, "seed", 7);
 		set(o, "band", "#e60012"), set(o, "band_y", 0.60), set(o, "band_h", 118), set(o, "band_halftone", true);
 		set(o, "band_slope", 0.30);
-		// Texture craft (B-1321): the ground warms almost
-		// imperceptibly toward the bottom, the band's red deepens
-		// across its own width (lit rule at the top, shade at the
-		// bottom), and the band's print matches the frames' — the
-		// fine pitch inked in maroon, not black.
-		set(o, "gradient_to", "#180409"), set(o, "gradient_dir", "down");
-		set(o, "band_gradient_to", "#a80010");
+		// Texture craft (B-1321): the band's print matches the
+		// frames' — the fine pitch inked in maroon, not black.
+		// Lighting (B-1322): the ground is a radial run centred
+		// high-left — the same corner the frames' key light comes
+		// from — so the field itself is lit, warm near the light
+		// and near-black at the far corner; the band's ramp catches
+		// a brighter red just under its lit rule before it shades.
+		Array gstops;
+		gstops.push_back("#160409");
+		gstops.push_back("#030204");
+		set(o, "gradient_stops", gstops), set(o, "gradient_dir", "radial");
+		set(o, "gradient_center", Vector2(0.30, 0.16)), set(o, "gradient_radius", 0.85);
+		Array bstops;
+		bstops.push_back("#f00014");
+		bstops.push_back("#a80010");
+		set(o, "band_gradient_stops", bstops);
 		set(o, "halftone_cells", 64), set(o, "halftone_dot", "#7d000d");
 		set(o, "band_under", "#030203"), set(o, "band_under_h", 22);
 		set(o, "line", "#ffffff"), set(o, "vignette", 0.35);
@@ -2247,24 +2355,25 @@ Ref<Image> UZUUI::draw_backdrop(const Dictionary &p_style) {
 		}
 	}
 	const float vignette = CLAMP(float(p_style.get("vignette", 0.0)), 0.0f, 1.0f);
-	// Gradients (B-1321): the ground runs from "base" to
-	// "gradient_to" along "gradient_dir" under everything else, and
-	// the band can carry its own run, "band_gradient_to", along its
-	// width — lit at the upper edge, shaded at the lower. The
+	// Gradients (B-1321, ramps B-1322): the ground runs along its
+	// ramp ("gradient_to", or "gradient_stops" for three stops and
+	// more) under everything else, and the band carries its own ramp
+	// ("band_gradient_to" / "band_gradient_stops") across its width —
+	// lit at the upper edge, shaded at the lower. Either run can be
+	// radial ("gradient_dir"), centred by "gradient_center". The
 	// halftone print on the bands takes the style's pitch and ink,
 	// like a frame's.
 	const HalftoneSpec ht = halftone_of(p_style);
-	Color grad_to;
-	String grad_dir;
-	const bool has_grad = gradient_of(p_style, grad_to, grad_dir);
-	const bool has_band_grad = p_style.has("band_gradient_to");
-	const Color band_grad_to = color_of(p_style.get("band_gradient_to", Variant()), band);
+	const Vector<Color> grad_ramp = gradient_ramp(p_style, "gradient_", base);
+	const bool has_grad = !grad_ramp.is_empty();
+	const Vector<Color> band_ramp = gradient_ramp(p_style, "band_gradient_", band);
+	const bool has_band_grad = !band_ramp.is_empty();
 	Ref<Image> img = Image::create_empty(size.x, size.y, false, Image::FORMAT_RGBA8);
 	for (int y = 0; y < size.y; y++) {
 		for (int x = 0; x < size.x; x++) {
 			Color c = base;
 			if (has_grad) {
-				c = base.lerp(grad_to, gradient_t(grad_dir, float(x), float(y), float(size.x), float(size.y)));
+				c = ramp_color(grad_ramp, gradient_t(p_style, float(x), float(y), float(size.x), float(size.y)));
 			}
 			if (mottle > 0.0f) {
 				// One fbm field over the whole canvas (its period is
@@ -2291,7 +2400,7 @@ Ref<Image> UZUUI::draw_backdrop(const Dictionary &p_style) {
 				// graphic slant of the persona composition.
 				const float s = (y - band_y) + (x - size.x * 0.5f) * band_slope;
 				if (has_band && Math::abs(s) < band_h * 0.5f) {
-					const Color bc = has_band_grad ? band.lerp(band_grad_to, CLAMP(s / band_h + 0.5f, 0.0f, 1.0f)) : band;
+					const Color bc = has_band_grad ? ramp_color(band_ramp, CLAMP(s / band_h + 0.5f, 0.0f, 1.0f)) : band;
 					c = band_halftone ? material_color("halftone", bc, x, y, 0.0f, seed, 256, 1, ht) : bc;
 				} else if (has_under && s >= band_h * 0.5f && s < band_h * 0.5f + under_h) {
 					c = under;
