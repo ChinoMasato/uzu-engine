@@ -1679,7 +1679,16 @@ Dictionary UZUUI::get_world_options(const String &p_world) {
 		set(frame, "material", "wood"), set(frame, "base", "#6b4a2e"), set(frame, "edge", "#2e1d10"), set(frame, "accent", "#e6c36a");
 		set(frame, "ornament", "brackets"), set(frame, "radius", 8), set(frame, "border_width", 3), set(frame, "shadow", 8);
 		set(frame, "inner_shadow", 0.45), set(frame, "highlight", 0.35);
+		// Candlelight from above (B-1323): the wood darkens down the
+		// panel in a three-stop run, and the parchment button shades
+		// gently toward its foot -- the same light direction the
+		// backdrop's radial core sits in.
+		Array fstops;
+		fstops.push_back("#5d3f24");
+		fstops.push_back("#3c2712");
+		set(frame, "gradient_stops", fstops), set(frame, "gradient_dir", "down");
 		set(button, "material", "parchment"), set(button, "base", "#e8d6a8"), set(button, "edge", "#5a3d22"), set(button, "radius", 6);
+		set(button, "gradient_to", "#dec493");
 		set(o, "text", "#f6e7c8"), set(o, "button_text", "#3a2614"), set(o, "accent", "#e6c36a"), set(o, "fill", "#d94a3a");
 	} else if (p_world == "wafu") {
 		set(frame, "material", "parchment"), set(frame, "base", "#efe2c4"), set(frame, "edge", "#3b2416"), set(frame, "accent", "#b8322a");
@@ -1693,10 +1702,26 @@ Dictionary UZUUI::get_world_options(const String &p_world) {
 		set(button, "material", "glass"), set(button, "base", "#0e2a3aee"), set(button, "accent", "#38e1ff"), set(button, "shape", "chamfer"), set(button, "radius", 8);
 		set(o, "text", "#d8f6ff"), set(o, "button_text", "#d8f6ff"), set(o, "accent", "#38e1ff"), set(o, "fill", "#38e1ff");
 	} else if (p_world == "horror") {
-		set(frame, "material", "grime"), set(frame, "base", "#2a1414"), set(frame, "edge", "#090404"), set(frame, "accent", "#8a1010");
+		set(frame, "material", "grime"), set(frame, "base", "#201010"), set(frame, "edge", "#090404"), set(frame, "accent", "#8a1010");
 		set(frame, "ornament", "nails"), set(frame, "radius", 0), set(frame, "border_width", 3), set(frame, "shadow", 12);
 		set(frame, "inner_shadow", 0.5);
+		// Seed 22's grime field on a deeper ground (B-1323): the
+		// default seed's scratch contours tile visibly and score
+		// 0.35-0.39 on the sheet gate; this field is sparser -- its
+		// contours do not line up across the tile -- and the deeper
+		// base takes the sheet score to 0.26. (Chosen by rendering
+		// the sheet at panel scale per seed; the raw texture alone
+		// mispredicts the score, the tile period only enters the
+		// autocorrelation band at panel width.)
+		set(frame, "seed", 22);
+		// The grime sinks to black down the panel (B-1323): whatever
+		// light the failing lamp gives dies toward the foot.
+		Array hstops;
+		hstops.push_back("#170909");
+		hstops.push_back("#050202");
+		set(frame, "gradient_stops", hstops), set(frame, "gradient_dir", "down");
 		set(button, "material", "grime"), set(button, "base", "#3a1a1a"), set(button, "edge", "#0b0505"), set(button, "radius", 0);
+		set(button, "gradient_to", "#200c0c");
 		set(o, "text", "#e8d8d0"), set(o, "button_text", "#e8d8d0"), set(o, "accent", "#a01818"), set(o, "fill", "#8a1010");
 	} else if (p_world == "persona") {
 		// The red is the reference work's own (#e60012): the earlier
@@ -2196,7 +2221,7 @@ Ref<ShaderMaterial> UZUUI::create_world_material(const String &p_world) {
 		{ "fantasy", 1, "#fff1b0", 0.25f, 0.28f, 0.0f, 0.90f, 0.99f, 0.10f, 0.30f, 0.10f }, // A gold glint now and then.
 		{ "wafu", 1, "#fff8e6", 0.12f, 0.16f, 0.0f, 0.90f, 0.99f, 0.06f, 0.18f, 0.05f }, // A slow, quiet sheen.
 		{ "sf", 4, "#7ff0ff", 1.0f, 0.12f, 0.0f, 0.60f, 0.84f, 0.0f, 0.25f, 0.30f }, // Scan lines flowing down.
-		{ "horror", 3, "#000000", 1.0f, 0.45f, 0.0f, 0.90f, 0.99f, 0.0f, 0.08f, 0.0f }, // A failing light.
+		{ "horror", 3, "#000000", 1.0f, 0.60f, 0.0f, 0.90f, 0.99f, 0.0f, 0.12f, 0.0f }, // A failing light (B-1323: the flicker bites harder, a faint cold rim).
 		{ "persona", 1, "#ffffff", 0.9f, 0.30f, 0.0f, 0.90f, 0.99f, 0.30f, 0.45f, 0.22f }, // A fast white flash.
 		{ "pixel", 2, "#ffffff", 0.5f, 0.14f, 4.0f, 0.90f, 0.99f, 0.0f, 0.0f, 0.0f }, // A stepped blink.
 	};
@@ -2271,16 +2296,36 @@ Dictionary UZUUI::get_backdrop_options(const String &p_world) {
 		set(o, "glow2", "#2e2113"), set(o, "glow2_pos", Vector2(0.82, 0.14)), set(o, "glow2_strength", 0.4);
 		set(o, "vignette", 0.6);
 	} else if (p_world == "fantasy") {
-		set(o, "base", "#10130c"), set(o, "mottle", 0.7), set(o, "seed", 5);
-		set(o, "glow", "#26300f"), set(o, "glow_pos", Vector2(0.5, 0.35)), set(o, "glow_strength", 0.45);
-		set(o, "vignette", 0.5);
+		// A hall lit by candles (B-1323): the ground is a radial run
+		// whose warm core sits high in the frame -- the light the
+		// frames' gradient falls away from -- over a mottled dark
+		// floor, with a second faint candle low to the right and a
+		// few gold motes hanging in the upper field.
+		set(o, "base", "#14100a"), set(o, "mottle", 0.7), set(o, "seed", 5);
+		Array gstops;
+		gstops.push_back("#2e1f0e");
+		gstops.push_back("#0b0805");
+		set(o, "gradient_stops", gstops), set(o, "gradient_dir", "radial");
+		set(o, "gradient_center", Vector2(0.5, 0.38)), set(o, "gradient_radius", 0.9);
+		set(o, "glow", "#4a2f10"), set(o, "glow_pos", Vector2(0.5, 0.35)), set(o, "glow_strength", 0.55);
+		set(o, "glow2", "#33200c"), set(o, "glow2_pos", Vector2(0.86, 0.78)), set(o, "glow2_strength", 0.35);
+		set(o, "stars", 6), set(o, "star", "#ffca7a");
+		set(o, "vignette", 0.55);
 	} else if (p_world == "sf") {
 		set(o, "base", "#04090f"), set(o, "mottle", 0.4), set(o, "seed", 9);
 		set(o, "glow", "#07242f"), set(o, "glow_pos", Vector2(0.5, 0.3)), set(o, "glow_strength", 0.5);
 		set(o, "vignette", 0.4);
 	} else if (p_world == "horror") {
+		// A room the light barely reaches (B-1323): a dim blood-warm
+		// core floats mid-field on the radial run and dies into
+		// near-black; the heavy vignette closes the corners in.
 		set(o, "base", "#0d0707"), set(o, "mottle", 0.9), set(o, "seed", 13);
-		set(o, "glow", "#1e0a0a"), set(o, "glow_pos", Vector2(0.5, 0.42)), set(o, "glow_strength", 0.4);
+		Array hstops;
+		hstops.push_back("#1c0d0d");
+		hstops.push_back("#040202");
+		set(o, "gradient_stops", hstops), set(o, "gradient_dir", "radial");
+		set(o, "gradient_center", Vector2(0.5, 0.42)), set(o, "gradient_radius", 0.8);
+		set(o, "glow", "#1e0a0a"), set(o, "glow_pos", Vector2(0.5, 0.42)), set(o, "glow_strength", 0.5);
 		set(o, "vignette", 0.75);
 	} else if (p_world == "pixel") {
 		set(o, "base", "#0c0e1e"), set(o, "mottle", 0.25), set(o, "seed", 2);

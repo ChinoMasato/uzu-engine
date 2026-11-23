@@ -1,0 +1,40 @@
+{
+ "scene": "res://screens/fantasy_talk.tscn",
+ "theme": {
+  "world": "fantasy",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Ribbon",
+    "text": "第一章　旅立ちの村",
+    "anchor": "top",
+    "offset": [
+     0,
+     28
+    ],
+    "size": [
+     440,
+     54
+    ]
+   },
+   {
+    "type": "Talk",
+    "speaker": "王都の使者",
+    "text": "王冠の星屑が、三つの地に散ってしまった。暁の光が戻る前に、集めてきてほしい。",
+    "anchor": "bottom_wide",
+    "offset": [
+     48,
+     36
+    ],
+    "size": [
+     1056,
+     190
+    ],
+    "motion": "appear"
+   }
+  ]
+ }
+}

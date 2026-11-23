@@ -65,6 +65,14 @@ func _ready() -> void:
 	elif world == "wafu":
 		_fx_back.dust = 12
 		_fx_back.dust_color = Color(1.0, 0.85, 0.6, 0.35)
+	elif world == "fantasy":
+		# Embers and dust in candlelight (B-1323).
+		_fx_back.dust = 18
+		_fx_back.dust_color = Color(1.0, 0.79, 0.42, 0.4)
+	elif world == "horror":
+		# Sparse ash, barely lit (B-1323).
+		_fx_back.dust = 9
+		_fx_back.dust_color = Color(0.75, 0.72, 0.78, 0.22)
 	add_child(_fx_back)
 	_deco_back = DecoLayer.new()
 	_deco_back.font = FONT
@@ -154,6 +162,88 @@ func _dress(name: String) -> void:
 				front = [
 					{"kind": "sparkle", "at": Vector2(905, 64), "r": 16.0, "color": Color.WHITE, "pulse": true},
 					{"kind": "sparkle", "at": Vector2(1120, 400), "r": 12.0, "color": Color(1, 1, 1, 0.8)},
+				]
+	elif world == "fantasy":
+		# B-1323: a gilt watermark word, a halo ring for the lost
+		# crown, and warm sparkles -- the hall's candlelight dressing.
+		var gold := Color(0.902, 0.765, 0.416)
+		match name:
+			"title":
+				back = [
+					{"kind": "word", "text": "CROWN", "at": Vector2(610, 292), "size": 150, "angle": -4.0, "color": Color(gold, 0.10)},
+					{"kind": "ring", "at": Vector2(988, 138), "r": 62.0, "width": 5.0, "color": Color(gold, 0.55)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(150, 308), "r": 14.0, "color": Color(1.0, 0.85, 0.55, 0.9), "pulse": true},
+					{"kind": "sparkle", "at": Vector2(1006, 300), "r": 18.0, "color": Color(1.0, 0.85, 0.55, 0.9), "pulse": true, "phase": 1.1},
+					{"kind": "sparkle", "at": Vector2(884, 540), "r": 12.0, "color": Color(1.0, 0.85, 0.55, 0.7)},
+				]
+			"menu":
+				back = [
+					{"kind": "word", "text": "REST", "at": Vector2(576, 330), "size": 230, "angle": -4.0, "color": Color(gold, 0.09)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(952, 120), "r": 16.0, "color": Color(1.0, 0.85, 0.55, 0.9), "pulse": true},
+				]
+			"settings":
+				back = [
+					{"kind": "word", "text": "CRAFT", "at": Vector2(810, 555), "size": 190, "angle": -4.0, "color": Color(gold, 0.09)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(140, 110), "r": 14.0, "color": Color(1.0, 0.85, 0.55, 0.9), "pulse": true},
+				]
+			"hud":
+				back = [
+					{"kind": "word", "text": "QUEST", "at": Vector2(700, 380), "size": 150, "angle": -4.0, "color": Color(gold, 0.09)},
+					{"kind": "ring", "at": Vector2(1022, 478), "r": 52.0, "width": 5.0, "color": Color(gold, 0.4)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(560, 120), "r": 12.0, "color": Color(1.0, 0.85, 0.55, 0.7)},
+				]
+			"talk":
+				back = [
+					{"kind": "word", "text": "TALE", "at": Vector2(330, 190), "size": 130, "angle": -4.0, "color": Color(gold, 0.10)},
+					{"kind": "ring", "at": Vector2(1012, 200), "r": 64.0, "width": 5.0, "color": Color(gold, 0.35)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(905, 64), "r": 15.0, "color": Color(1.0, 0.85, 0.55, 0.9), "pulse": true},
+				]
+	elif world == "horror":
+		# B-1323: a blood-faint watermark, one broken ring, and a
+		# single dim sparkle that breathes too slowly -- dressing
+		# that stays under the text.
+		var blood := Color(0.541, 0.063, 0.063)
+		match name:
+			"title":
+				back = [
+					{"kind": "word", "text": "DREAD", "at": Vector2(590, 300), "size": 170, "angle": -3.0, "color": Color(blood, 0.16)},
+					{"kind": "ring", "at": Vector2(138, 138), "r": 52.0, "width": 4.0, "gap": 1.2, "color": Color(blood, 0.5)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(1006, 96), "r": 13.0, "color": Color(0.85, 0.82, 0.88, 0.5), "pulse": true},
+				]
+			"menu":
+				back = [
+					{"kind": "word", "text": "PAUSE", "at": Vector2(576, 330), "size": 240, "angle": -3.0, "color": Color(blood, 0.13)},
+				]
+			"settings":
+				back = [
+					{"kind": "ring", "at": Vector2(1012, 130), "r": 58.0, "width": 4.0, "gap": 1.9, "color": Color(blood, 0.4)},
+				]
+			"hud":
+				back = [
+					{"kind": "word", "text": "HIDE", "at": Vector2(700, 380), "size": 160, "angle": -3.0, "color": Color(blood, 0.12)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(560, 120), "r": 11.0, "color": Color(0.85, 0.82, 0.88, 0.4)},
+				]
+			"talk":
+				back = [
+					{"kind": "word", "text": "WHISPER", "at": Vector2(340, 190), "size": 110, "angle": -3.0, "color": Color(blood, 0.14)},
+					{"kind": "ring", "at": Vector2(1012, 216), "r": 66.0, "width": 4.0, "gap": 2.4, "color": Color(blood, 0.35)},
+				]
+				front = [
+					{"kind": "sparkle", "at": Vector2(905, 64), "r": 12.0, "color": Color(0.85, 0.82, 0.88, 0.45), "pulse": true},
 				]
 	elif world == "wafu":
 		back = [

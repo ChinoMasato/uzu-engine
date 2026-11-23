@@ -1,0 +1,65 @@
+{
+	"format": "uzu-ui-containment/1",
+	"screens": {
+		"fantasy_hud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "fantasy"
+		},
+		"fantasy_menu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "fantasy"
+		},
+		"fantasy_settings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "fantasy"
+		},
+		"fantasy_talk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "fantasy"
+		},
+		"fantasy_title": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "fantasy"
+		},
+		"horror_hud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "horror"
+		},
+		"horror_menu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "horror"
+		},
+		"horror_settings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "horror"
+		},
+		"horror_talk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "horror"
+		},
+		"horror_title": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "horror"
+		}
+	}
+}

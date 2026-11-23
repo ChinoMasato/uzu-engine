@@ -1,0 +1,142 @@
+{
+ "scene": "res://screens/fantasy_menu.tscn",
+ "theme": {
+  "world": "fantasy",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Panel",
+    "anchor": "center",
+    "size": [
+     520,
+     452
+    ],
+    "children": [
+     {
+      "type": "VBox",
+      "separation": "l",
+      "children": [
+       {
+        "type": "Label",
+        "text": "メニュー",
+        "text_style": "heading",
+        "align": "center"
+       },
+       {
+        "type": "Color",
+        "color": "#e6c36a",
+        "min_size": [
+         0,
+         3
+        ]
+       },
+       {
+        "type": "Label",
+        "text": "アレン　Lv.12",
+        "text_style": "body"
+       },
+       {
+        "type": "HBox",
+        "separation": "m",
+        "children": [
+         {
+          "type": "Label",
+          "text": "HP",
+          "text_style": "caption",
+          "min_size": [
+           40,
+           0
+          ]
+         },
+         {
+          "type": "Gauge",
+          "value": 10,
+          "max": 100,
+          "segments": 65,
+          "min_size": [
+           0,
+           22
+          ],
+          "expand": true,
+          "motion": {
+           "preset": "value_change",
+           "from": 10,
+           "to": 65
+          }
+         }
+        ]
+       },
+       {
+        "type": "HBox",
+        "separation": "m",
+        "children": [
+         {
+          "type": "Label",
+          "text": "MP",
+          "text_style": "caption",
+          "min_size": [
+           40,
+           0
+          ]
+         },
+         {
+          "type": "Gauge",
+          "value": 8,
+          "max": 100,
+          "segments": 40,
+          "min_size": [
+           0,
+           22
+          ],
+          "expand": true,
+          "motion": {
+           "preset": "value_change",
+           "from": 8,
+           "to": 40
+          }
+         }
+        ]
+       },
+       {
+        "type": "Button",
+        "text": "ゲームにもどる",
+        "min_size": [
+         0,
+         48
+        ]
+       },
+       {
+        "type": "Button",
+        "text": "アイテム",
+        "min_size": [
+         0,
+         48
+        ]
+       },
+       {
+        "type": "Button",
+        "text": "せってい",
+        "min_size": [
+         0,
+         48
+        ]
+       },
+       {
+        "type": "Button",
+        "text": "タイトルへ",
+        "min_size": [
+         0,
+         48
+        ]
+       }
+      ]
+     }
+    ],
+    "motion": "appear"
+   }
+  ]
+ }
+}

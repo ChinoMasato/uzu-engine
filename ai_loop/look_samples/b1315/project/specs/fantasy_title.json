@@ -1,0 +1,113 @@
+{
+ "scene": "res://screens/fantasy_title.tscn",
+ "theme": {
+  "world": "fantasy",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "VBox",
+    "anchor": "center",
+    "offset": [
+     0,
+     -30
+    ],
+    "size": [
+     520,
+     430
+    ],
+    "separation": "l",
+    "children": [
+     {
+      "type": "Label",
+      "text": "暁の王冠",
+      "text_style": "display",
+      "align": "center"
+     },
+     {
+      "type": "Label",
+      "text": "― 失われた王冠を取り戻す旅 ―",
+      "text_style": "caption",
+      "align": "center",
+      "font_color": "#e6c36a"
+     },
+     {
+      "type": "Color",
+      "color": "#e6c36a",
+      "min_size": [
+       0,
+       3
+      ]
+     },
+     {
+      "type": "Spacer",
+      "min_size": [
+       0,
+       24
+      ]
+     },
+     {
+      "type": "Button",
+      "text": "はじめから",
+      "min_size": [
+       0,
+       56
+      ]
+     },
+     {
+      "type": "Button",
+      "text": "つづきから",
+      "min_size": [
+       0,
+       56
+      ]
+     },
+     {
+      "type": "Button",
+      "text": "せってい",
+      "min_size": [
+       0,
+       56
+      ]
+     },
+     {
+      "type": "Label",
+      "text": "U.ZU Engine sample",
+      "text_style": "caption",
+      "align": "center",
+      "font_color": "#efe2c4"
+     }
+    ],
+    "motion": "appear"
+   },
+   {
+    "type": "Panel",
+    "style": {
+     "bg": "#3a2410",
+     "radius": 4,
+     "padding": 4
+    },
+    "anchor": "top_right",
+    "offset": [
+     48,
+     44
+    ],
+    "size": [
+     52,
+     52
+    ],
+    "children": [
+     {
+      "type": "Label",
+      "text": "冠",
+      "font_size": 28,
+      "font_color": "#e6c36a",
+      "align": "center"
+     }
+    ]
+   }
+  ]
+ }
+}

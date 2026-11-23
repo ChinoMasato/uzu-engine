@@ -1,0 +1,40 @@
+{
+ "scene": "res://screens/horror_talk.tscn",
+ "theme": {
+  "world": "horror",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Ribbon",
+    "text": "第壱章　雨の洋館",
+    "anchor": "top",
+    "offset": [
+     0,
+     28
+    ],
+    "size": [
+     440,
+     54
+    ]
+   },
+   {
+    "type": "Talk",
+    "speaker": "不明な声",
+    "text": "……聞こえるか。鍵は三つ、館のどこかにある。明かりが消えたら、もう戻れない。",
+    "anchor": "bottom_wide",
+    "offset": [
+     48,
+     36
+    ],
+    "size": [
+     1056,
+     190
+    ],
+    "motion": "appear"
+   }
+  ]
+ }
+}
