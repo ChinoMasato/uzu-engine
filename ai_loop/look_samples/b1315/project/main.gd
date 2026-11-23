@@ -11,6 +11,7 @@ extends Control
 ##   UZU_B1315_WORLD = persona | wafu | sf | pixel   (default persona;
 ##        sf and pixel dressed in B-1323)
 ##   UZU_B1315_SCREEN = title | menu | settings | hud | talk | sheet | touch
+##        | arttitle (B-1324: persona only -- the art-driven title)
 ##   UZU_B1315_FRAME_OUT = where the sheet mode saves the frame PNG
 ##   UZU_B1315_FOCUS = 1: after the opening, focus the first button
 ##        (a still then shows the focused state -- persona's red flip)
@@ -44,6 +45,13 @@ func _ready() -> void:
 	if s != "":
 		screen = s
 	theme = UZUUI.create_world_theme(world, {"font": FONT})
+
+	if screen == "arttitle":
+		if world != "persona":
+			screen = "title" # The art title exists for persona only.
+		else:
+			_art_title()
+			return
 
 	# The world's backdrop composition (B-1319): a generated graphic
 	# field, not a flat color -- persona gets its red diagonal halftone
@@ -100,6 +108,101 @@ func _ready() -> void:
 		_flow()
 	elif OS.get_environment("UZU_B1315_FOCUS") == "1":
 		_settle_focus()
+
+
+## B-1324: the art-driven title. The reference structure inverts the
+## old showcase: the art (the library scene + the cut-out character)
+## fills the screen and the UI is embedded in it -- no kit backdrop,
+## no deco field. The driver animates the art layers in _process:
+## the character slides in, then idles (sway / breathing); the
+## background drifts slowly against the shade layer (parallax).
+var _art_active := false
+var _art_t := 0.0
+var _art_bg: Control
+var _art_shade: Control
+var _art_chara: Control
+var _art_bg_base := Vector2.ZERO
+var _art_shade_base := Vector2.ZERO
+var _art_chara_base := Vector2.ZERO
+var _art_chara_rot := 0.0
+
+
+func _art_title() -> void:
+	_current = _make_screen("arttitle")
+	if _current == null:
+		return
+	add_child(_current)
+	_art_bg = _current.get_node("BgArt") as Control
+	_art_shade = _current.get_node("Shade") as Control
+	_art_chara = _current.get_node("Chara") as Control
+	_art_bg_base = _art_bg.position
+	_art_shade_base = _art_shade.position
+	_art_chara_base = _art_chara.position
+	_art_chara_rot = _art_chara.rotation_degrees
+	# The breathing scale pivots at the feet, so the boots stay planted.
+	_art_chara.pivot_offset = Vector2(_art_chara.size.x * 0.5, _art_chara.size.y)
+	# Dust drifts over the art but under the character: the fx layer is
+	# inserted into the screen itself, right after the shade layer.
+	_fx_back = FxLayer.new()
+	_fx_back.dust = 22
+	_fx_back.dust_color = Color(1, 0.95, 0.85, 0.4)
+	_current.add_child(_fx_back)
+	_current.move_child(_fx_back, _art_shade.get_index() + 1)
+	# A whisper of front dressing -- two sparkles only; the art is busy.
+	_deco_front = DecoLayer.new()
+	_deco_front.font = FONT
+	add_child(_deco_front)
+	_deco_front.set_items([
+		{"kind": "sparkle", "at": Vector2(1096, 84), "r": 17.0, "color": Color.WHITE, "pulse": true},
+		{"kind": "sparkle", "at": Vector2(520, 566), "r": 11.0, "color": Color(1, 1, 1, 0.75)},
+	])
+	_fx_front = FxLayer.new()
+	add_child(_fx_front)
+	_wire_fx(_current)
+	_art_active = true
+	if OS.get_environment("UZU_B1315_FLOW") == "1":
+		_art_flow()
+	elif OS.get_environment("UZU_B1315_FOCUS") == "1":
+		_settle_focus()
+
+
+func _process(delta: float) -> void:
+	if not _art_active:
+		return
+	_art_t += delta
+	var t := _art_t
+	# Character entrance: a 0.9 s slide in from the left with a fade.
+	# Then the idle: a slow sway, and a breathing scale once settled.
+	var e := clampf(t / 0.9, 0.0, 1.0)
+	var ease := 1.0 - pow(1.0 - e, 3.0)
+	_art_chara.position.x = _art_chara_base.x - 300.0 * (1.0 - ease)
+	_art_chara.position.y = _art_chara_base.y + sin(t * 1.1) * 3.5 * e
+	_art_chara.rotation_degrees = _art_chara_rot + sin(t * 0.9) * 0.35 * e
+	_art_chara.scale = Vector2.ONE * (1.0 + 0.004 * sin(t * 1.8)) if e >= 1.0 else Vector2.ONE
+	_art_chara.modulate.a = ease
+	# Parallax: the art drifts one way; the shade layer answers with a
+	# smaller drift the other way. The character stands between the
+	# two, so the title has depth instead of sitting flat.
+	_art_bg.position = _art_bg_base + Vector2(sin(t * 0.16) * 9.0, sin(t * 0.11) * 4.0)
+	_art_shade.position = _art_shade_base + Vector2(sin(t * 0.16 + PI) * 4.0, 0.0)
+
+
+## The art title's reel (UZU_B1315_FLOW=1): the character slides in
+## while the logo and bars slash in, focus walks the bars, a press
+## flashes -- and the art keeps breathing underneath throughout.
+func _art_flow() -> void:
+	await _choreograph(_current)
+	await get_tree().create_timer(1.2).timeout
+	_focus_button(_current, 0)
+	await get_tree().create_timer(1.4).timeout
+	_focus_button(_current, 1)
+	await get_tree().create_timer(1.4).timeout
+	_focus_button(_current, 2)
+	await get_tree().create_timer(1.4).timeout
+	_focus_button(_current, 0)
+	await get_tree().create_timer(1.2).timeout
+	_press_button(_current, 0)
+	await get_tree().create_timer(4.6).timeout
 
 
 func _make_screen(name: String) -> Control:
@@ -251,6 +354,7 @@ func _dress(name: String) -> void:
 				]
 				front = [
 					{"kind": "sparkle", "at": Vector2(905, 64), "r": 12.0, "color": Color(0.85, 0.82, 0.88, 0.45), "pulse": true},
+				]
 	elif world == "sf":
 		# B-1323: the hologram dressing -- level rules instead of
 		# slashes, thin rings, a faint level watermark. Sf composes

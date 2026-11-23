@@ -1,0 +1,225 @@
+{
+ "root": {
+  "children": [
+   {
+    "anchor": "top_left",
+    "name": "BgArt",
+    "offset": [
+     -46,
+     -26
+    ],
+    "size": [
+     1244,
+     700
+    ],
+    "stretch": "cover",
+    "texture": "res://art/library_bg.jpg",
+    "type": "Image"
+   },
+   {
+    "anchor": "top_left",
+    "name": "Shade",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     648
+    ],
+    "stretch": "scale",
+    "texture": "res://art/shade.png",
+    "type": "Image"
+   },
+   {
+    "anchor": "top_left",
+    "name": "FeetShadow",
+    "offset": [
+     52,
+     584
+    ],
+    "size": [
+     440,
+     66
+    ],
+    "stretch": "scale",
+    "texture": "res://art/shadow.png",
+    "type": "Image"
+   },
+   {
+    "anchor": "top_left",
+    "color": "#f2f2f2",
+    "name": "EyeFrame",
+    "offset": [
+     14,
+     10
+    ],
+    "rotation": -5,
+    "size": [
+     274,
+     130
+    ],
+    "type": "Color"
+   },
+   {
+    "anchor": "top_left",
+    "name": "EyePanel",
+    "offset": [
+     19,
+     15
+    ],
+    "rotation": -5,
+    "size": [
+     264,
+     120
+    ],
+    "stretch": "scale",
+    "texture": "res://art/eye_panel.png",
+    "type": "Image"
+   },
+   {
+    "anchor": "top_left",
+    "name": "Chara",
+    "offset": [
+     30,
+     10
+    ],
+    "rotation": -1.2,
+    "size": [
+     420,
+     636
+    ],
+    "stretch": "keep",
+    "texture": "res://art/chara.png",
+    "type": "Image"
+   },
+   {
+    "anchor": "top_left",
+    "font_size": 92,
+    "motion": "appear",
+    "name": "Logo",
+    "offset": [
+     400,
+     108
+    ],
+    "outline_color": "#000000",
+    "outline_size": 14,
+    "rotation": -5,
+    "shadow_color": "#e60012",
+    "shadow_offset": [
+     12,
+     12
+    ],
+    "size": [
+     724,
+     150
+    ],
+    "text": "真夜中クエスト",
+    "type": "Label"
+   },
+   {
+    "anchor": "top_left",
+    "font_color": "#ffe14d",
+    "font_size": 30,
+    "offset": [
+     424,
+     262
+    ],
+    "rotation": -5,
+    "size": [
+     500,
+     44
+    ],
+    "text": "MIDNIGHT QUEST",
+    "text_style": "caption",
+    "type": "Label"
+   },
+   {
+    "anchor": "top_left",
+    "offset": [
+     426,
+     314
+    ],
+    "size": [
+     560,
+     32
+    ],
+    "text": "真夜中の図書館を取り戻せ",
+    "text_style": "body",
+    "type": "Label"
+   },
+   {
+    "anchor": "top_left",
+    "font_size": 27,
+    "letter_spacing": -1,
+    "motion": "appear",
+    "offset": [
+     596,
+     398
+    ],
+    "rotation": -2,
+    "size": [
+     492,
+     60
+    ],
+    "text": "はじめから",
+    "type": "Button"
+   },
+   {
+    "anchor": "top_left",
+    "font_size": 27,
+    "letter_spacing": -1,
+    "motion": "appear",
+    "offset": [
+     624,
+     470
+    ],
+    "rotation": -2,
+    "size": [
+     492,
+     60
+    ],
+    "text": "つづきから",
+    "type": "Button"
+   },
+   {
+    "anchor": "top_left",
+    "font_size": 27,
+    "letter_spacing": -1,
+    "motion": "appear",
+    "offset": [
+     652,
+     542
+    ],
+    "rotation": -2,
+    "size": [
+     492,
+     60
+    ],
+    "text": "せってい",
+    "type": "Button"
+   },
+   {
+    "align": "right",
+    "anchor": "bottom_right",
+    "offset": [
+     28,
+     20
+    ],
+    "size": [
+     300,
+     24
+    ],
+    "text": "U.ZU Engine sample",
+    "text_style": "caption",
+    "type": "Label"
+   }
+  ],
+  "type": "Screen"
+ },
+ "scene": "res://screens/persona_arttitle.tscn",
+ "theme": {
+  "font": "res://art/game_font.ttf",
+  "world": "persona"
+ }
+}
