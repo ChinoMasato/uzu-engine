@@ -85,3 +85,53 @@ jobs:
             echo "- build: ${{ steps.build.outputs.seconds }} s"
             echo "- unit tests: ${{ steps.tests.outputs.seconds }} s"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  windows-editor:
+    name: Windows x64 editor build and unit tests
+    # Build automatically on the integration branch; other branches can opt in via Run workflow.
+    if: github.ref == 'refs/heads/ai-native' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Python and SCons
+        uses: ./.github/actions/godot-deps
+
+      - name: Restore the Windows SCons cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .scons_cache_windows
+          key: uzu-editor-tests-windows-x64-v1-${{ github.sha }}
+          restore-keys: uzu-editor-tests-windows-x64-v1-
+
+      - name: Build and package the Windows editor
+        shell: pwsh
+        run: |
+          python -m SCons platform=windows target=editor arch=x86_64 tests=yes d3d12=no accesskit=no angle=no cache_path=.scons_cache_windows cache_limit=2 -j $env:NUMBER_OF_PROCESSORS
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $package = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP 'uzu-editor-windows-x64')
+          Copy-Item -LiteralPath @('bin/godot.windows.editor.x86_64.exe', 'bin/godot.windows.editor.x86_64.console.exe', 'LICENSE.txt', 'COPYRIGHT.txt') -Destination $package.FullName
+
+      - name: Upload the Windows editor
+        uses: actions/upload-artifact@v7
+        with:
+          name: uzu-engine-editor-windows-x64-${{ github.sha }}
+          path: ${{ runner.temp }}/uzu-editor-windows-x64/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Save the Windows SCons cache
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: .scons_cache_windows
+          key: uzu-editor-tests-windows-x64-v1-${{ github.sha }}
+
+      - name: Windows unit tests
+        shell: pwsh
+        run: |
+          & ./bin/godot.windows.editor.x86_64.console.exe --headless --test
+          exit $LASTEXITCODE
