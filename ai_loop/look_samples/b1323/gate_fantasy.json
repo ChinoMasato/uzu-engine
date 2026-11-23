@@ -1,0 +1,262 @@
+{
+  "format": "uzu-ui-quality/1",
+  "theme": "fantasy",
+  "verdict": "pass",
+  "checks": {
+    "texture_sheet": {
+      "pass": true,
+      "sheets": [
+        {
+          "image": "sheet.png",
+          "window_px": [
+            512,
+            200
+          ],
+          "index": 0.2331,
+          "threshold": 0.3,
+          "channels": {
+            "luminance": {
+              "std": 7.376,
+              "band_peak": 0.632,
+              "band_lag_px": [
+                0,
+                199
+              ],
+              "mode": "visibility",
+              "visibility": 0.2331,
+              "index": 0.2331,
+              "pass": true
+            },
+            "red_excess": {
+              "std": 3.969,
+              "band_peak": 0.6259,
+              "band_lag_px": [
+                0,
+                199
+              ],
+              "mode": "visibility",
+              "visibility": 0.1242,
+              "index": 0.1242,
+              "pass": true
+            }
+          },
+          "pass": true
+        }
+      ],
+      "coverage": {
+        "pass": true,
+        "center_alpha_min": 1.0,
+        "center_alpha_mean": 1.0
+      }
+    },
+    "contrast": {
+      "pass": true,
+      "pairs": [
+        {
+          "pair": "body: Label text on panel",
+          "ratio": 10.6,
+          "min": 4.5,
+          "fg": [
+            0.9647,
+            0.9059,
+            0.7843,
+            1.0
+          ],
+          "bg": [
+            0.2588,
+            0.1765,
+            0.098,
+            1.0
+          ],
+          "pass": true
+        },
+        {
+          "pair": "heading: Button text on button",
+          "ratio": 8.206,
+          "min": 3.0,
+          "fg": [
+            0.2275,
+            0.149,
+            0.0784,
+            1.0
+          ],
+          "bg": [
+            0.8431,
+            0.7608,
+            0.5843,
+            1.0
+          ],
+          "pass": true
+        },
+        {
+          "pair": "slider groove on panel",
+          "ratio": 2.313,
+          "min": 2.0,
+          "fg": [
+            0.4632,
+            0.3944,
+            0.336,
+            1.0
+          ],
+          "bg": [
+            0.2588,
+            0.1765,
+            0.098,
+            1.0
+          ],
+          "pass": true
+        },
+        {
+          "pair": "slider fill on groove",
+          "ratio": 3.301,
+          "min": 2.0,
+          "fg": [
+            0.902,
+            0.7647,
+            0.4157,
+            1.0
+          ],
+          "bg": [
+            0.4632,
+            0.3944,
+            0.336,
+            1.0
+          ],
+          "pass": true
+        }
+      ],
+      "body_min": 4.5,
+      "heading_min": 3.0,
+      "slider_min": 2.0
+    },
+    "state_completeness": {
+      "pass": true,
+      "states": {
+        "normal": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "hover": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "pressed": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "disabled": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxTexture"
+        },
+        "focus": {
+          "present": true,
+          "pass": true,
+          "class": "StyleBoxFlat"
+        }
+      }
+    },
+    "coverage": {
+      "pass": true,
+      "ratio": 1.0,
+      "covered": [
+        "PanelContainer",
+        "Button",
+        "CheckBox",
+        "OptionButton",
+        "HSlider",
+        "VSlider",
+        "LineEdit",
+        "SpinBox",
+        "HScrollBar",
+        "VScrollBar",
+        "PopupMenu",
+        "Tree",
+        "TabContainer",
+        "ItemList",
+        "ProgressBar",
+        "TooltipPanel"
+      ],
+      "missing": []
+    },
+    "scale": {
+      "spacing_off_scale": [],
+      "radius_off_scale": [],
+      "shadow_off_scale": [],
+      "counts": {
+        "spacing": 105,
+        "radius": 46,
+        "shadow": 23
+      },
+      "pass": true
+    },
+    "containment": {
+      "pass": true,
+      "screens": {
+        "fantasy_hud": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "fantasy_menu": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "fantasy_settings": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "fantasy_talk": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "fantasy_title": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "horror_hud": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "horror_menu": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "horror_settings": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "horror_talk": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        },
+        "horror_title": {
+          "pass": true,
+          "rest_violations": 0,
+          "peak_violations": 0,
+          "violations": []
+        }
+      }
+    }
+  }
+}

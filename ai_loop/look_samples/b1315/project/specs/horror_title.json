@@ -1,0 +1,125 @@
+{
+ "scene": "res://screens/horror_title.tscn",
+ "theme": {
+  "world": "horror",
+  "font": "res://art/game_font.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Label",
+    "name": "Logo",
+    "text": "真夜中の館",
+    "font_size": 84,
+    "outline_size": 12,
+    "outline_color": "#000000",
+    "shadow_color": "#8a1010",
+    "shadow_offset": [
+     8,
+     8
+    ],
+    "anchor": "top_left",
+    "offset": [
+     64,
+     64
+    ],
+    "size": [
+     760,
+     130
+    ],
+    "motion": "appear"
+   },
+   {
+    "type": "Label",
+    "text": "THE HAUNTED HALL",
+    "text_style": "caption",
+    "font_size": 26,
+    "font_color": "#c22525",
+    "anchor": "top_left",
+    "offset": [
+     74,
+     208
+    ],
+    "size": [
+     500,
+     40
+    ]
+   },
+   {
+    "type": "Label",
+    "text": "明かりが消える前に、鍵を見つけろ",
+    "text_style": "body",
+    "anchor": "top_left",
+    "offset": [
+     76,
+     262
+    ],
+    "size": [
+     560,
+     32
+    ]
+   },
+   {
+    "type": "Button",
+    "text": "はじめから",
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     64,
+     196
+    ],
+    "size": [
+     420,
+     56
+    ],
+    "font_size": 24
+   },
+   {
+    "type": "Button",
+    "text": "つづきから",
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     64,
+     128
+    ],
+    "size": [
+     420,
+     56
+    ],
+    "font_size": 24
+   },
+   {
+    "type": "Button",
+    "text": "せってい",
+    "motion": "appear",
+    "anchor": "bottom_left",
+    "offset": [
+     64,
+     60
+    ],
+    "size": [
+     420,
+     56
+    ],
+    "font_size": 24
+   },
+   {
+    "type": "Label",
+    "text": "U.ZU Engine sample",
+    "text_style": "caption",
+    "align": "right",
+    "anchor": "bottom_right",
+    "offset": [
+     28,
+     20
+    ],
+    "size": [
+     300,
+     24
+    ]
+   }
+  ]
+ }
+}
