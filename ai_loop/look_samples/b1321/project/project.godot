@@ -1,0 +1,27 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section]
+;   param=value ; assign a value to an editor property
+
+; B-1321 trial: the persona screens of the B-1315/B-1320 showcase built
+; as a real 3D scene (thick geometry, PBR, lights, parallax camera),
+; to compare the rendered-3D route's picture against the 2D Control
+; route. See ai_loop/iterations/2026-11-23-B-1321-muse.md.
+config_version=5
+
+[application]
+
+config/name="uzu-b1321-ui3d"
+run/main_scene="res://main.tscn"
+
+[display]
+
+window/size/viewport_width=1152
+window/size/viewport_height=648
+
+[rendering]
+
+renderer/rendering_method="forward_plus"

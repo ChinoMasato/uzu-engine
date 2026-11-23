@@ -287,11 +287,23 @@ func _flow() -> void:
 
 func _sheet() -> void:
 	# One empty panel, wide enough that the frame's middle tiles several
-	# times: the sheet the texture measurement reads.
+	# times: the sheet the texture measurement reads. Its height is set
+	# from the frame stylebox so the texture's middle maps 1:1 -- the
+	# measurement reads the print at native resolution (B-1321: at an
+	# arbitrary height the skew frame's vertical stretch rescaled a
+	# 4 px halftone cell to a non-integer 7.5 px, and the sheet scored
+	# the rescale, not the print).
 	var panel := PanelContainer.new()
 	panel.position = Vector2(64, 68)
 	panel.custom_minimum_size = Vector2(1024, 512)
 	add_child(panel)
+	await get_tree().process_frame
+	var sb := panel.get_theme_stylebox("panel") as StyleBoxTexture
+	if sb and sb.texture:
+		var native_h := sb.texture.get_height() \
+			- int(sb.get_expand_margin(SIDE_TOP)) - int(sb.get_expand_margin(SIDE_BOTTOM))
+		panel.custom_minimum_size = Vector2(1024, native_h)
+		panel.size = Vector2(1024, native_h)
 	var out := OS.get_environment("UZU_B1315_FRAME_OUT")
 	if out != "":
 		var frame: Dictionary = UZUUI.get_world_options(world)["frame"]

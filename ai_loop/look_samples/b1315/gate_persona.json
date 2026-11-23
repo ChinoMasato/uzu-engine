@@ -10,43 +10,43 @@
           "image": "sheet.png",
           "window_px": [
             512,
-            256
+            200
           ],
-          "index": 0.26,
+          "index": 0.0329,
           "threshold": 0.3,
           "channels": {
             "luminance": {
-              "std": 6.777,
-              "band_peak": 0.9997,
+              "std": 6.136,
+              "band_peak": 0.9996,
               "band_lag_px": [
                 128,
                 0
               ],
               "mode": "pattern",
               "period_px": [
-                8,
-                15
+                4,
+                4
               ],
-              "residue": 0.26,
-              "uniformity": 0.0016,
-              "index": 0.26,
+              "residue": 0.0329,
+              "uniformity": 0.2064,
+              "index": 0.0329,
               "pass": true
             },
             "red_excess": {
-              "std": 29.982,
-              "band_peak": 0.9997,
+              "std": 27.791,
+              "band_peak": 0.9996,
               "band_lag_px": [
                 128,
                 0
               ],
               "mode": "pattern",
               "period_px": [
-                8,
-                15
+                4,
+                4
               ],
-              "residue": 0.2599,
-              "uniformity": 0.0016,
-              "index": 0.2599,
+              "residue": 0.0322,
+              "uniformity": 0.2148,
+              "index": 0.0322,
               "pass": true
             }
           },
@@ -64,7 +64,7 @@
       "pairs": [
         {
           "pair": "body: Label text on panel",
-          "ratio": 4.802,
+          "ratio": 11.183,
           "min": 4.5,
           "fg": [
             1.0,
@@ -73,9 +73,9 @@
             1.0
           ],
           "bg": [
-            0.902,
+            0.4902,
             0.0,
-            0.0706,
+            0.051,
             1.0
           ],
           "pass": true
@@ -100,25 +100,25 @@
         },
         {
           "pair": "slider groove on panel",
-          "ratio": 2.32,
+          "ratio": 2.316,
           "min": 2.0,
           "fg": [
-            0.4925,
-            0.0,
-            0.0385,
+            0.742,
+            0.3,
+            0.3346,
             1.0
           ],
           "bg": [
-            0.902,
+            0.4902,
             0.0,
-            0.0706,
+            0.051,
             1.0
           ],
           "pass": true
         },
         {
           "pair": "slider fill on groove",
-          "ratio": 8.556,
+          "ratio": 3.709,
           "min": 2.0,
           "fg": [
             1.0,
@@ -127,9 +127,9 @@
             1.0
           ],
           "bg": [
-            0.4925,
-            0.0,
-            0.0385,
+            0.742,
+            0.3,
+            0.3346,
             1.0
           ],
           "pass": true
