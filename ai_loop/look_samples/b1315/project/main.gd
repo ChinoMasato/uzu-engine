@@ -11,7 +11,8 @@ extends Control
 ##   UZU_B1315_WORLD = persona | wafu | sf | pixel   (default persona;
 ##        sf and pixel dressed in B-1323)
 ##   UZU_B1315_SCREEN = title | menu | settings | hud | talk | sheet | touch
-##        | arttitle (B-1324: persona only -- the art-driven title)
+##        | arttitle | artmenu | artsettings | arthud | arttalk
+##        (B-1324/B-1325: persona only -- the art-driven screens)
 ##   UZU_B1315_FRAME_OUT = where the sheet mode saves the frame PNG
 ##   UZU_B1315_FOCUS = 1: after the opening, focus the first button
 ##        (a still then shows the focused state -- persona's red flip)
@@ -24,6 +25,14 @@ extends Control
 const FONT := preload("res://art/game_font.ttf")
 const DecoLayer := preload("res://deco_layer.gd")
 const FxLayer := preload("res://fx_layer.gd")
+
+## B-1325: the art-driven screens (persona only). One room, five
+## framings: the title shows it whole, the others move into it.
+const ART_SCREENS := ["arttitle", "artmenu", "artsettings", "arthud", "arttalk"]
+
+## Dust motes per art screen: the title is the showpiece, settings
+## stays quietest.
+const ART_DUST := {"arttitle": 22, "artmenu": 18, "artsettings": 10, "arthud": 12, "arttalk": 16}
 
 const RED := Color(0.902, 0.0, 0.071)
 const YELLOW := Color(1.0, 0.882, 0.302)
@@ -46,11 +55,11 @@ func _ready() -> void:
 		screen = s
 	theme = UZUUI.create_world_theme(world, {"font": FONT})
 
-	if screen == "arttitle":
+	if screen in ART_SCREENS:
 		if world != "persona":
-			screen = "title" # The art title exists for persona only.
+			screen = "title" # The art screens exist for persona only.
 		else:
-			_art_title()
+			_art_open(screen)
 			return
 
 	# The world's backdrop composition (B-1319): a generated graphic
@@ -110,14 +119,19 @@ func _ready() -> void:
 		_settle_focus()
 
 
-## B-1324: the art-driven title. The reference structure inverts the
-## old showcase: the art (the library scene + the cut-out character)
-## fills the screen and the UI is embedded in it -- no kit backdrop,
-## no deco field. The driver animates the art layers in _process:
-## the character slides in, then idles (sway / breathing); the
-## background drifts slowly against the shade layer (parallax).
+## B-1324/B-1325: the art-driven screens. The reference structure
+## inverts the old showcase: the art (the library scene + the cut-out
+## character) fills the screen and the UI is embedded in it -- no kit
+## backdrop, no deco field. The driver animates the art layers in
+## _process: the character slides in, then idles (sway / breathing);
+## the background drifts slowly against the shade layer (parallax).
+## B-1325 generalised the title's wiring to all five art screens:
+## each screen's spec names its layers BgArt / Shade / Chara, and the
+## driver binds whatever a screen has.
 var _art_active := false
 var _art_t := 0.0
+var _art_start := 0.0 # _art_t at the current screen's opening (entrances).
+var _art_name := ""
 var _art_bg: Control
 var _art_shade: Control
 var _art_chara: Control
@@ -127,43 +141,75 @@ var _art_chara_base := Vector2.ZERO
 var _art_chara_rot := 0.0
 
 
-func _art_title() -> void:
-	_current = _make_screen("arttitle")
-	if _current == null:
+func _art_open(name: String) -> void:
+	var scr := _make_screen(name)
+	if scr == null:
 		return
-	add_child(_current)
-	_art_bg = _current.get_node("BgArt") as Control
-	_art_shade = _current.get_node("Shade") as Control
-	_art_chara = _current.get_node("Chara") as Control
-	_art_bg_base = _art_bg.position
-	_art_shade_base = _art_shade.position
-	_art_chara_base = _art_chara.position
-	_art_chara_rot = _art_chara.rotation_degrees
-	# The breathing scale pivots at the feet, so the boots stay planted.
-	_art_chara.pivot_offset = Vector2(_art_chara.size.x * 0.5, _art_chara.size.y)
-	# Dust drifts over the art but under the character: the fx layer is
-	# inserted into the screen itself, right after the shade layer.
-	_fx_back = FxLayer.new()
-	_fx_back.dust = 22
-	_fx_back.dust_color = Color(1, 0.95, 0.85, 0.4)
-	_current.add_child(_fx_back)
-	_current.move_child(_fx_back, _art_shade.get_index() + 1)
-	# A whisper of front dressing -- two sparkles only; the art is busy.
+	add_child(scr)
+	_art_setup(scr, name)
+	# A whisper of front dressing on the screens that have air for
+	# it; the art itself is busy, so this stays at one or two sparkles.
 	_deco_front = DecoLayer.new()
 	_deco_front.font = FONT
 	add_child(_deco_front)
-	_deco_front.set_items([
-		{"kind": "sparkle", "at": Vector2(1096, 84), "r": 17.0, "color": Color.WHITE, "pulse": true},
-		{"kind": "sparkle", "at": Vector2(520, 566), "r": 11.0, "color": Color(1, 1, 1, 0.75)},
-	])
+	var sparkles: Array = []
+	match name:
+		"arttitle":
+			sparkles = [
+				{"kind": "sparkle", "at": Vector2(1096, 84), "r": 17.0, "color": Color.WHITE, "pulse": true},
+				{"kind": "sparkle", "at": Vector2(520, 566), "r": 11.0, "color": Color(1, 1, 1, 0.75)},
+			]
+		"artmenu":
+			sparkles = [
+				{"kind": "sparkle", "at": Vector2(1086, 96), "r": 14.0, "color": Color.WHITE, "pulse": true},
+			]
+		"arttalk":
+			sparkles = [
+				{"kind": "sparkle", "at": Vector2(905, 64), "r": 15.0, "color": Color.WHITE, "pulse": true},
+			]
+	_deco_front.set_items(sparkles)
 	_fx_front = FxLayer.new()
 	add_child(_fx_front)
-	_wire_fx(_current)
-	_art_active = true
+	_wire_fx(scr)
 	if OS.get_environment("UZU_B1315_FLOW") == "1":
-		_art_flow()
+		if name == "arttitle":
+			_art_reel()
+		else:
+			_art_single_flow()
 	elif OS.get_environment("UZU_B1315_FOCUS") == "1":
 		_settle_focus()
+
+
+## Binds a built art screen to the driver: the art layers _process
+## animates, and the screen's dust layer (over the art, under the
+## character and the UI).
+func _art_setup(scr: Control, name: String) -> void:
+	_current = scr
+	_art_name = name
+	_art_bg = scr.get_node_or_null("BgArt") as Control
+	_art_shade = scr.get_node_or_null("Shade") as Control
+	_art_chara = scr.get_node_or_null("Chara") as Control
+	if _art_bg:
+		_art_bg_base = _art_bg.position
+	if _art_shade:
+		_art_shade_base = _art_shade.position
+	if _art_chara:
+		_art_chara_base = _art_chara.position
+		_art_chara_rot = _art_chara.rotation_degrees
+		# The breathing scale pivots at the feet, so the boots stay planted.
+		_art_chara.pivot_offset = Vector2(_art_chara.size.x * 0.5, _art_chara.size.y)
+	# Dust drifts over the art but under the character and the UI: the
+	# fx layer is inserted into the screen itself, right after the
+	# shade layer (or the art, where a screen has no shade).
+	_fx_back = FxLayer.new()
+	_fx_back.dust = int(ART_DUST.get(name, 14))
+	_fx_back.dust_color = Color(1, 0.95, 0.85, 0.4)
+	scr.add_child(_fx_back)
+	var anchor_node: Node = _art_shade if _art_shade else _art_bg
+	if anchor_node:
+		scr.move_child(_fx_back, anchor_node.get_index() + 1)
+	_art_start = _art_t
+	_art_active = true
 
 
 func _process(delta: float) -> void:
@@ -171,38 +217,95 @@ func _process(delta: float) -> void:
 		return
 	_art_t += delta
 	var t := _art_t
-	# Character entrance: a 0.9 s slide in from the left with a fade.
-	# Then the idle: a slow sway, and a breathing scale once settled.
-	var e := clampf(t / 0.9, 0.0, 1.0)
-	var ease := 1.0 - pow(1.0 - e, 3.0)
-	_art_chara.position.x = _art_chara_base.x - 300.0 * (1.0 - ease)
-	_art_chara.position.y = _art_chara_base.y + sin(t * 1.1) * 3.5 * e
-	_art_chara.rotation_degrees = _art_chara_rot + sin(t * 0.9) * 0.35 * e
-	_art_chara.scale = Vector2.ONE * (1.0 + 0.004 * sin(t * 1.8)) if e >= 1.0 else Vector2.ONE
-	_art_chara.modulate.a = ease
 	# Parallax: the art drifts one way; the shade layer answers with a
 	# smaller drift the other way. The character stands between the
-	# two, so the title has depth instead of sitting flat.
-	_art_bg.position = _art_bg_base + Vector2(sin(t * 0.16) * 9.0, sin(t * 0.11) * 4.0)
-	_art_shade.position = _art_shade_base + Vector2(sin(t * 0.16 + PI) * 4.0, 0.0)
+	# two, so the screen has depth instead of sitting flat.
+	if _art_bg:
+		_art_bg.position = _art_bg_base + Vector2(sin(t * 0.16) * 9.0, sin(t * 0.11) * 4.0)
+	if _art_shade:
+		_art_shade.position = _art_shade_base + Vector2(sin(t * 0.16 + PI) * 4.0, 0.0)
+	if _art_chara:
+		# Character entrance: a 0.9 s slide in from the left with a
+		# fade, timed from this screen's opening. Then the idle: a
+		# slow sway, and a breathing scale once settled.
+		var e := clampf((t - _art_start) / 0.9, 0.0, 1.0)
+		var ease := 1.0 - pow(1.0 - e, 3.0)
+		_art_chara.position.x = _art_chara_base.x - 300.0 * (1.0 - ease)
+		_art_chara.position.y = _art_chara_base.y + sin(t * 1.1) * 3.5 * e
+		_art_chara.rotation_degrees = _art_chara_rot + sin(t * 0.9) * 0.35 * e
+		_art_chara.scale = Vector2.ONE * (1.0 + 0.004 * sin(t * 1.8)) if e >= 1.0 else Vector2.ONE
+		_art_chara.modulate.a = ease
 
 
-## The art title's reel (UZU_B1315_FLOW=1): the character slides in
-## while the logo and bars slash in, focus walks the bars, a press
-## flashes -- and the art keeps breathing underneath throughout.
-func _art_flow() -> void:
+## The art screens' own transition (the kit _goto dresses kit
+## screens; art screens carry their art with them). The new screen
+## is bound only once it has arrived, so its character entrance
+## plays on the settled screen.
+func _art_goto(next: String) -> void:
+	var old := _current
+	var scr := _make_screen(next)
+	if scr == null:
+		return
+	add_child(scr)
+	move_child(scr, old.get_index())
+	if _fx_front:
+		_fx_front.slash(Color(1, 1, 1, 0.9))
+	# The new screen's own opening is superseded by the transition and
+	# the choreography below; its world motion node must not open it.
+	var wm := scr.find_child("WorldMotion", true, false)
+	if wm:
+		wm.set("open_on_ready", false)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	UZUUIJuice.cancel_all()
+	UZUUIJuice.transition(old, scr, 0.28, "ease_in", 1.0)
+	await get_tree().create_timer(0.34).timeout
+	_art_setup(scr, next)
+	_wire_fx(scr)
+	old.queue_free()
+	await _choreograph(scr, false)
+
+
+## The art reel (UZU_B1315_FLOW=1 from arttitle): title -> pause
+## menu -> talk -> HUD, one room throughout -- the same library,
+## reframed by each screen's own window into the art. Focus walks
+## and presses trigger the transitions, and the art keeps breathing
+## underneath. Timed in movie seconds under --write-movie
+## --fixed-fps.
+func _art_reel() -> void:
 	await _choreograph(_current)
-	await get_tree().create_timer(1.2).timeout
+	await get_tree().create_timer(1.0).timeout
 	_focus_button(_current, 0)
-	await get_tree().create_timer(1.4).timeout
+	await get_tree().create_timer(1.2).timeout
 	_focus_button(_current, 1)
-	await get_tree().create_timer(1.4).timeout
-	_focus_button(_current, 2)
-	await get_tree().create_timer(1.4).timeout
-	_focus_button(_current, 0)
 	await get_tree().create_timer(1.2).timeout
+	_focus_button(_current, 0)
+	await get_tree().create_timer(0.9).timeout
 	_press_button(_current, 0)
-	await get_tree().create_timer(4.6).timeout
+	await get_tree().create_timer(0.3).timeout
+	await _art_goto("artmenu")
+	await get_tree().create_timer(0.6).timeout
+	_focus_button(_current, 0)
+	await get_tree().create_timer(1.1).timeout
+	_focus_button(_current, 1)
+	await get_tree().create_timer(1.1).timeout
+	_focus_button(_current, 2)
+	await get_tree().create_timer(1.0).timeout
+	_press_button(_current, 0)
+	await get_tree().create_timer(0.3).timeout
+	await _art_goto("arttalk")
+	await get_tree().create_timer(5.5).timeout
+	await _art_goto("arthud")
+	await get_tree().create_timer(6.0).timeout
+
+
+## A single art screen under FLOW (captures that start mid-tour):
+## open, settle on the first control, hold.
+func _art_single_flow() -> void:
+	await _choreograph(_current)
+	await get_tree().create_timer(0.8).timeout
+	_focus_button(_current, 0)
+	await get_tree().create_timer(2.0).timeout
 
 
 func _make_screen(name: String) -> Control:

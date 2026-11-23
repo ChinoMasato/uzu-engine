@@ -1,0 +1,215 @@
+{
+	"format": "uzu-ui-containment/1",
+	"screens": {
+		"fantasy_hud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "fantasy"
+		},
+		"fantasy_menu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "fantasy"
+		},
+		"fantasy_settings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "fantasy"
+		},
+		"fantasy_talk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "fantasy"
+		},
+		"fantasy_title": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "fantasy"
+		},
+		"horror_hud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "horror"
+		},
+		"horror_menu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "horror"
+		},
+		"horror_settings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "horror"
+		},
+		"horror_talk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "horror"
+		},
+		"horror_title": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "horror"
+		},
+		"persona_arthud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_artmenu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_artsettings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_arttalk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_arttitle": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_hud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_menu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_settings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_talk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"persona_title": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "persona"
+		},
+		"pixel_hud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "pixel"
+		},
+		"pixel_menu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "pixel"
+		},
+		"pixel_settings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "pixel"
+		},
+		"pixel_talk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "pixel"
+		},
+		"pixel_title": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "pixel"
+		},
+		"sf_hud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "sf"
+		},
+		"sf_menu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "sf"
+		},
+		"sf_settings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "sf"
+		},
+		"sf_talk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "sf"
+		},
+		"sf_title": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "sf"
+		},
+		"wafu_hud": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "wafu"
+		},
+		"wafu_menu": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "wafu"
+		},
+		"wafu_settings": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "wafu"
+		},
+		"wafu_talk": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "wafu"
+		},
+		"wafu_title": {
+			"pass": true,
+			"peak": [],
+			"rest": [],
+			"world": "wafu"
+		}
+	}
+}

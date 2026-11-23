@@ -1,0 +1,302 @@
+{
+ "root": {
+  "children": [
+   {
+    "anchor": "top_left",
+    "name": "BgArt",
+    "offset": [
+     -46,
+     -26
+    ],
+    "size": [
+     1244,
+     700
+    ],
+    "stretch": "cover",
+    "texture": "res://art/bg_hud.jpg",
+    "type": "Image"
+   },
+   {
+    "anchor": "top_left",
+    "name": "Shade",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     648
+    ],
+    "stretch": "scale",
+    "texture": "res://art/shade.png",
+    "type": "Image"
+   },
+   {
+    "anchor": "bottom",
+    "name": "FeetShadow",
+    "offset": [
+     -150,
+     104
+    ],
+    "size": [
+     250,
+     38
+    ],
+    "stretch": "scale",
+    "texture": "res://art/shadow.png",
+    "type": "Image"
+   },
+   {
+    "anchor": "bottom",
+    "name": "Chara",
+    "offset": [
+     -150,
+     108
+    ],
+    "size": [
+     198,
+     300
+    ],
+    "stretch": "keep",
+    "texture": "res://art/chara.png",
+    "type": "Image"
+   },
+   {
+    "anchor": "top_left",
+    "children": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "text": "ユウキ　Lv.12",
+          "text_style": "heading",
+          "type": "Label"
+         },
+         {
+          "children": [
+           {
+            "min_size": [
+             40,
+             0
+            ],
+            "text": "HP",
+            "text_style": "caption",
+            "type": "Label"
+           },
+           {
+            "expand": true,
+            "max": 100,
+            "min_size": [
+             0,
+             20
+            ],
+            "motion": {
+             "from": 10,
+             "preset": "value_change",
+             "to": 65
+            },
+            "segments": 65,
+            "type": "Gauge",
+            "value": 10
+           }
+          ],
+          "separation": "m",
+          "type": "HBox"
+         },
+         {
+          "children": [
+           {
+            "min_size": [
+             40,
+             0
+            ],
+            "text": "MP",
+            "text_style": "caption",
+            "type": "Label"
+           },
+           {
+            "expand": true,
+            "max": 100,
+            "min_size": [
+             0,
+             20
+            ],
+            "motion": {
+             "from": 8,
+             "preset": "value_change",
+             "to": 40
+            },
+            "segments": 40,
+            "type": "Gauge",
+            "value": 8
+           }
+          ],
+          "separation": "m",
+          "type": "HBox"
+         }
+        ],
+        "separation": "s",
+        "type": "VBox"
+       }
+      ],
+      "padding": [
+       68,
+       4,
+       68,
+       4
+      ],
+      "type": "Margin"
+     }
+    ],
+    "motion": "appear",
+    "name": "StatusPanel",
+    "offset": [
+     24,
+     24
+    ],
+    "rotation": -1,
+    "size": [
+     400,
+     128
+    ],
+    "type": "Panel"
+   },
+   {
+    "anchor": "top_right",
+    "children": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "font_color": "#ffe14d",
+          "text": "目的",
+          "text_style": "caption",
+          "type": "Label"
+         },
+         {
+          "text": "欠片を3つ集めよ　1/3",
+          "text_style": "body",
+          "type": "Label"
+         }
+        ],
+        "separation": "s",
+        "type": "VBox"
+       }
+      ],
+      "padding": [
+       52,
+       2,
+       52,
+       2
+      ],
+      "type": "Margin"
+     }
+    ],
+    "motion": "appear",
+    "name": "ObjectivePanel",
+    "offset": [
+     24,
+     24
+    ],
+    "rotation": 1,
+    "size": [
+     364,
+     88
+    ],
+    "type": "Panel"
+   },
+   {
+    "anchor": "top_right",
+    "children": [
+     {
+      "count": 1,
+      "text": "欠片",
+      "type": "Slot"
+     },
+     {
+      "count": 1,
+      "text": "鍵",
+      "type": "Slot"
+     },
+     {
+      "count": 3,
+      "text": "薬",
+      "type": "Slot"
+     }
+    ],
+    "offset": [
+     24,
+     128
+    ],
+    "separation": "m",
+    "type": "HBox"
+   },
+   {
+    "anchor": "bottom_left",
+    "name": "Stick",
+    "offset": [
+     36,
+     36
+    ],
+    "size": [
+     168,
+     168
+    ],
+    "type": "Stick"
+   },
+   {
+    "anchor": "bottom_right",
+    "name": "TouchButton",
+    "offset": [
+     36,
+     36
+    ],
+    "size": [
+     104,
+     104
+    ],
+    "text": "決定",
+    "type": "TouchButton"
+   },
+   {
+    "align": "left",
+    "anchor": "top_left",
+    "font_color": "#ffe14d",
+    "offset": [
+     28,
+     166
+    ],
+    "size": [
+     300,
+     24
+    ],
+    "text": "図書館 1F　真夜中の回廊",
+    "text_style": "caption",
+    "type": "Label"
+   },
+   {
+    "align": "center",
+    "anchor": "bottom",
+    "offset": [
+     0,
+     20
+    ],
+    "size": [
+     560,
+     24
+    ],
+    "text": "スティックで移動／決定ボタンで調べる",
+    "text_style": "caption",
+    "type": "Label"
+   }
+  ],
+  "type": "Screen"
+ },
+ "scene": "res://screens/persona_arthud.tscn",
+ "theme": {
+  "font": "res://art/game_font.ttf",
+  "world": "persona"
+ }
+}
