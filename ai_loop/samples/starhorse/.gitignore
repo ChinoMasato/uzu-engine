@@ -1,0 +1,5 @@
+# Godot import cache and the spec-built screens (regenerate with
+# uzu.py ui from specs/, see README.md) -- same rule as the B-1315
+# showcase, whose built screens are ~20 MB each.
+.godot/
+screens/
