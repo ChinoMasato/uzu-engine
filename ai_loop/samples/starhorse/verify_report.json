@@ -1,0 +1,161 @@
+{
+	"commentary": [
+		{
+			"phase": "pre_gatein",
+			"seq": 1,
+			"t": -5.5,
+			"voice": "01_pre_gatein"
+		},
+		{
+			"phase": "pre_ready",
+			"seq": 2,
+			"t": -2.5,
+			"voice": "02_pre_ready"
+		},
+		{
+			"phase": "start",
+			"seq": 3,
+			"t": 0.0,
+			"voice": "03_start"
+		},
+		{
+			"phase": "start_note",
+			"seq": 4,
+			"t": 1.0,
+			"voice": "04_start_clean"
+		},
+		{
+			"phase": "early",
+			"seq": 5,
+			"t": 23.0,
+			"voice": "07_early_leader"
+		},
+		{
+			"phase": "early",
+			"seq": 6,
+			"t": 34.0,
+			"voice": "08_early_stretched"
+		},
+		{
+			"phase": "early",
+			"seq": 7,
+			"t": 39.5,
+			"voice": "09_early_holdback"
+		},
+		{
+			"phase": "mid",
+			"seq": 8,
+			"t": 50.5,
+			"voice": "10_mid_frontside"
+		},
+		{
+			"phase": "mid",
+			"seq": 9,
+			"t": 62.0,
+			"voice": "11_mid_settled"
+		},
+		{
+			"phase": "mid",
+			"seq": 10,
+			"t": 67.5,
+			"voice": "12_mid_corner"
+		},
+		{
+			"phase": "final_straight",
+			"seq": 11,
+			"t": 79.5,
+			"voice": "13_final_straight"
+		},
+		{
+			"phase": "final_move",
+			"seq": 12,
+			"t": 85.5,
+			"voice": "14_final_leader"
+		},
+		{
+			"phase": "final_200",
+			"seq": 13,
+			"t": 91.5,
+			"voice": "17_final_200m"
+		},
+		{
+			"phase": "final_100",
+			"seq": 14,
+			"t": 97.5,
+			"voice": "18_final_100m"
+		},
+		{
+			"phase": "goal",
+			"seq": 15,
+			"t": 103.5,
+			"voice": "20_goal_push"
+		},
+		{
+			"phase": "win_style",
+			"seq": 16,
+			"t": 103.5,
+			"voice": "23_win_frontrun"
+		},
+		{
+			"phase": "upset",
+			"seq": 17,
+			"t": 103.5,
+			"voice": "27_upset"
+		},
+		{
+			"phase": "crowd",
+			"seq": 18,
+			"t": 103.5,
+			"voice": "28_crowd"
+		},
+		{
+			"phase": "closing",
+			"seq": 19,
+			"t": 103.5,
+			"voice": "29_closing"
+		}
+	],
+	"fps_avg": 2.0,
+	"results": [
+		{
+			"finish_t": 103.5,
+			"gate": 7,
+			"name": "ハヤテノツバサ"
+		},
+		{
+			"finish_t": 104.5,
+			"gate": 1,
+			"name": "サンライズエース"
+		},
+		{
+			"finish_t": 104.5,
+			"gate": 3,
+			"name": "ホワイトオーシャン"
+		},
+		{
+			"finish_t": 105.5,
+			"gate": 5,
+			"name": "キングスパーク"
+		},
+		{
+			"finish_t": 106.5,
+			"gate": 2,
+			"name": "レッドヴァルキリー"
+		},
+		{
+			"finish_t": 106.5,
+			"gate": 6,
+			"name": "ミライノカゼ"
+		},
+		{
+			"finish_t": 106.5,
+			"gate": 8,
+			"name": "シルバーグローリー"
+		},
+		{
+			"finish_t": 109.0,
+			"gate": 4,
+			"name": "ブルームスター"
+		}
+	]
+}

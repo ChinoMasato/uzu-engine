@@ -1,0 +1,664 @@
+{
+ "scene": "res://screens/farm.tscn",
+ "theme": {
+  "world": "racing",
+  "font": "res://art/game_font_jp.ttf",
+  "font_size": 16
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "name": "RacingStable",
+    "style": {
+     "bg": "#0b1a10",
+     "border_width": 0,
+     "radius": 0,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     648
+    ]
+   },
+   {
+    "name": "Pano",
+    "stretch": "cover",
+    "texture": "res://art/stable_pano.jpg",
+    "type": "Image",
+    "anchor": "top_left",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     156
+    ]
+   },
+   {
+    "name": "PanoShade",
+    "style": {
+     "bg": "#0b1a1059",
+     "border_width": 0,
+     "radius": 0,
+     "shadow": 0
+    },
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     156
+    ]
+   },
+   {
+    "name": "TablePanel",
+    "type": "Panel",
+    "anchor": "top_left",
+    "offset": [
+     12,
+     86
+    ],
+    "size": [
+     755,
+     472
+    ]
+   },
+   {
+    "font_size": 30,
+    "name": "Title",
+    "text": "スターホース牧場",
+    "type": "Label",
+    "anchor": "top_left",
+    "offset": [
+     20,
+     12
+    ],
+    "size": [
+     430,
+     44
+    ]
+   },
+   {
+    "caption": "所持金",
+    "name": "MoneyChip",
+    "type": "Chip",
+    "value": "1億2450万円",
+    "anchor": "top_left",
+    "offset": [
+     704,
+     12
+    ],
+    "size": [
+     216,
+     32
+    ]
+   },
+   {
+    "caption": "日付",
+    "name": "DateChip",
+    "type": "Chip",
+    "value": "2027年4月3週",
+    "anchor": "top_left",
+    "offset": [
+     928,
+     12
+    ],
+    "size": [
+     208,
+     32
+    ]
+   },
+   {
+    "children": [
+     {
+      "min_size": [
+       142,
+       32
+      ],
+      "text": "所有馬一覧",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       142,
+       32
+      ],
+      "text": "入厩馬",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       142,
+       32
+      ],
+      "text": "放牧馬",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       142,
+       32
+      ],
+      "text": "育成馬",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       142,
+       32
+      ],
+      "text": "引退馬",
+      "type": "Button"
+     }
+    ],
+    "name": "Tabs",
+    "separation": 6,
+    "type": "HBox",
+    "anchor": "top_left",
+    "offset": [
+     17,
+     49
+    ],
+    "size": [
+     743,
+     32
+    ]
+   },
+   {
+    "columns": [
+     {
+      "title": "",
+      "width": 44
+     },
+     {
+      "title": "馬名",
+      "width": 150
+     },
+     {
+      "align": "center",
+      "title": "年齢",
+      "width": 34
+     },
+     {
+      "align": "center",
+      "title": "性別",
+      "width": 34
+     },
+     {
+      "title": "スピード",
+      "width": 87
+     },
+     {
+      "title": "スタミナ",
+      "width": 87
+     },
+     {
+      "title": "調子",
+      "width": 82
+     },
+     {
+      "align": "center",
+      "title": "芝",
+      "width": 26
+     },
+     {
+      "align": "center",
+      "title": "ダート",
+      "width": 50
+     },
+     {
+      "align": "center",
+      "title": "成長型",
+      "width": 52
+     },
+     {
+      "align": "center",
+      "title": "厩舎",
+      "width": 36
+     }
+    ],
+    "name": "Table",
+    "row_height": 50,
+    "rows": [
+     [
+      {
+       "image": "res://art/face_0.png"
+      },
+      "サンライズエース",
+      {
+       "align": "center",
+       "text": "3"
+      },
+      {
+       "align": "center",
+       "text": "牡"
+      },
+      {
+       "bar": 92,
+       "fill": "#59c93e"
+      },
+      {
+       "bar": 78,
+       "fill": "#3f9fd8"
+      },
+      {
+       "face": 3,
+       "text": "絶好調"
+      },
+      {
+       "align": "center",
+       "text": "◎"
+      },
+      {
+       "align": "center",
+       "text": "○"
+      },
+      {
+       "align": "center",
+       "text": "早熟"
+      },
+      {
+       "align": "center",
+       "text": "美浦"
+      }
+     ],
+     [
+      {
+       "image": "res://art/face_1.png"
+      },
+      "ミライノカゼ",
+      {
+       "align": "center",
+       "text": "4"
+      },
+      {
+       "align": "center",
+       "text": "牝"
+      },
+      {
+       "bar": 85,
+       "fill": "#59c93e"
+      },
+      {
+       "bar": 88,
+       "fill": "#3f9fd8"
+      },
+      {
+       "face": 2,
+       "text": "好調"
+      },
+      {
+       "align": "center",
+       "text": "○"
+      },
+      {
+       "align": "center",
+       "text": "◎"
+      },
+      {
+       "align": "center",
+       "text": "普通"
+      },
+      {
+       "align": "center",
+       "text": "美浦"
+      }
+     ],
+     [
+      {
+       "image": "res://art/face_2.png"
+      },
+      "ホワイトオーシャン",
+      {
+       "align": "center",
+       "text": "5"
+      },
+      {
+       "align": "center",
+       "text": "牡"
+      },
+      {
+       "bar": 90,
+       "fill": "#59c93e"
+      },
+      {
+       "bar": 95,
+       "fill": "#3f9fd8"
+      },
+      {
+       "face": 4,
+       "text": "絶好調"
+      },
+      {
+       "align": "center",
+       "text": "◎"
+      },
+      {
+       "align": "center",
+       "text": "△"
+      },
+      {
+       "align": "center",
+       "text": "普通"
+      },
+      {
+       "align": "center",
+       "text": "栗東"
+      }
+     ],
+     [
+      {
+       "image": "res://art/face_3.png"
+      },
+      "レッドヴァルキリー",
+      {
+       "align": "center",
+       "text": "3"
+      },
+      {
+       "align": "center",
+       "text": "牝"
+      },
+      {
+       "bar": 78,
+       "fill": "#59c93e"
+      },
+      {
+       "bar": 72,
+       "fill": "#3f9fd8"
+      },
+      {
+       "face": 2,
+       "text": "好調"
+      },
+      {
+       "align": "center",
+       "text": "△"
+      },
+      {
+       "align": "center",
+       "text": "◎"
+      },
+      {
+       "align": "center",
+       "text": "晩成"
+      },
+      {
+       "align": "center",
+       "text": "美浦"
+      }
+     ],
+     [
+      {
+       "image": "res://art/face_4.png"
+      },
+      "キングスパーク",
+      {
+       "align": "center",
+       "text": "6"
+      },
+      {
+       "align": "center",
+       "text": "牡"
+      },
+      {
+       "bar": 88,
+       "fill": "#59c93e"
+      },
+      {
+       "bar": 65,
+       "fill": "#3f9fd8"
+      },
+      {
+       "face": 1,
+       "text": "普通"
+      },
+      {
+       "align": "center",
+       "text": "○"
+      },
+      {
+       "align": "center",
+       "text": "×"
+      },
+      {
+       "align": "center",
+       "text": "早熟"
+      },
+      {
+       "align": "center",
+       "text": "栗東"
+      }
+     ],
+     [
+      {
+       "image": "res://art/face_5.png"
+      },
+      "ブルームスター",
+      {
+       "align": "center",
+       "text": "2"
+      },
+      {
+       "align": "center",
+       "text": "牝"
+      },
+      {
+       "bar": 72,
+       "fill": "#59c93e"
+      },
+      {
+       "bar": 80,
+       "fill": "#3f9fd8"
+      },
+      {
+       "face": 3,
+       "text": "絶好調"
+      },
+      {
+       "align": "center",
+       "text": "△"
+      },
+      {
+       "align": "center",
+       "text": "○"
+      },
+      {
+       "align": "center",
+       "text": "晩成"
+      },
+      {
+       "align": "center",
+       "text": "美浦"
+      }
+     ],
+     [
+      {
+       "image": "res://art/face_6.png"
+      },
+      "シルバーグローリー",
+      {
+       "align": "center",
+       "text": "4"
+      },
+      {
+       "align": "center",
+       "text": "牡"
+      },
+      {
+       "bar": 83,
+       "fill": "#59c93e"
+      },
+      {
+       "bar": 90,
+       "fill": "#3f9fd8"
+      },
+      {
+       "face": 2,
+       "text": "好調"
+      },
+      {
+       "align": "center",
+       "text": "◎"
+      },
+      {
+       "align": "center",
+       "text": "◎"
+      },
+      {
+       "align": "center",
+       "text": "普通"
+      },
+      {
+       "align": "center",
+       "text": "栗東"
+      }
+     ],
+     [
+      {
+       "image": "res://art/face_7.png"
+      },
+      "ハヤテノツバサ",
+      {
+       "align": "center",
+       "text": "3"
+      },
+      {
+       "align": "center",
+       "text": "牡"
+      },
+      {
+       "bar": 95,
+       "fill": "#59c93e"
+      },
+      {
+       "bar": 60,
+       "fill": "#3f9fd8"
+      },
+      {
+       "face": 1,
+       "text": "普通"
+      },
+      {
+       "align": "center",
+       "text": "◎"
+      },
+      {
+       "align": "center",
+       "text": "×"
+      },
+      {
+       "align": "center",
+       "text": "早熟"
+      },
+      {
+       "align": "center",
+       "text": "美浦"
+      }
+     ]
+    ],
+    "type": "DataTable",
+    "anchor": "top_left",
+    "offset": [
+     17,
+     92
+    ],
+    "size": [
+     743,
+     461
+    ]
+   },
+   {
+    "bar_caption_width": 66,
+    "key_width": 70,
+    "name": "Detail",
+    "portrait_height": 148,
+    "type": "DetailPanel",
+    "anchor": "top_left",
+    "offset": [
+     778,
+     92
+    ],
+    "size": [
+     357,
+     461
+    ]
+   },
+   {
+    "children": [
+     {
+      "min_size": [
+       180,
+       60
+      ],
+      "text": "牧場",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       180,
+       60
+      ],
+      "text": "調教",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       180,
+       60
+      ],
+      "text": "レース登録",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       180,
+       60
+      ],
+      "text": "売却",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       180,
+       60
+      ],
+      "text": "名前変更",
+      "type": "Button"
+     },
+     {
+      "min_size": [
+       181,
+       60
+      ],
+      "text": "メニュー",
+      "type": "Button"
+     }
+    ],
+    "name": "Commands",
+    "separation": 7,
+    "type": "HBox",
+    "anchor": "top_left",
+    "offset": [
+     17,
+     570
+    ],
+    "size": [
+     1117,
+     60
+    ]
+   }
+  ]
+ }
+}
