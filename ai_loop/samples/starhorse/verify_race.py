@@ -56,6 +56,17 @@ def main() -> int:
         problems.append(f"finishers not ordered by time: {times}")
     if len(times) < 6:
         problems.append(f"only {len(times)} horses finished within the window")
+    # B-1330: every result carries the margin string the result
+    # screen's table prints; the winner's is its time.
+    for r in results:
+        if not str(r.get("margin", "")):
+            problems.append(f"result without a margin: {r}")
+            break
+    if results:
+        try:
+            float(results[0]["margin"])
+        except (KeyError, ValueError):
+            problems.append(f"winner margin is not its time: {results[0].get('margin')}")
 
     log = data["commentary"]
     voices = [e["voice"] for e in log]

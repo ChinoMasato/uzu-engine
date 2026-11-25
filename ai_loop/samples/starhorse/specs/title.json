@@ -1,0 +1,126 @@
+{
+ "scene": "res://screens/title.tscn",
+ "theme": {
+  "world": "racing",
+  "font": "res://art/game_font_jp.ttf"
+ },
+ "root": {
+  "type": "Screen",
+  "children": [
+   {
+    "type": "Image",
+    "name": "BgArt",
+    "texture": "res://art/title_art.jpg",
+    "offset": [
+     -46,
+     -26
+    ],
+    "size": [
+     1244,
+     700
+    ],
+    "stretch": "cover"
+   },
+   {
+    "type": "Image",
+    "name": "Shade",
+    "texture": "res://art/shade.png",
+    "offset": [
+     0,
+     0
+    ],
+    "size": [
+     1152,
+     648
+    ],
+    "stretch": "scale"
+   },
+   {
+    "type": "Label",
+    "name": "Logo",
+    "text": "スターホース牧場",
+    "font_size": 92,
+    "font_color": "#ffffff",
+    "outline_color": "#201405",
+    "outline_size": 16,
+    "shadow_color": "#d9a441",
+    "shadow_offset": [
+     7,
+     7
+    ],
+    "motion": "appear",
+    "offset": [
+     52,
+     48
+    ],
+    "size": [
+     940,
+     138
+    ]
+   },
+   {
+    "type": "Label",
+    "name": "Tagline",
+    "text": "夕日の牧場で、夢を駆けろ。",
+    "font_size": 25,
+    "font_color": "#ffe9b0",
+    "outline_color": "#201405",
+    "outline_size": 6,
+    "offset": [
+     66,
+     200
+    ],
+    "size": [
+     640,
+     40
+    ]
+   },
+   {
+    "type": "Button",
+    "name": "StartBtn",
+    "text": "ゲームスタート",
+    "font_size": 28,
+    "motion": "appear",
+    "offset": [
+     692,
+     380
+    ],
+    "size": [
+     404,
+     64
+    ]
+   },
+   {
+    "type": "Button",
+    "name": "RaceBtn",
+    "text": "レースをみる",
+    "font_size": 28,
+    "motion": "appear",
+    "offset": [
+     692,
+     460
+    ],
+    "size": [
+     404,
+     64
+    ]
+   },
+   {
+    "type": "Label",
+    "name": "Credit",
+    "text": "U.ZU Engine sample",
+    "text_style": "caption",
+    "align": "right",
+    "anchor": "bottom_right",
+    "offset": [
+     28,
+     20
+    ],
+    "size": [
+     300,
+     24
+    ]
+   }
+  ]
+ }
+}

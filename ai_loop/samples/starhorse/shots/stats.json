@@ -1,5 +1,5 @@
 {
-	"fps_avg_race": 31.8,
-	"fps_samples": 29,
+	"fps_avg_race": 3.4,
+	"fps_samples": 12,
 	"renderer": "lavapipe (software Vulkan)"
 }

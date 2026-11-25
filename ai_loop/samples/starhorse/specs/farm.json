@@ -9,15 +9,23 @@
   "type": "Screen",
   "children": [
    {
-    "name": "RacingStable",
-    "style": {
-     "bg": "#0b1a10",
-     "border_width": 0,
-     "radius": 0,
-     "shadow": 0
-    },
-    "type": "Panel",
-    "anchor": "top_left",
+    "type": "Image",
+    "name": "BgArt",
+    "texture": "res://art/farm_art.jpg",
+    "offset": [
+     -46,
+     -26
+    ],
+    "size": [
+     1244,
+     700
+    ],
+    "stretch": "cover"
+   },
+   {
+    "type": "Image",
+    "name": "Shade",
+    "texture": "res://art/shade.png",
     "offset": [
      0,
      0
@@ -25,41 +33,8 @@
     "size": [
      1152,
      648
-    ]
-   },
-   {
-    "name": "Pano",
-    "stretch": "cover",
-    "texture": "res://art/stable_pano.jpg",
-    "type": "Image",
-    "anchor": "top_left",
-    "offset": [
-     0,
-     0
     ],
-    "size": [
-     1152,
-     156
-    ]
-   },
-   {
-    "name": "PanoShade",
-    "style": {
-     "bg": "#0b1a1059",
-     "border_width": 0,
-     "radius": 0,
-     "shadow": 0
-    },
-    "type": "Panel",
-    "anchor": "top_left",
-    "offset": [
-     0,
-     0
-    ],
-    "size": [
-     1152,
-     156
-    ]
+    "stretch": "scale"
    },
    {
     "name": "TablePanel",
@@ -67,26 +42,34 @@
     "anchor": "top_left",
     "offset": [
      12,
-     86
+     124
     ],
     "size": [
      755,
-     472
+     462
     ]
    },
    {
-    "font_size": 30,
+    "font_size": 42,
     "name": "Title",
     "text": "スターホース牧場",
     "type": "Label",
     "anchor": "top_left",
     "offset": [
-     20,
-     12
+     24,
+     16
     ],
     "size": [
-     430,
-     44
+     560,
+     58
+    ],
+    "font_color": "#ffffff",
+    "outline_color": "#14260f",
+    "outline_size": 11,
+    "shadow_color": "#d9a441",
+    "shadow_offset": [
+     4,
+     4
     ]
    },
    {
@@ -97,7 +80,7 @@
     "anchor": "top_left",
     "offset": [
      704,
-     12
+     22
     ],
     "size": [
      216,
@@ -112,7 +95,7 @@
     "anchor": "top_left",
     "offset": [
      928,
-     12
+     22
     ],
     "size": [
      208,
@@ -168,7 +151,7 @@
     "anchor": "top_left",
     "offset": [
      17,
-     49
+     84
     ],
     "size": [
      743,
@@ -572,11 +555,11 @@
     "anchor": "top_left",
     "offset": [
      17,
-     92
+     130
     ],
     "size": [
      743,
-     461
+     450
     ]
    },
    {
@@ -588,11 +571,11 @@
     "anchor": "top_left",
     "offset": [
      778,
-     92
+     130
     ],
     "size": [
      357,
-     461
+     450
     ]
    },
    {
@@ -652,11 +635,11 @@
     "anchor": "top_left",
     "offset": [
      17,
-     570
+     594
     ],
     "size": [
      1117,
-     60
+     50
     ]
    }
   ]

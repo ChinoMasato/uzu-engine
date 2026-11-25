@@ -22,7 +22,7 @@
 			"phase": "start_note",
 			"seq": 4,
 			"t": 1.0,
-			"voice": "04_start_clean"
+			"voice": "05_start_late"
 		},
 		{
 			"phase": "early",
@@ -81,80 +81,88 @@
 		{
 			"phase": "final_100",
 			"seq": 14,
-			"t": 97.5,
+			"t": 97.49,
 			"voice": "18_final_100m"
 		},
 		{
 			"phase": "goal",
 			"seq": 15,
-			"t": 103.5,
+			"t": 103.58,
 			"voice": "20_goal_push"
 		},
 		{
 			"phase": "win_style",
 			"seq": 16,
-			"t": 103.5,
+			"t": 103.58,
 			"voice": "23_win_frontrun"
 		},
 		{
 			"phase": "upset",
 			"seq": 17,
-			"t": 103.5,
+			"t": 103.58,
 			"voice": "27_upset"
 		},
 		{
 			"phase": "crowd",
 			"seq": 18,
-			"t": 103.5,
+			"t": 103.58,
 			"voice": "28_crowd"
 		},
 		{
 			"phase": "closing",
 			"seq": 19,
-			"t": 103.5,
+			"t": 103.58,
 			"voice": "29_closing"
 		}
 	],
-	"fps_avg": 2.0,
+	"fps_avg": 50.0,
 	"results": [
 		{
-			"finish_t": 103.5,
+			"finish_t": 103.579017705412,
 			"gate": 7,
+			"margin": "103.58",
 			"name": "ハヤテノツバサ"
 		},
 		{
-			"finish_t": 104.5,
+			"finish_t": 104.289693086375,
 			"gate": 1,
+			"margin": "+0.71秒",
 			"name": "サンライズエース"
 		},
 		{
-			"finish_t": 104.5,
+			"finish_t": 104.652937673208,
 			"gate": 3,
+			"margin": "+1.07秒",
 			"name": "ホワイトオーシャン"
 		},
 		{
-			"finish_t": 105.5,
+			"finish_t": 105.394286082267,
 			"gate": 5,
+			"margin": "+1.82秒",
 			"name": "キングスパーク"
 		},
 		{
-			"finish_t": 106.5,
-			"gate": 2,
-			"name": "レッドヴァルキリー"
-		},
-		{
-			"finish_t": 106.5,
+			"finish_t": 106.154254531966,
 			"gate": 6,
+			"margin": "+2.58秒",
 			"name": "ミライノカゼ"
 		},
 		{
-			"finish_t": 106.5,
+			"finish_t": 106.540798532461,
+			"gate": 2,
+			"margin": "+2.96秒",
+			"name": "レッドヴァルキリー"
+		},
+		{
+			"finish_t": 106.540798532461,
 			"gate": 8,
+			"margin": "+2.96秒",
 			"name": "シルバーグローリー"
 		},
 		{
-			"finish_t": 109.0,
+			"finish_t": 109.354926283984,
 			"gate": 4,
+			"margin": "+5.78秒",
 			"name": "ブルームスター"
 		}
 	]
