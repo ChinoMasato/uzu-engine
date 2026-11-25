@@ -8,15 +8,23 @@
   "type": "Screen",
   "children": [
    {
-    "name": "RacingEntries",
-    "style": {
-     "bg": "#0b1a10",
-     "border_width": 0,
-     "radius": 0,
-     "shadow": 0
-    },
-    "type": "Panel",
-    "anchor": "top_left",
+    "type": "Image",
+    "name": "BgArt",
+    "texture": "res://art/racecourse_art.jpg",
+    "offset": [
+     -46,
+     -26
+    ],
+    "size": [
+     1244,
+     700
+    ],
+    "stretch": "cover"
+   },
+   {
+    "type": "Image",
+    "name": "Shade",
+    "texture": "res://art/shade.png",
     "offset": [
      0,
      0
@@ -24,41 +32,8 @@
     "size": [
      1152,
      648
-    ]
-   },
-   {
-    "name": "Pano",
-    "stretch": "cover",
-    "texture": "res://art/entries_pano.jpg",
-    "type": "Image",
-    "anchor": "top_left",
-    "offset": [
-     0,
-     0
     ],
-    "size": [
-     1152,
-     127
-    ]
-   },
-   {
-    "name": "PanoShade",
-    "style": {
-     "bg": "#0b1a104d",
-     "border_width": 0,
-     "radius": 0,
-     "shadow": 0
-    },
-    "type": "Panel",
-    "anchor": "top_left",
-    "offset": [
-     0,
-     0
-    ],
-    "size": [
-     1152,
-     127
-    ]
+    "stretch": "scale"
    },
    {
     "name": "RaceHead",
@@ -66,7 +41,7 @@
     "anchor": "top_left",
     "offset": [
      17,
-     46
+     30
     ],
     "size": [
      1117,
@@ -79,11 +54,11 @@
     "anchor": "top_left",
     "offset": [
      12,
-     121
+     108
     ],
     "size": [
      755,
-     438
+     452
     ]
    },
    {
@@ -95,7 +70,7 @@
     "anchor": "top_left",
     "offset": [
      32,
-     48
+     32
     ],
     "size": [
      94,
@@ -110,7 +85,7 @@
     "anchor": "top_left",
     "offset": [
      147,
-     52
+     36
     ],
     "size": [
      317,
@@ -125,7 +100,7 @@
     "anchor": "top_left",
     "offset": [
      147,
-     88
+     72
     ],
     "size": [
      317,
@@ -140,7 +115,7 @@
     "anchor": "top_left",
     "offset": [
      504,
-     66
+     50
     ],
     "size": [
      122,
@@ -155,7 +130,7 @@
     "anchor": "top_left",
     "offset": [
      662,
-     65
+     49
     ],
     "size": [
      122,
@@ -170,7 +145,7 @@
     "anchor": "top_left",
     "offset": [
      821,
-     65
+     49
     ],
     "size": [
      65,
@@ -185,7 +160,7 @@
     "anchor": "top_left",
     "offset": [
      929,
-     65
+     49
     ],
     "size": [
      122,
@@ -466,11 +441,11 @@
     "anchor": "top_left",
     "offset": [
      17,
-     127
+     114
     ],
     "size": [
      743,
-     426
+     440
     ]
    },
    {
@@ -482,11 +457,11 @@
     "anchor": "top_left",
     "offset": [
      778,
-     127
+     114
     ],
     "size": [
      357,
-     426
+     440
     ]
    },
    {

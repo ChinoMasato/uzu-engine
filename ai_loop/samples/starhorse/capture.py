@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Screenshots of the Star Horse sample (B-1329): farm, entries, race.
+"""Screenshots of the Star Horse sample (B-1329/B-1330).
 
 Runs a throwaway copy of the project with a small driver autoload
-(the hikari capture pattern): the driver walks farm -> entries ->
-race (at 6x), saves the three frames, samples the race fps under the
-software renderer, and writes stats.json next to the shots.
+(the hikari capture pattern): the driver walks title -> farm ->
+entries -> race (at 6x, saving the start / mid-race / final-stretch
+frames) -> result, samples the race fps under the software renderer,
+and writes stats.json next to the shots.
 
 Rendering is the repo's software path (Xvfb + lavapipe Vulkan, via
 ai_loop/uzu.py) -- the fps number is that path's, not a GPU's.
 
 Usage: python3 capture.py [project-dir] [out-dir]
-Writes farm.png, entries.png, race.png, stats.json into out-dir
-(default: <project>/shots). Exit code 0 when every capture was written.
+Writes title.png, farm.png, entries.png, race_start.png, race_mid.png,
+race_final.png, result.png, stats.json into out-dir (default:
+<project>/shots). Exit code 0 when every capture was written.
 """
 
 import json
@@ -27,12 +29,14 @@ import uzu  # noqa: E402
 
 DRIVER = r'''
 extends Node
-## Capture driver (B-1329): farm -> entries -> race mid-run.
+## Capture driver (B-1330): title -> farm -> entries -> race phases
+## -> result, one PNG per stage.
 
 var _frame := 0
 var _stage := 0
 var _out := ""
 var _fps: Array = []
+var _saved := {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -43,6 +47,7 @@ func _ready() -> void:
 
 func _save(name: String) -> void:
 	get_viewport().get_texture().get_image().save_png(_out + "/" + name)
+	_saved[name] = true
 
 func _main() -> Node:
 	return get_tree().current_scene
@@ -51,28 +56,57 @@ func _process(_delta: float) -> void:
 	if _out.is_empty():
 		return
 	_frame += 1
+	if _frame == 3 and _stage == 0:
+		# Capture is a verification harness: drain the commentary at
+		# fast-forward speed like the autoplay path, or the result
+		# stage waits for every clip's real length.
+		var c = _main().get("_commentary")
+		if c != null:
+			c.fast = true
 	match _stage:
-		0:
-			if _frame >= 55:
-				_save("farm.png")
-				_main().goto("entries")
+		0: # title: let the logo/buttons finish their appear motion
+			if _frame >= 80:
+				_save("title.png")
+				_main().goto("farm")
 				_stage = 1
 				_frame = 0
 		1:
 			if _frame >= 55:
-				_save("entries.png")
-				_main().goto_race()
-				var race = _main().get("_race")
-				race.time_scale = 6.0
-				race.start_race()
+				_save("farm.png")
+				_main().goto("entries")
 				_stage = 2
 				_frame = 0
 		2:
+			if _frame >= 55:
+				_save("entries.png")
+				_main().goto_race()
+				var race = _main().get("_race")
+				# 12x: at 6x the slow-motion finish starved the
+				# lavapipe frame budget and the run timed out.
+				race.time_scale = 12.0
+				race.start_race()
+				_stage = 3
+				_frame = 0
+		3:
 			var race = _main().get("_race")
 			if _frame % 20 == 0:
 				_fps.append(Engine.get_frames_per_second())
-			if race != null and race._leader_pos() > 950.0:
-				_save("race.png")
+			if race != null:
+				var lead: float = race._leader_pos()
+				if lead > 60.0 and not _saved.has("race_start.png"):
+					_save("race_start.png")
+				if lead > 950.0 and not _saved.has("race_mid.png"):
+					_save("race_mid.png")
+				if lead > 1600.0 and not _saved.has("race_final.png"):
+					_save("race_final.png")
+				if str(_main().get("_screen")) == "result":
+					_stage = 4
+					_frame = 0
+			if _frame > 60 * 300:
+				get_tree().quit()
+		4:
+			if _frame >= 50:
+				_save("result.png")
 				var sum := 0.0
 				for f in _fps:
 					sum += float(f)
@@ -82,9 +116,10 @@ func _process(_delta: float) -> void:
 				file.store_string(JSON.stringify(stats, "\t"))
 				file.close()
 				get_tree().quit()
-			elif _frame > 60 * 120:
-				get_tree().quit()
 '''
+
+SHOTS = ["title", "farm", "entries", "race_start", "race_mid",
+         "race_final", "result"]
 
 
 def main() -> int:
@@ -114,9 +149,9 @@ def main() -> int:
         cmd, env = uzu.render_command(cmd + uzu.driver(), "1152x648")
         cmd += ["--", "--uzu-capture", stage]
         with open(os.path.join(out_dir, "capture_run.log"), "w", encoding="utf-8") as log:
-            subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, timeout=1200, env=env)
+            subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, timeout=2400, env=env)
         ok = True
-        for name in ["farm", "entries", "race"]:
+        for name in SHOTS:
             src = os.path.join(stage, name + ".png")
             dst = os.path.join(out_dir, name + ".png")
             if os.path.exists(src):

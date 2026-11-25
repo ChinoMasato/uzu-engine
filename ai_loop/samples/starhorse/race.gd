@@ -1,12 +1,18 @@
 class_name RaceScreen
 extends Control
-## The race screen (B-1329): a deliberately simple 2D simulation --
-## eight silk-coloured runners on a straight course -- whose real job
-## is the phase machine that drives the commentary. The sim records
-## snapshots (ranks at 600m / 1200m, margins at the goal) and the
-## commentary lines are chosen from those snapshots, mirroring the
-## mapping table in audio/voice/README.md:
+## The race screen. B-1329's simulation and commentary phase machine
+## are unchanged -- snapshots (ranks at 600m / 1200m, margins at the
+## goal) still choose the lines, and everything stays deterministic
+## for a given `seed_value`. B-1330 replaces the presentation: a
+## side-view 2.5D broadcast over the racecourse art, split into
+## parallax layers (stand / turf / near rail), with the galloping
+## horse cut-outs (prep_assets.py) doing the running -- gallop bob
+## and pitch from the stride phase, turf dust, speed streaks and
+## afterimages at full stretch, a camera that follows the leader,
+## pushes in over the last 200 m, and drops into slow motion at the
+## goal for a photo-finish beat, with a restrained flash and shake.
 ##
+## Commentary mapping (audio/voice/README.md):
 ##   pre (fanfare -> gate-in -> ready) -> start (+clean/late note)
 ##   -> early (lead battle / leader / stretched / hold-back)
 ##   -> mid (front side / settled / corner)
@@ -14,23 +20,22 @@ extends Control
 ##   -> 200m -> 100m -> goal (win / push / close / photo)
 ##   -> win style (front-run / stalker / closer / runaway)
 ##   -> upset (long-shot winner) -> crowd -> closing.
-##
-## Everything is deterministic for a given `seed`, so the headless
-## verifier can assert the firing order from the commentary log.
 
 signal race_finished(results: Array)
 signal exit_requested
 
 const DIST := 1800.0
-const TRACK_RECT := Rect2(12, 66, 800, 470)
-const RANK_RECT := Rect2(824, 66, 316, 470)
+const VIEW_W := 1152.0
+const FAR_Y := 336.0 # far layer (sky + stand) fills 0..FAR_Y
+const GROUND_Y := 596.0 # hoof line of the middle lane
+const RANK_RECT := Rect2(868, 60, 272, 404)
 
 var commentary: Commentary
 var time_scale := 1.0
 var seed_value := 1329
 
 var _rng := RandomNumberGenerator.new()
-var _runners: Array = [] # per gate: {data, draw, pos, delay, wobble, finish_t}
+var _runners: Array = [] # per gate: {horse, draw, pos, delay, wobble, jitter, vel, phase, finish_t, rank600, rank1200}
 var _state := "idle" # idle | pre | run | done
 var _clock := 0.0 # seconds since the gate opened (negative in pre)
 var _fired := {}
@@ -38,30 +43,62 @@ var _results: Array = []
 var _fps_samples: Array = []
 var _fps_timer := 0.0
 
+var _cam_m := -36.0 # world metres at the left edge
+var _px_m := 8.6 # pixels per metre (grows over the last 200 m)
+var _slowmo := 1.0
+var _winner_at := -1.0 # real seconds when the winner crossed
+var _flash := 0.0
+var _shake := 0.0
+var _shake_off := Vector2.ZERO # this frame's shake offset, set in _draw
+var _elapsed := 0.0
+var _dust: Array = [] # {x (m), h (px above ground), vx, vh, age, life, size}
+var _dust_acc := 0.0
+
 var _phase_label: Label
 var _clock_label: Label
 var _subtitle: Label
-var _result_panel: PanelContainer
-var _result_text: RichTextLabel
 var _fanfare: AudioStreamPlayer
+
+var _tex_far: Texture2D
+var _tex_turf: Texture2D
+var _tex_rail: Texture2D
+var _tex_shadow: Texture2D
+var _tex_dust: Texture2D
+var _tex_horses: Array = []
+var _chip_box: StyleBoxFlat
+var _pill_box: StyleBoxFlat
 
 
 func _ready() -> void:
-	_phase_label = _make_label(24, 14, 30)
+	_tex_far = load("res://art/race_far.jpg")
+	_tex_turf = load("res://art/race_turf.jpg")
+	_tex_rail = load("res://art/race_rail.png")
+	_tex_shadow = load("res://art/shadow.png")
+	_tex_dust = load("res://art/dust.png")
+	for gate in range(8):
+		_tex_horses.append(load("res://art/horse_var%d.png" % gate))
+	_chip_box = StyleBoxFlat.new()
+	_chip_box.bg_color = Color(0.97, 0.97, 0.97, 0.95)
+	_chip_box.border_color = Color(0.05, 0.05, 0.05, 0.8)
+	_chip_box.set_border_width_all(1)
+	_chip_box.set_corner_radius_all(4)
+	_pill_box = StyleBoxFlat.new()
+	_pill_box.bg_color = Color(0.0, 0.0, 0.0, 0.62)
+	_pill_box.set_corner_radius_all(10)
+	_phase_label = _make_label(24, 12, 27)
 	add_child(_phase_label)
-	_clock_label = _make_label(880, 16, 24)
+	_clock_label = _make_label(880, 14, 23)
 	_clock_label.size = Vector2(248, 34)
 	_clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(_clock_label)
-	_subtitle = _make_label(24, 556, 22)
-	_subtitle.size = Vector2(1104, 34)
+	_subtitle = _make_label(126, 503, 21)
+	_subtitle.size = Vector2(900, 38)
 	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_subtitle)
 	_fanfare = AudioStreamPlayer.new()
 	_fanfare.bus = "BGM"
 	_fanfare.stream = load("res://audio/fanfare.mp3")
 	add_child(_fanfare)
-	_build_result_panel()
 	if commentary != null:
 		commentary.line_changed.connect(func(text: String) -> void: _subtitle.text = text)
 
@@ -71,31 +108,9 @@ func _make_label(x: int, y: int, font_size: int) -> Label:
 	l.position = Vector2(x, y)
 	l.size = Vector2(700, 40)
 	l.add_theme_font_size_override("font_size", font_size)
+	l.add_theme_color_override("font_outline_color", Color(0.04, 0.08, 0.03, 0.9))
+	l.add_theme_constant_override("outline_size", 6)
 	return l
-
-
-func _build_result_panel() -> void:
-	_result_panel = PanelContainer.new()
-	_result_panel.position = Vector2(276, 110)
-	_result_panel.size = Vector2(600, 400)
-	_result_panel.visible = false
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
-	_result_panel.add_child(v)
-	var title := Label.new()
-	title.text = "レース結果 — %s" % StarHorseData.RACE_NAME
-	title.add_theme_font_size_override("font_size", 26)
-	v.add_child(title)
-	_result_text = RichTextLabel.new()
-	_result_text.fit_content = true
-	_result_text.custom_minimum_size = Vector2(560, 270)
-	_result_text.add_theme_font_size_override("normal_font_size", 21)
-	v.add_child(_result_text)
-	var back := Button.new()
-	back.text = "牧場へ戻る"
-	back.pressed.connect(func() -> void: exit_requested.emit())
-	v.add_child(back)
-	add_child(_result_panel)
 
 
 ## Starts (or restarts) the race: fanfare, gate-in, ready, then run.
@@ -108,8 +123,8 @@ func start_race() -> void:
 		_runners.append({
 			"gate": gate, "horse": horse, "draw": draw,
 			"pos": 0.0, "delay": 0.0, "wobble": _rng.randf_range(0.0, TAU),
-			"jitter": 0.0, "finish_t": -1.0,
-			"rank600": 0, "rank1200": 0,
+			"jitter": 0.0, "vel": 0.0, "phase": _rng.randf_range(0.0, TAU),
+			"finish_t": -1.0, "rank600": 0, "rank1200": 0,
 		})
 	# One horse may break late; with the sample field it is the
 	# deep closer in gate 4 about half the time -- decided by the seed.
@@ -121,15 +136,31 @@ func start_race() -> void:
 	_fired.clear()
 	_results.clear()
 	_fps_samples.clear()
-	_result_panel.visible = false
+	_cam_m = -36.0
+	_px_m = 8.6
+	_slowmo = 1.0
+	_winner_at = -1.0
+	_flash = 0.0
+	_shake = 0.0
+	_dust.clear()
 	_phase_label.text = "中山11R %s（芝 %dm）" % [StarHorseData.RACE_NAME, StarHorseData.RACE_DISTANCE]
 	_fanfare.play()
 
 
 func _process(delta: float) -> void:
+	_elapsed += delta
+	_flash = maxf(_flash - delta * 1.6, 0.0)
+	_shake = maxf(_shake - delta * 9.0, 0.0)
 	if _state != "pre" and _state != "run":
+		queue_redraw()
 		return
-	var dt := delta * time_scale
+	# Slow motion over the last metres, released once the winner is in.
+	var leader := _leader_pos()
+	var target := 1.0
+	if leader >= 1690.0 and _winner_at < 0.0:
+		target = 0.32
+	_slowmo = lerpf(_slowmo, target, clampf(delta * 2.2, 0.0, 1.0))
+	var dt := delta * time_scale * _slowmo
 	_clock += dt
 	_fps_timer += delta
 	if _fps_timer >= 1.0:
@@ -137,6 +168,8 @@ func _process(delta: float) -> void:
 		_fps_samples.append(Engine.get_frames_per_second())
 	if _state == "pre":
 		_pre_events()
+		for r in _runners:
+			r["phase"] = float(r["phase"]) + dt * 2.0 # idle sway
 		if _clock >= 0.0:
 			_state = "run"
 			_say("start", "03_start")
@@ -144,8 +177,28 @@ func _process(delta: float) -> void:
 		_step(dt)
 		_run_events()
 		_maybe_finish()
+	_update_camera(dt)
+	_update_dust(dt)
 	_clock_label.text = "%.1f" % maxf(_clock, 0.0)
 	queue_redraw()
+
+
+func _update_camera(dt: float) -> void:
+	var leader := _leader_pos()
+	var t := clampf((leader - 1400.0) / 350.0, 0.0, 1.0)
+	var px_target := 8.6 + 2.4 * (t * t * (3.0 - 2.0 * t))
+	_px_m = lerpf(_px_m, px_target, clampf(dt * 1.5, 0.0, 1.0))
+	var cam_target := leader - (0.60 * VIEW_W) / _px_m
+	cam_target = clampf(cam_target, -36.0, 1740.0)
+	_cam_m = lerpf(_cam_m, cam_target, clampf(dt * 2.6, 0.0, 1.0))
+
+
+func _sx(pos: float) -> float:
+	return (pos - _cam_m) * _px_m
+
+
+func _ground_y(gate: int) -> float:
+	return GROUND_Y + (float(gate) - 4.5) * 6.0
 
 
 func _pre_events() -> void:
@@ -165,6 +218,7 @@ func _step(dt: float) -> void:
 	for r in _runners:
 		if r["delay"] > 0.0:
 			r["delay"] = float(r["delay"]) - dt
+			r["vel"] = 0.0
 			continue
 		var horse: Dictionary = r["horse"]
 		var p := clampf(float(r["pos"]) / DIST, 0.0, 1.0)
@@ -182,9 +236,13 @@ func _step(dt: float) -> void:
 		var v := _base_speed(horse) * factor * ramp * (1.0 + 0.008 * sin(float(r["wobble"])) + float(r["jitter"]))
 		if float(r["finish_t"]) > 0.0:
 			v *= 0.92 # easing down past the goal
+		r["vel"] = v
 		r["pos"] = float(r["pos"]) + v * dt
+		r["phase"] = float(r["phase"]) + dt * v * 0.8
 		if float(r["finish_t"]) < 0.0 and float(r["pos"]) >= DIST:
 			r["finish_t"] = _clock
+			if _winner_at < 0.0:
+				_winner_at = _elapsed
 
 
 func _order() -> Array:
@@ -269,6 +327,8 @@ func _run_events() -> void:
 	# keeps running so the result board gets real times.
 	if not _fired.has("goal") and float(leader["finish_t"]) > 0.0:
 		_fired["goal"] = true
+		_flash = 1.0
+		_shake = 6.0
 		_goal_commentary(leader, second)
 
 
@@ -297,6 +357,7 @@ func _goal_commentary(winner: Dictionary, second: Dictionary) -> void:
 
 
 ## Ends the race once the whole field is in, or 6 s after the winner.
+## Results carry a "margin" string for the result screen's table.
 func _maybe_finish() -> void:
 	if not _fired.has("goal"):
 		return
@@ -316,19 +377,14 @@ func _maybe_finish() -> void:
 	var rest := _runners.filter(func(r: Dictionary) -> bool: return float(r["finish_t"]) <= 0.0)
 	rest.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["pos"]) > float(b["pos"]))
 	_results = done + rest
-	var lines := PackedStringArray()
 	for i in range(_results.size()):
 		var r: Dictionary = _results[i]
-		var gap := ""
 		if i == 0:
-			gap = "%.2f" % win_t
+			r["margin"] = "%.2f" % win_t
 		elif float(r["finish_t"]) > 0.0:
-			gap = "+%.2f秒" % (float(r["finish_t"]) - win_t)
+			r["margin"] = "+%.2f秒" % (float(r["finish_t"]) - win_t)
 		else:
-			gap = "大差"
-		lines.append("%d着  %d番 %s（%s）  %s" % [i + 1, int(r["gate"]), str(r["horse"]["name"]), str(r["draw"]["jockey"]), gap])
-	_result_text.text = "\n".join(lines)
-	_result_panel.visible = true
+			r["margin"] = "大差"
 	race_finished.emit(_results)
 
 
@@ -341,80 +397,199 @@ func fps_average() -> float:
 	return sum / _fps_samples.size()
 
 
+# ------------------------------------------------------------------ dust
+
+func _update_dust(dt: float) -> void:
+	if _state == "run":
+		for r in _runners:
+			var v := float(r["vel"])
+			if v < 5.0:
+				continue
+			_dust_acc += dt * v * 0.85
+			while _dust_acc >= 1.0:
+				_dust_acc -= 1.0
+				if _dust.size() < 240:
+					_dust.append({
+						"x": float(r["pos"]) - 1.6 + _rng.randf_range(-0.5, 0.5),
+						"gate": int(r["gate"]),
+						"h": _rng.randf_range(0.0, 5.0),
+						"vx": _rng.randf_range(-4.5, -2.0),
+						"vh": _rng.randf_range(9.0, 24.0),
+						"age": 0.0, "life": _rng.randf_range(0.5, 0.95),
+						"size": _rng.randf_range(9.0, 15.0),
+					})
+	for p in _dust:
+		p["age"] = float(p["age"]) + dt
+		p["x"] = float(p["x"]) + float(p["vx"]) * dt
+		p["h"] = float(p["h"]) + float(p["vh"]) * dt
+		p["vh"] = float(p["vh"]) - 14.0 * dt
+	_dust = _dust.filter(func(p: Dictionary) -> bool: return float(p["age"]) < float(p["life"]))
+
+
 # ---------------------------------------------------------------- drawing
 
-func _to_x(pos: float, cam: float, scale: float) -> float:
-	return TRACK_RECT.position.x + (pos - cam) * scale
-
+func _draw_tiled(tex: Texture2D, y: float, h: float, offset_px: float, alpha := 1.0) -> void:
+	# Mirror tiling: alternate tiles are flipped, so the edges meet
+	# by construction. A crossfade wrap ghosts the grandstand into
+	# visible doubled slices; a mirror only reverses the scenery.
+	var tw := tex.get_width() * h / tex.get_height()
+	var first := int(floor(offset_px / tw))
+	var x := -fmod(offset_px, tw)
+	if x > 0.0:
+		x -= tw
+		first -= 1
+	var i := 0
+	while x < VIEW_W:
+		if (first + i) % 2 != 0:
+			draw_set_transform(_shake_off + Vector2(x + tw, y), 0.0, Vector2(-1, 1))
+			draw_texture_rect(tex, Rect2(0, 0, tw, h), false, Color(1, 1, 1, alpha))
+			draw_set_transform(_shake_off, 0.0, Vector2.ONE)
+		else:
+			draw_texture_rect(tex, Rect2(x, y, tw, h), false, Color(1, 1, 1, alpha))
+		x += tw
+		i += 1
 
 
 func _draw() -> void:
+	_shake_off = Vector2(sin(_elapsed * 91.0), cos(_elapsed * 77.0)) * _shake
+	draw_set_transform(_shake_off, 0.0, Vector2.ONE)
+	# Layers: stand (far, slow) -> turf (track speed) -> horses ->
+	# near rail (fast, in front of the hooves).
+	_draw_tiled(_tex_far, 0.0, FAR_Y, _cam_m * _px_m * 0.30)
+	_draw_tiled(_tex_turf, FAR_Y, 648.0 - FAR_Y, _cam_m * _px_m)
+	_draw_markers()
+	_draw_dust(false)
+	_draw_horses()
+	_draw_dust(true)
+	_draw_tiled(_tex_rail, 556.0, 118.0, _cam_m * _px_m * 1.55)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	_draw_hud()
+	if _flash > 0.0:
+		draw_rect(Rect2(0, 0, VIEW_W, 648), Color(1, 1, 1, _flash * 0.45))
+
+
+func _draw_markers() -> void:
+	var font := get_theme_default_font()
+	for m in range(0, 2001, 200):
+		var x := _sx(float(m))
+		if x < -30.0 or x > VIEW_W + 30.0:
+			continue
+		if m == 1800:
+			# The winning post: red/white stripes + a gold line.
+			for i in range(6):
+				var col := Color("#e60012") if i % 2 == 0 else Color.WHITE
+				draw_rect(Rect2(x - 4, 330 + i * 44, 8, 44), col)
+			draw_line(Vector2(x, 330), Vector2(x, 640), Color(1.0, 0.85, 0.3, 0.5), 2.0)
+			draw_string(font, Vector2(x - 24, 322), "ゴール", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(1, 0.9, 0.5, 0.95))
+		elif m > 0:
+			draw_line(Vector2(x, 486), Vector2(x, 566), Color(1, 1, 1, 0.4), 2.0)
+			draw_string(font, Vector2(x + 5, 560), "%dm" % m, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 1, 1, 0.65))
+
+
+func _draw_dust(front: bool) -> void:
+	for p in _dust:
+		var gate := int(p["gate"])
+		if (gate >= 5) != front:
+			continue
+		var t := float(p["age"]) / float(p["life"])
+		var size := float(p["size"]) * (1.0 + t * 1.8)
+		var at := Vector2(_sx(float(p["x"])), _ground_y(gate) - float(p["h"]))
+		var col := Color(0.88, 0.84, 0.66, 0.30 * (1.0 - t))
+		draw_texture_rect(_tex_dust, Rect2(at - Vector2(size, size) * 0.5, Vector2(size, size)), false, col)
+
+
+func _draw_horses() -> void:
 	if _runners.is_empty():
 		return
 	var font := get_theme_default_font()
-	var font_size := 15
-	# Track: turf bands, lanes, distance markers; camera follows leader.
-	draw_rect(Rect2(0, 54, 1152, 594), Color("#0b1a10"))
-	draw_rect(TRACK_RECT, Color("#2e6b34"))
-	var leader := _leader_pos()
-	var cam := clampf(leader - 130.0, -50.0, DIST - 330.0)
-	var scale := TRACK_RECT.size.x / 430.0
-	# Distance markers every 200 m.
-	for m in range(0, 2001, 200):
-		var x: float = _to_x(float(m), cam, scale)
-		if x >= TRACK_RECT.position.x and x <= TRACK_RECT.end.x:
-			draw_line(Vector2(x, TRACK_RECT.position.y), Vector2(x, TRACK_RECT.end.y), Color(1, 1, 1, 0.18), 1.0)
-			draw_string(font, Vector2(x + 3, TRACK_RECT.end.y - 6), "%dm" % m, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.55))
-	# Goal line.
-	var gx: float = _to_x(DIST, cam, scale)
-	if gx >= TRACK_RECT.position.x and gx <= TRACK_RECT.end.x:
-		draw_line(Vector2(gx, TRACK_RECT.position.y), Vector2(gx, TRACK_RECT.end.y), Color("#ffd94d"), 3.0)
-	var lane_h := TRACK_RECT.size.y / 8.0
-	for i in range(8):
-		var y := TRACK_RECT.position.y + lane_h * i
-		draw_line(Vector2(TRACK_RECT.position.x, y + lane_h), Vector2(TRACK_RECT.end.x, y + lane_h), Color(1, 1, 1, 0.25), 1.0)
-		draw_string(font, Vector2(TRACK_RECT.position.x + 4, y + 18), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 1, 1, 0.6))
-	# Horses, back lanes first.
-	for gate in range(1, 9):
-		var r: Dictionary = _runners[gate - 1]
-		var x: float = _to_x(float(r["pos"]), cam, scale)
-		if x < TRACK_RECT.position.x - 70.0 or x > TRACK_RECT.end.x + 10.0:
+	# Painter order: the far lanes (small gates) first.
+	var sorted := range(8)
+	for idx in sorted:
+		var r: Dictionary = _runners[idx]
+		var gate := int(r["gate"])
+		var scale := 0.94 + (float(gate) - 1.0) * 0.017
+		var w := 330.0 * scale
+		var h := w * 582.0 / 1150.0
+		var sx := _sx(float(r["pos"]))
+		if sx < -w or sx > VIEW_W + w:
 			continue
-		var cy := TRACK_RECT.position.y + lane_h * (gate - 1) + lane_h * 0.5
-		var silk := Color(str(StarHorseData.FRAME_COLORS[gate - 1]))
-		var body := Rect2(x - 30, cy - 13, 52, 26)
-		draw_rect(body, silk, true)
-		draw_rect(body, Color(0, 0, 0, 0.55), false, 1.5)
-		draw_circle(Vector2(x + 28, cy - 4), 8.0, silk)
-		draw_circle(Vector2(x + 28, cy - 4), 8.0, Color(0, 0, 0, 0.35), false, 1.0)
-		var num_col := Color(0.08, 0.08, 0.08) if silk.get_luminance() > 0.45 else Color.WHITE
-		draw_string(font, Vector2(x - 16, cy + 6), str(gate), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, num_col)
-		draw_string(font, Vector2(x - 30, cy - 20), str(r["horse"]["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color.WHITE)
-	# Leader progress.
-	var prog := Rect2(TRACK_RECT.position.x, TRACK_RECT.end.y + 4, TRACK_RECT.size.x, 6)
-	draw_rect(prog, Color(1, 1, 1, 0.15))
-	prog.size.x *= clampf(leader / DIST, 0.0, 1.0)
-	draw_rect(prog, Color("#d9a441"))
-	_draw_ranking(font)
+		var gy := _ground_y(gate)
+		var phase := float(r["phase"])
+		var v := float(r["vel"])
+		var speed_k := clampf(v / 17.5, 0.0, 1.0)
+		var bob := (sin(phase) * 4.5 - 2.0) * (0.25 + 0.75 * speed_k)
+		var pitch := sin(phase + 0.7) * 0.030 * speed_k
+		var tex: Texture2D = _tex_horses[gate - 1]
+		# Ground shadow (stays on the turf while the body bounces).
+		draw_texture_rect(_tex_shadow,
+			Rect2(sx - w * 0.42, gy - 11, w * 0.84, 22), false, Color(0, 0, 0, 0.40))
+		var center := Vector2(sx, gy - h * 0.52 + bob)
+		# Afterimages at full stretch (unrotated rects; the ghost of a
+		# gallop does not need the pitch).
+		if v > 15.3:
+			for k in range(2):
+				var back := 0.55 * float(k + 1)
+				var a := 0.13 if k == 0 else 0.06
+				var gc := Vector2(_sx(float(r["pos"]) - back), center.y)
+				draw_texture_rect(tex, Rect2(gc - Vector2(w, h) * 0.5, Vector2(w, h)), false, Color(1, 1, 1, a))
+		# Speed streaks behind the front runners in the straight.
+		if v > 15.3 and _leader_pos() > 1350.0:
+			for i in range(3):
+				var yy := gy - h * (0.30 + 0.22 * float(i))
+				var x0 := _sx(float(r["pos"]) - 6.5)
+				var x1 := _sx(float(r["pos"]) - 2.4)
+				draw_line(Vector2(x0, yy), Vector2(x1, yy), Color(1, 1, 1, 0.10), 3.0)
+		# The horse: pivot at the body centre, feet near the ground.
+		# draw_texture paints at native size, so the transform carries
+		# the scale from texture pixels to the display size.
+		var tex_size := tex.get_size()
+		draw_set_transform(center, pitch, Vector2(w / tex_size.x, h / tex_size.y))
+		draw_texture(tex, -tex_size * 0.5)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		# The number chip rides on the saddle cloth.
+		var saddle := center + Vector2(0.045 * w, -0.10 * h)
+		draw_style_box(_chip_box, Rect2(saddle - Vector2(13, 13), Vector2(26, 26)))
+		var num_col := Color(0.08, 0.08, 0.08)
+		draw_string(font, saddle + Vector2(-13, 7), str(gate), HORIZONTAL_ALIGNMENT_CENTER, 26, 19, num_col)
+		# Name tag above the back.
+		var name := str(r["horse"]["name"])
+		var tw := font.get_string_size(name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+		var tag := Rect2(sx - tw * 0.5 - 7, gy - h - 26 + bob * 0.5 - float(gate % 2) * 24.0, tw + 14, 21)
+		draw_style_box(_pill_box, tag)
+		draw_string(font, tag.position + Vector2(7, 15), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.92))
 
 
-func _draw_ranking(font: Font) -> void:
-	draw_rect(RANK_RECT, Color(0.04, 0.09, 0.05, 0.92))
+func _draw_hud() -> void:
+	var font := get_theme_default_font()
+	# Header shade behind the title / clock labels.
+	draw_rect(Rect2(10, 6, 660, 46), Color(0.02, 0.06, 0.03, 0.55))
+	draw_rect(Rect2(862, 6, 280, 46), Color(0.02, 0.06, 0.03, 0.55))
+	if _subtitle.text != "":
+		draw_style_box(_pill_box, Rect2(116, 498, 920, 46))
+	if _runners.is_empty():
+		return
+	# Live ranking, dressed to sit inside the racecourse world.
+	draw_rect(RANK_RECT, Color(0.03, 0.09, 0.05, 0.88))
 	draw_rect(RANK_RECT, Color("#d9a441"), false, 1.5)
 	draw_string(font, Vector2(RANK_RECT.position.x + 14, RANK_RECT.position.y + 30), "現在の順位", HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("#f2d492"))
-	var order := _order()
 	var leader := _leader_pos()
+	var remain := maxf(DIST - leader, 0.0)
+	draw_string(font, Vector2(RANK_RECT.position.x + 150, RANK_RECT.position.y + 30), "残り %.0fm" % remain, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1, 1, 1, 0.75))
+	var order := _order()
 	for i in range(8):
 		var r: Dictionary = _runners[order[i]]
-		var y := RANK_RECT.position.y + 62 + i * 48
+		var y := RANK_RECT.position.y + 62 + i * 40
 		var gate := int(r["gate"])
-		draw_rect(Rect2(RANK_RECT.position.x + 14, y - 16, 22, 22), Color(str(StarHorseData.FRAME_COLORS[gate - 1])))
+		draw_rect(Rect2(RANK_RECT.position.x + 14, y - 15, 20, 20), Color(str(StarHorseData.FRAME_COLORS[gate - 1])))
 		var gap := leader - float(r["pos"])
 		var text := "%d. %s" % [i + 1, str(r["horse"]["name"])]
-		if i > 0:
-			text += "  (-%.0fm)" % gap
 		if float(r["finish_t"]) > 0.0:
 			text += " GOAL"
-		draw_string(font, Vector2(RANK_RECT.position.x + 44, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
-	# Subtitle bar.
-	draw_rect(Rect2(12, 546, 1128, 46), Color(0, 0, 0, 0.72))
+		elif i > 0:
+			text += " (-%.0f)" % gap
+		draw_string(font, Vector2(RANK_RECT.position.x + 42, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
+	# Leader progress along the bottom of the turf.
+	var prog := Rect2(12, 640, 1128, 5)
+	draw_rect(prog, Color(1, 1, 1, 0.16))
+	prog.size.x *= clampf(leader / DIST, 0.0, 1.0)
+	draw_rect(prog, Color("#d9a441"))
