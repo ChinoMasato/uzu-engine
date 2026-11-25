@@ -163,3 +163,4 @@
 | B-1328 データ画面の仕上げ——B-1326 の実測欠陥2件（racing 表の右端が詳細パネルの下に潜る、sim の焼き込み残片とラベル切れ） | Muse (subagent) | agent/b-1328-muse | ai_loop/look_samples/b1315/project/specs/racing_stable.json・racing_entries.json・sim_main.json, ai_loop/look_samples/b1326/（prep_assets.py・再撮影・比較画像）, ai_loop/iterations/ | 反映済み（リード統合 2026-11-24）| 2026-11-24 |
 | B-1329 『スターホース牧場』U.ZU Engine 版サンプル（Godot 版との比較用ミニ版） | Muse (subagent) | agent/b-1329-muse | ai_loop/samples/starhorse/（新規）, ai_loop/iterations/ | 確認待ち（ビルド＋全テスト 1604/1606・記録あり） | 2026-11-24 |
 | B-1330 『スターホース牧場』U.ZU 版の最高品質化（タイトル新設＋牧場／出馬表のアート主導化＋レース横視点2.5D刷新＋結果画面） | Muse (subagent) | agent/b-1330-muse | ai_loop/samples/starhorse/（作り替え）, ai_loop/iterations/ | 反映済み（ai-native 統合済み、2026-11-25） | 2026-11-25 |
+| B-1332 『スターホース牧場』レースの3D化（レース画面を実3Dシーンに差し替え、馬GLB＋ジョッキー＋競馬場プロップ使用、exe 差し替え） | Muse (subagent) | agent/b-1332-muse | ai_loop/samples/starhorse/（race 差し替え・models 追加）, ai_loop/iterations/ | 作業中 | 2026-11-25 |
