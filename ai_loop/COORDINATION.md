@@ -73,6 +73,7 @@
 | Muse (subagent) | 『灯りの欠片』実プレイ不具合修正 第2弾（問題1〜3＋世界ベイク同梱） | agent/hikari-fix2-20261121 | 完了: 開始は段階生成（最長フレーム 704→302ms）に加え、生成世界を bake_world.gd で .scn 同梱し指紋一致時のみ採用（押下→start 758→191ms、最長 98ms、フォールバックは段階生成）。フォントは 614 グリフに再生成＋ coverage チェック新設。羊皮紙はタイル 128px＋低コントラスト合成に（全テスト 1576/1578、残 fail は既知 UDP 2件）。verify はベイク／フォールバックとも pass | リードがレビュー・統合。記録は iterations/2026-11-21-hikari-fix2.md、撮影は ~/workspace/hikari-fix2-captures/ | 2026-11-21 |
 | Muse (subagent) | B-1318 素材の階層化＋skew 楔抜け修正 | agent/b-1318-muse | 完了: draw_frame に inner_shadow／highlight／glow の3層を追加（スタイルキー制御、既定は従来と画素一致、glass の発光は一般化）。skew は平行四辺形の帯幅（テクスチャの 3/4）がフルタイルに足りないのが楔の原因と特定し、中央を半タイル幅にスライス＋fbm 周期を一致させて解消。全テスト 1594/1596（fail は既知 [UDPServer] 2件のみ）、ゲートは wafu 全項目 pass 維持 | リードがレビュー・統合。記録は iterations/2026-11-22-B-1318-muse.md、撮影は look_samples/b1318/ | 2026-11-22 |
 | Codex | B-1331（NavigationMesh の外部保存） | agent/b-1331-codex | 統合済み（2026-11-27 リード）。ブランチ CI run 45898571695 green（全テスト＋self-test pass）。村の外部保存・再読込 12/12 pass。ローカル分割実行は 1593 pass／13 fail（ソケット制限）／3 skip | —。記録は iterations/2026-11-26-B-1331-codex.md | 2026-11-27 |
+| Codex | B-1327（エンジンから AI へのプロンプト要求） | agent/b-1327-codex | 要求・結果形式、合成と発行・回収 CLI を実装。往復 4/4、新規テスト 9/9 pass | リード統合・CI 確認待ち。記録は iterations/2026-11-27-B-1327-codex.md | 2026-11-27 |
 
 ## 質問・相談
 
