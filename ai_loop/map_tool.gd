@@ -205,6 +205,8 @@ func _save_external(holder: Node, folder: String) -> Dictionary:
 		elif node is CollisionShape3D:
 			# Small shapes (one box per building) stay in the scene; the terrain's height map goes out.
 			res = node.shape if node.shape is HeightMapShape3D else null
+		elif node is NavigationRegion3D:
+			res = node.navigation_mesh
 		if res == null or (node is MeshInstance3D and node.name == "Water"):
 			continue
 		var path := "%s/%s.res" % [folder, String(holder.get_path_to(node)).replace("/", "_")]
