@@ -74,6 +74,8 @@ or through ai_loop\\windows\\uzu.bat.
                   flash segments and UI easing samples. Numbers for comparing runs (juice on/off, presets),
                   never a "feels good" verdict; --no-juice measures the same play with the game's juice
                   calls disabled, --probe-selftest fires one effect per channel without gameplay
+  uzu.py prompt-request <project> compose|issue|list|get|submit [options]   compose and exchange AI
+                  prompt requests and results (B-1327, see ai_loop/PROMPT_REQUEST.md)
   uzu.py dialogue --spec PATH [--out PATH] [--max-chars N]   validate or build dialogue/quest data (B-406)
   uzu.py replay-compare --expected PATH --actual PATH [--snapshots]   compare JSON/JSONL logs (B-314)
   uzu.py audio-check <file.wav> [--manifest sprite.json] [--loop] [--out report.json]
@@ -2490,6 +2492,7 @@ def selftest_tools():
     commands.append(("tests/test_collision_check.py", []))
     commands.append(("tests/test_image_scene.py", []))
     commands.append(("tests/test_spec_diff.py", []))
+    commands.append(("tests/test_prompt_request.py", []))
     commands.append(("tests/test_animation.py", []))
     commands.append(("tests/test_audio_check.py", []))
     commands.append(("tests/test_ui_quality.py", []))
@@ -2530,6 +2533,10 @@ def main(argv):
         print(__doc__)
         return 0 if argv else 2
     tool, rest = argv[0], argv[1:]
+    if tool == "prompt-request":
+        import prompt_request
+
+        return prompt_request.main(rest)
     if tool == "dialogue":
         import dialogue
 

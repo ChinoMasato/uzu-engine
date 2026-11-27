@@ -165,3 +165,4 @@
 | B-1330 『スターホース牧場』U.ZU 版の最高品質化（タイトル新設＋牧場／出馬表のアート主導化＋レース横視点2.5D刷新＋結果画面） | Muse (subagent) | agent/b-1330-muse | ai_loop/samples/starhorse/（作り替え）, ai_loop/iterations/ | 反映済み（ai-native 統合済み、2026-11-25） | 2026-11-25 |
 | B-1332 『スターホース牧場』レースの3D化（レース画面を実3Dシーンに差し替え、馬GLB＋ジョッキー＋競馬場プロップ使用、exe 差し替え） | Muse (subagent) | agent/b-1332-muse | ai_loop/samples/starhorse/（race 差し替え・models 追加）, ai_loop/iterations/ | 反映済み（ai-native 統合済み、2026-11-25） | 2026-11-25 |
 | B-1331 map_tool の外部保存に NavigationMesh を含める（worldgen2 ブランチの2行だけを移植） | Codex | agent/b-1331-codex | ai_loop/map_tool.gd, ai_loop/iterations/ | 反映済み（2026-11-27 リード統合。ブランチ CI run 45898571695 green） | 2026-11-26 |
+| B-1327 エンジン→AI のプロンプト要求プロトコル（uzu-prompt-request/1 の定義・発行/回収の口・機械的プロンプト合成・実証2種） | Codex | agent/b-1327-codex | ai_loop/（uzu.py・新規モジュール・仕様文書）, ai_loop/iterations/ | 完了（反映待ち） | 2026-11-27 |

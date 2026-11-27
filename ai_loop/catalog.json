@@ -2,13 +2,13 @@
  "version": 1,
  "generated_by": "ai_loop/make_catalog.py",
  "counts": {
-  "cli": 26,
+  "cli": 27,
   "command": 72,
   "mcp": 80,
   "preset": 7,
-  "script": 43,
+  "script": 44,
   "class": 15,
-  "total": 243
+  "total": 245
  },
  "entries": [
   {
@@ -233,6 +233,19 @@
    "required_capabilities": [],
    "fallback": null,
    "usage": "uzu.py picture <project> <command> [options]"
+  },
+  {
+   "name": "prompt-request",
+   "kind": "cli",
+   "description": "compose and exchange AI prompt requests and results (B-1327, see ai_loop/PROMPT_REQUEST.md)",
+   "tags": [
+    "cli",
+    "uzu.py"
+   ],
+   "source": "ai_loop/uzu.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "usage": "uzu.py prompt-request <project> compose|issue|list|get|submit [options]"
   },
   {
    "name": "publish",
@@ -3296,6 +3309,18 @@
     "script"
    ],
    "source": "ai_loop/prepublish.py",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "prompt_request",
+   "kind": "script",
+   "description": "Project-side prompt exchange and deterministic composition (B-1327).",
+   "tags": [
+    "python",
+    "script"
+   ],
+   "source": "ai_loop/prompt_request.py",
    "required_capabilities": [],
    "fallback": null
   },
