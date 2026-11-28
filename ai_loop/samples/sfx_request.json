@@ -1,0 +1,1 @@
+{"dest":"res://audio/sfx","format":"uzu-sfx-request/1","sounds":[{"event":"menu_click","intent":"clicky switch settings tabs"},{"event":"walk_hardwood","gait":"walk","kind":"footsteps","steps":8,"surface":"hardwood"},{"event":"rain_loop","fit_seconds":6.0,"intent":"light rain loop"}]}
