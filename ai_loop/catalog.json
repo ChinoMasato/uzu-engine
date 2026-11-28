@@ -2,13 +2,13 @@
  "version": 1,
  "generated_by": "ai_loop/make_catalog.py",
  "counts": {
-  "cli": 29,
+  "cli": 30,
   "command": 72,
   "mcp": 81,
   "preset": 7,
-  "script": 48,
+  "script": 49,
   "class": 16,
-  "total": 253
+  "total": 255
  },
  "entries": [
   {
@@ -235,6 +235,19 @@
    "usage": "uzu.py picture <project> <command> [options]"
   },
   {
+   "name": "play-log",
+   "kind": "cli",
+   "description": "summarize a recorded play log (B-313) specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "tags": [
+    "cli",
+    "uzu.py"
+   ],
+   "source": "ai_loop/uzu.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "usage": "uzu.py play-log <log.jsonl> [--out <summary.json>] --image-id ID [--report report.json --spec spec.json]), and maintains shared"
+  },
+  {
    "name": "prompt-request",
    "kind": "cli",
    "description": "compose and exchange AI prompt requests and results (B-1327, see ai_loop/PROMPT_REQUEST.md)",
@@ -317,7 +330,7 @@
   {
    "name": "sfx-lumina",
    "kind": "cli",
-   "description": "search, render, export guard specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "description": "search, render, export guard",
    "tags": [
     "cli",
     "uzu.py"
@@ -325,7 +338,7 @@
    "source": "ai_loop/uzu.py",
    "required_capabilities": [],
    "fallback": null,
-   "usage": "uzu.py sfx-lumina <project> (--request <file> [--lumina-dir <dir>] [--dest <res://...>] | --check-export <dir>) --image-id ID [--report report.json --spec spec.json]), and maintains shared"
+   "usage": "uzu.py sfx-lumina <project> (--request <file> [--lumina-dir <dir>] [--dest <res://...>] | --check-export <dir>)"
   },
   {
    "name": "spec-diff",
@@ -3353,6 +3366,18 @@
     "script"
    ],
    "source": "ai_loop/panorama_capture.gd",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "play_log",
+   "kind": "script",
+   "description": "Standardized play log writer, transparent Game recorder, summarizer, and CLI (B-313).",
+   "tags": [
+    "python",
+    "script"
+   ],
+   "source": "ai_loop/play_log.py",
    "required_capabilities": [],
    "fallback": null
   },

@@ -177,3 +177,4 @@
 | B-1702 Godot 再生ヘルパーの標準化（UZUGameAudio） | Gemini 4 (AI Studio) | agent/b-1702-gemini | ai_loop/（uzu_game_audio.gd・samples・tests） | 反映済み（ai-native 統合済み、2026-11-28） | 2026-11-28 |
 | B-1703 ライセンス台帳と同梱ガード（Lumina SFX） | Gemini 4 (AI Studio) | agent/b-1703-gemini | ai_loop/（lumina_bridge・uzu.py・tests） | 反映済み（ai-native 統合済み、2026-11-28） | 2026-11-28 |
 | B-1704 『灯りの欠片』への Lumina 実証 | リード（Muse） | agent/b-1704-lead | ai_loop/samples/hikari・ai_loop/（sfx配置） | 反映済み（ai-native 統合済み、2026-11-28） | 2026-11-28 |
+| B-313 操作ログの標準化 | Gemini 4 (AI Studio)＋リード | agent/b-313-gemini | ai_loop/play_log.py・ai_loop/uzu.py | 作業中 | 2026-11-28 |
