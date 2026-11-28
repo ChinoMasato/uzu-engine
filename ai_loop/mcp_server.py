@@ -73,6 +73,18 @@ TOOLS = {
         },
         ["request"],
     ),
+    "autopilot_play": (
+        "autopilot",
+        "",
+        "Replay a saved operation sequence (uzu-autopilot/1, B-312) in the project with the standard autopilot; optionally record a B-313 play log. Returns steps executed, checkpoints reached, and whether the game ended.",
+        {
+            "sequence": _str("Path to the uzu-autopilot/1 sequence JSON file"),
+            "seed": _str("Seed override (optional)"),
+            "state": _str("Comma-separated state paths to read at each step (optional)"),
+            "log": _str("Optional play-log JSONL path to record"),
+        },
+        ["sequence"],
+    ),
     "catalog_search": ("catalog", "", "Search the feature catalog (BACKLOG B-403): every uzu.py command, MCP tool, preset, tool script and UZU class with its description, tags and place of implementation, generated from their definitions. Use it to discover what the agent tools can do before reading the docs.", {"query": _str("Keyword(s); every word must match an entry's name, description or tags"), "caps": _str("Agent capability profile (BACKLOG B-404): comma-separated names (image_gen, gpu, blender, browser); matches are annotated with the capabilities the profile is missing"), "profile": _str("Path to a JSON capability profile file (BACKLOG B-404)")}, ["query"]),
     "replay_compare": ("replay-compare", "", "Compare replay JSON or JSONL and report the first differing field. Snapshots matches expected fields at each frame or time.", {"expected": _str("Expected log or snapshot file path"), "actual": _str("Actual log file path"), "snapshots": {"type": "boolean"}}, ["expected", "actual"]),
     "scene_new": ("engine", "new", "Create a new scene file with a root node.", {"scene": SCENE, "type": _str("Root node class, e.g. Node3D"), "name": _str("Root node name")}, ["scene"]),

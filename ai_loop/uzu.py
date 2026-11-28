@@ -54,6 +54,8 @@ or through ai_loop\\windows\\uzu.bat.
   uzu.py sfx-lumina <project> (--request <file> [--lumina-dir <dir>] [--dest <res://...>] | --check-export <dir>)   search, render, export guard
       and place Lumina SFX into the project (B-1701)
   uzu.py play-log <log.jsonl> [--out <summary.json>]   summarize a recorded play log (B-313)
+  uzu.py autopilot <project> <sequence.json> [--seed N] [--state a,b] [--log l.jsonl]
+                  replay a saved operation sequence (uzu-autopilot/1, B-312)
                   specification image registry (B-1222, see ai_loop/spec_registry.py): registers
                   specification illustrations (--id ID --image PATH), binds scenes (--scene res://...
                   --image-id ID [--report report.json --spec spec.json]), and maintains shared
@@ -1291,6 +1293,41 @@ def play_log_cmd(log_path, args):
         return play_log.run_cli(log_path, args)
     except (play_log.PlayLogError, OSError, ValueError) as e:
         raise ToolError(str(e), command="play-log")
+
+
+def autopilot_cmd(project, args):
+    """Replay a saved operation sequence (B-312, see ai_loop/autopilot.py):
+    <sequence.json> [--seed N] [--state a,b,...] [--log <play.jsonl>]."""
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import autopilot
+    import pathutil
+
+    seq_arg = None
+    rest_args = []
+    i = 0
+    while i < len(args):
+        if args[i] == "--sequence" and i + 1 < len(args):
+            seq_arg = args[i + 1]
+            i += 2
+        elif args[i].startswith("--sequence="):
+            seq_arg = args[i].split("=", 1)[1]
+            i += 1
+        elif seq_arg is None and not args[i].startswith("--"):
+            seq_arg = args[i]
+            i += 1
+        else:
+            rest_args.append(args[i])
+            i += 1
+    if not seq_arg:
+        raise ToolError("autopilot needs a sequence file", command="autopilot")
+    try:
+        seq_path = pathutil.resolve_input_path(project, seq_arg)["path"]
+        result = dict(autopilot.run_cli(project, seq_path, rest_args))
+    except (autopilot.AutopilotError, OSError, ValueError) as e:
+        raise ToolError(str(e), command="autopilot")
+    result["ok"] = bool(result.get("completed") or result.get("ended"))
+    return result
 
 
 def image_scene_cmd(project, args):
@@ -2794,7 +2831,7 @@ def main(argv):
             result = {"ok": False, "error": e.message}
         print(json.dumps(result, ensure_ascii=False))
         return 0 if result.get("ok") else 1
-    if tool not in ("engine", "look", "selfplay", "build", "enrich", "ui", "map", "audit-scene", "collision-check", "image-scene", "spec-diff", "spec-registry", "anim", "sfx-lumina", "play-log") or not rest:
+    if tool not in ("engine", "look", "selfplay", "build", "enrich", "ui", "map", "audit-scene", "collision-check", "image-scene", "spec-diff", "spec-registry", "anim", "sfx-lumina", "play-log", "autopilot") or not rest:
         print(__doc__, file=sys.stderr)
         return 2
     project = os.path.abspath(rest[0])
@@ -2802,7 +2839,7 @@ def main(argv):
         print(json.dumps({"ok": False, "error": f"{rest[0]} is not a project (no project.godot)"}))
         return 2
     try:
-        result = {"engine": engine, "look": look, "selfplay": selfplay, "build": build, "enrich": enrich, "ui": ui, "map": map_, "audit-scene": audit_scene_cmd, "collision-check": collision_check_cmd, "image-scene": image_scene_cmd, "spec-diff": spec_diff_cmd, "spec-registry": spec_registry_cmd, "anim": animation_cmd, "sfx-lumina": sfx_cmd, "play-log": play_log_cmd}[tool](project, rest[1:])
+        result = {"engine": engine, "look": look, "selfplay": selfplay, "build": build, "enrich": enrich, "ui": ui, "map": map_, "audit-scene": audit_scene_cmd, "collision-check": collision_check_cmd, "image-scene": image_scene_cmd, "spec-diff": spec_diff_cmd, "spec-registry": spec_registry_cmd, "anim": animation_cmd, "sfx-lumina": sfx_cmd, "play-log": play_log_cmd, "autopilot": autopilot_cmd}[tool](project, rest[1:])
     except ToolError as e:
         result = {"ok": False, "error": e.message, **e.extra}
         print(json.dumps(result, ensure_ascii=False))
