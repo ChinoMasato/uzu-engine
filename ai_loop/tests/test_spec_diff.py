@@ -138,5 +138,65 @@ class SpecDiffTest(unittest.TestCase):
         self.assertEqual(elements[0]["bbox"], [1, 2, 30, 40])
 
 
+class SpecDiffAdvisoryTest(unittest.TestCase):
+    """B-1227: glow candidates are advisory; they never gate the verdict."""
+
+    def setUp(self):
+        import tempfile
+        self.dir = Path(tempfile.mkdtemp())
+        self.spec = self.dir / "spec.png"
+        draw(self.spec)
+
+    def _erase_window(self, path):
+        draw(path)
+        _, _, raw = image_scene.load_rgba(str(path))
+        px = bytearray(raw)
+        for y in range(75, 95):
+            for x in range(110, 135):
+                i = (y * W + x) * 4
+                px[i:i + 4] = bytes([*WALL, 255])
+        image_scene.write_png(str(path), W, H, px)
+
+    def test_glow_failure_is_advisory_only(self):
+        shot = self.dir / "no_window.png"
+        self._erase_window(shot)
+        v = spec_diff.compare(str(self.spec), str(shot), ELEMENTS)
+        by_id = {e["id"]: e for e in v["elements"]}
+        self.assertFalse(by_id["window"]["pass"], by_id["window"])
+        self.assertTrue(by_id["window"]["candidate"])
+        self.assertFalse(by_id["door"]["candidate"])
+        self.assertFalse(by_id["tree"]["candidate"])
+        self.assertEqual(v["advisory"], {"checked": 1, "passed": 0, "failed": ["window"]})
+        self.assertEqual(v["gating"], {"checked": 2, "passed": 2, "failed": []})
+        self.assertTrue(v["ok"], v)
+
+    def test_gating_failure_still_fails(self):
+        shot = self.dir / "no_door.png"
+        draw(shot, erase_door=True)
+        v = spec_diff.compare(str(self.spec), str(shot), ELEMENTS)
+        self.assertEqual(v["gating"], {"checked": 2, "passed": 1, "failed": ["door"]})
+        self.assertEqual(v["advisory"], {"checked": 1, "passed": 1, "failed": []})
+        self.assertFalse(v["ok"])
+
+    def test_candidate_flags_from_report_and_registry(self):
+        report = {
+            "layers": {"cards": [{"name": "Card_A", "image_bbox": [1, 2, 30, 40],
+                                  "basis": "inferred"}]},
+            "candidates": {"interact": [
+                {"id": "door_0", "kind": "door", "image_bbox": [10, 20, 30, 50], "basis": "inferred"},
+                {"id": "glow_0", "kind": "glow", "image_bbox": [5, 6, 9, 10], "basis": "inferred"}]},
+        }
+        from_report = spec_diff.elements_from_report(report)
+        self.assertEqual([(e["id"], e["candidate"]) for e in from_report],
+                         [("Card_A", False), ("door_0", False), ("glow_0", True)])
+        binding = {"elements": [
+            {"id": "house_red", "kind": "house", "image_bbox": [0, 0, 50, 50], "basis": "observed"},
+            {"id": "lamp_glow", "kind": "glow", "image_bbox": [12, 12, 20, 20], "basis": "inferred"}]}
+        from_registry = spec_diff.elements_from_registry(binding)
+        self.assertEqual([(e["id"], e["candidate"]) for e in from_registry],
+                         [("house_red", False), ("lamp_glow", True)])
+
+
+
 if __name__ == "__main__":
     unittest.main()
