@@ -79,6 +79,19 @@ TOOLS = {
         "Replay a saved operation sequence (uzu-autopilot/1, B-312) in the project with the standard autopilot; optionally record a B-313 play log. Returns steps executed, checkpoints reached, and whether the game ended.",
         {
             "sequence": _str("Path to the uzu-autopilot/1 sequence JSON file"),
+    "music_generate": (
+        "music-gen",
+        "",
+        "Generate procedural BGM WAV files (uzu-music/1, B-1110) into the project's bgm folder: chord progression + melody/bass/drums from scene presets (village/battle/title), seed-fixed. Returns key, tempo, length, event counts and the measured loop-seam values for each WAV.",
+        {
+            "preset": _str("Preset name: village, battle or title (default village)"),
+            "seed": _str("Seed override (optional)"),
+            "bars": _str("Bar count override (optional)"),
+            "all": _str("Generate every preset when 'true' (optional)"),
+            "out": _str("Output directory override (optional)"),
+        },
+        [],
+    ),
             "seed": _str("Seed override (optional)"),
             "state": _str("Comma-separated state paths to read at each step (optional)"),
             "log": _str("Optional play-log JSONL path to record"),

@@ -56,6 +56,8 @@ or through ai_loop\\windows\\uzu.bat.
   uzu.py play-log <log.jsonl> [--out <summary.json>]   summarize a recorded play log (B-313)
   uzu.py autopilot <project> <sequence.json> [--seed N] [--state a,b] [--log l.jsonl]
                   replay a saved operation sequence (uzu-autopilot/1, B-312)
+  uzu.py music-gen <project> [--preset NAME] [--seed N] [--bars N] [--all] [--out <dir>]
+                  generate procedural BGM WAVs (uzu-music/1, B-1110)
                   specification image registry (B-1222, see ai_loop/spec_registry.py): registers
                   specification illustrations (--id ID --image PATH), binds scenes (--scene res://...
                   --image-id ID [--report report.json --spec spec.json]), and maintains shared
@@ -1329,6 +1331,37 @@ def autopilot_cmd(project, args):
     result["ok"] = bool(result.get("completed") or result.get("ended"))
     return result
 
+
+
+def music_gen_cmd(project, args):
+    """Generate procedural BGM WAVs (B-1110, see ai_loop/music_gen.py):
+    [--preset NAME] [--seed N] [--bars N] [--all] [--out <dir>].
+    WAVs land in <project>/bgm unless --out names another directory."""
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import music_gen
+
+    out_dir = os.path.join(project, "bgm")
+    rest_args = []
+    i = 0
+    while i < len(args):
+        if args[i] == "--out" and i + 1 < len(args):
+            out_dir = args[i + 1]
+            i += 2
+        elif args[i].startswith("--out="):
+            out_dir = args[i].split("=", 1)[1]
+            i += 1
+        elif args[i] == "--all" and i + 1 < len(args) and args[i + 1] in ("true", "false"):
+            if args[i + 1] == "true":
+                rest_args.append("--all")
+            i += 2
+        else:
+            rest_args.append(args[i])
+            i += 1
+    try:
+        return {"ok": True, **music_gen.run_cli(out_dir, rest_args)}
+    except (OSError, ValueError) as e:
+        raise ToolError(str(e), command="music-gen")
 
 def image_scene_cmd(project, args):
     """Image-first scaffold (B-1221): a specification illustration becomes a
@@ -2831,7 +2864,7 @@ def main(argv):
             result = {"ok": False, "error": e.message}
         print(json.dumps(result, ensure_ascii=False))
         return 0 if result.get("ok") else 1
-    if tool not in ("engine", "look", "selfplay", "build", "enrich", "ui", "map", "audit-scene", "collision-check", "image-scene", "spec-diff", "spec-registry", "anim", "sfx-lumina", "play-log", "autopilot") or not rest:
+    if tool not in ("engine", "look", "selfplay", "build", "enrich", "ui", "map", "audit-scene", "collision-check", "image-scene", "spec-diff", "spec-registry", "anim", "sfx-lumina", "play-log", "autopilot", "music-gen") or not rest:
         print(__doc__, file=sys.stderr)
         return 2
     project = os.path.abspath(rest[0])
@@ -2839,7 +2872,7 @@ def main(argv):
         print(json.dumps({"ok": False, "error": f"{rest[0]} is not a project (no project.godot)"}))
         return 2
     try:
-        result = {"engine": engine, "look": look, "selfplay": selfplay, "build": build, "enrich": enrich, "ui": ui, "map": map_, "audit-scene": audit_scene_cmd, "collision-check": collision_check_cmd, "image-scene": image_scene_cmd, "spec-diff": spec_diff_cmd, "spec-registry": spec_registry_cmd, "anim": animation_cmd, "sfx-lumina": sfx_cmd, "play-log": play_log_cmd, "autopilot": autopilot_cmd}[tool](project, rest[1:])
+        result = {"engine": engine, "look": look, "selfplay": selfplay, "build": build, "enrich": enrich, "ui": ui, "map": map_, "audit-scene": audit_scene_cmd, "collision-check": collision_check_cmd, "image-scene": image_scene_cmd, "spec-diff": spec_diff_cmd, "spec-registry": spec_registry_cmd, "anim": animation_cmd, "sfx-lumina": sfx_cmd, "play-log": play_log_cmd, "autopilot": autopilot_cmd, "music-gen": music_gen_cmd}[tool](project, rest[1:])
     except ToolError as e:
         result = {"ok": False, "error": e.message, **e.extra}
         print(json.dumps(result, ensure_ascii=False))
