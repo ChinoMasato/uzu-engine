@@ -299,3 +299,4 @@
 
 - 2026-11-28 B-1704 (リード): 『灯りの欠片』へ Lumina 実証投入。無音だった8種の場面（歩行・拾う・会話・点火・タイトル・環境音3種）に音が付き、検証ランで発火を実測。Phase 17（B-1701〜B-1704）全完了。記録 iterations/2026-11-28-B-1704-lead.md。
 - 2026-11-28 B-313 (Gemini 4 / AI Studio): 操作ログの標準化（uzu-play-log/1）。PlayLogWriter＋Game 透過 Recorder＋summarize（操作・チェックポイント・状態遷移を再構成）、uzu.py play-log 追加、カタログ255件に再生成。リード手直し1件（uzu.py 検査の実形への適合＝指示書の情報不足）。記録 iterations/2026-11-28-B-313-gemini.md。
+- 2026-11-28 B-1333 (Gemini 4 / AI Studio): Skills over MCP (SEP-2640) 試作。mcp_server.py に skills/list・get、resources、server/discover を追加し、初スキル uzu-verify を配信。Claude Code 実証で skill:// の発見→読み込みが実サーバーで成立（スキル一覧への提示はホスト側が未対応＝2026-11-27 実測と同結論）。生成コードの手直し0件。記録 iterations/2026-11-28-B-1333-gemini.md。
