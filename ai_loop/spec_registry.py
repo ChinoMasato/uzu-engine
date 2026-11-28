@@ -54,6 +54,11 @@ import re
 import struct
 import sys
 import tempfile
+try:
+    import pathutil
+except ImportError:
+    from . import pathutil
+
 
 FORMAT = "uzu-spec-registry/1"
 DEFAULT_REGISTRY = "spec_registry.json"
@@ -104,30 +109,22 @@ def png_dimensions(path):
 
 
 def resolve_registry_path(project, registry_path=None):
-    """Resolve the registry JSON path relative to the project."""
-    project = os.path.abspath(project)
+    """Resolve the registry JSON path (project-relative first, res:// ok, cwd fallback)."""
+    project_abs = os.path.abspath(project)
     if not registry_path:
-        return os.path.join(project, DEFAULT_REGISTRY)
-    if registry_path.startswith("res://"):
-        rel = registry_path[len("res://"):].lstrip("/")
-        return os.path.abspath(os.path.join(project, rel))
-    if os.path.isabs(registry_path):
-        return registry_path
-    return os.path.abspath(os.path.join(project, registry_path))
+        return os.path.join(project_abs, DEFAULT_REGISTRY)
+    try:
+        return pathutil.resolve_input_path(project_abs, registry_path, must_exist=False)["path"]
+    except pathutil.PathResolutionError as e:
+        raise RegistryError(str(e)) from e
 
 
 def resolve_project_path(project, path):
-    """Resolve a res://, project-relative, or absolute path to an absolute path."""
-    project = os.path.abspath(project)
-    if path.startswith("res://"):
-        rel = path[len("res://"):].lstrip("/")
-        resolved = os.path.abspath(os.path.join(project, rel))
-        if os.path.commonpath([project, resolved]) != project:
-            raise RegistryError(f"res:// path escapes project: {path}")
-        return resolved
-    if os.path.isabs(path):
-        return path
-    return os.path.abspath(os.path.join(project, path))
+    """Resolve a res://, project-relative, cwd-relative, or absolute path to an absolute path."""
+    try:
+        return pathutil.resolve_input_path(project, path, must_exist=False)["path"]
+    except pathutil.PathResolutionError as e:
+        raise RegistryError(str(e)) from e
 
 
 def to_project_ref(project, path):

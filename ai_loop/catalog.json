@@ -6,9 +6,9 @@
   "command": 72,
   "mcp": 81,
   "preset": 7,
-  "script": 49,
+  "script": 50,
   "class": 16,
-  "total": 255
+  "total": 256
  },
  "entries": [
   {
@@ -3366,6 +3366,18 @@
     "script"
    ],
    "source": "ai_loop/panorama_capture.gd",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "pathutil",
+   "kind": "script",
+   "description": "Unified input path resolution for ai_loop / uzu.py (B-1225).",
+   "tags": [
+    "python",
+    "script"
+   ],
+   "source": "ai_loop/pathutil.py",
    "required_capabilities": [],
    "fallback": null
   },

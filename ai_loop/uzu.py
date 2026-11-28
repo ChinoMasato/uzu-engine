@@ -33,6 +33,7 @@ or through ai_loop\\windows\\uzu.bat.
                   pass/fail JSON with frames, seconds and stuck points; --block-node fences one node in
                   to prove that exactly its edges fail
   uzu.py image-scene <project> --image illustration.png [--depth depth.png] [--out image_scene]
+      Paths (--image, --depth, --registry) resolve project-relative first, res:// ok, cwd fallback; resolved paths are reported in "resolved".
                   [--registry spec_registry.json] [--image-id ID] [--scene res://x.tscn]
                   [--fov 50] [--backdrop-width 26] [--no-build] [--no-walk] [--shot out.png]
                   [--seconds 60]   image-first scaffold (B-1221, see ai_loop/image_scene.py): the
@@ -40,6 +41,7 @@ or through ai_loop\\windows\\uzu.bat.
                   candidate interact markers, the reference camera -- plus a generation report;
                   the spec is built and a capsule walker walks its waypoints
   uzu.py spec-diff <project> [--spec-image illustration.png] [--report report.json]
+      Paths (--spec-image, --report, --registry, --shot-png, --thresholds) resolve project-relative first, res:// ok, cwd fallback; resolved paths are reported in "resolved".
                   [--registry spec_registry.json] [--scene res://x.tscn] [--shot-png shot.png]
                   [--thresholds t.json] [--frames 8] [--out verdict.json]
                   spec-image diff verification (B-1223, see ai_loop/spec_diff.py): shoots the scene
@@ -48,6 +50,7 @@ or through ai_loop\\windows\\uzu.bat.
                   distance) and per-element presence from the B-1221 report or B-1222 registry --
                   as one pass/fail JSON with every measured number
   uzu.py spec-registry <project> register-image|bind-scene|map-element|remove-element|get|list|validate [options]
+      Paths (--registry and project/image paths) resolve project-relative first, res:// ok, cwd fallback.
   uzu.py sfx-lumina <project> (--request <file> [--lumina-dir <dir>] [--dest <res://...>] | --check-export <dir>)   search, render, export guard
       and place Lumina SFX into the project (B-1701)
   uzu.py play-log <log.jsonl> [--out <summary.json>]   summarize a recorded play log (B-313)
@@ -1303,6 +1306,7 @@ def image_scene_cmd(project, args):
     if HERE not in sys.path:
         sys.path.insert(0, HERE)
     import image_scene as image_scene_mod
+    import pathutil
 
     out_name = opt(args, "out", "image_scene").strip("/")
     image = opt(args, "image")
@@ -1310,38 +1314,59 @@ def image_scene_cmd(project, args):
     reg_arg = opt(args, "registry")
     image_id = opt(args, "image-id")
     scene_ref = opt(args, "scene") or f"res://{out_name}/{out_name}.tscn"
+    resolved = {}
     registry_elements = None
     reg_path = None
     if reg_arg or image_id:
         import spec_registry
         try:
-            reg_path = spec_registry.resolve_registry_path(project, reg_arg)
+            if reg_arg:
+                reg_res = pathutil.resolve_input_path(project, reg_arg, must_exist=True)
+                reg_path = spec_registry.resolve_registry_path(project, reg_arg)
+                resolved["registry"] = reg_res
+            else:
+                reg_path = spec_registry.resolve_registry_path(project, reg_arg)
+                resolved["registry"] = {"path": reg_path, "via": "project"}
             reg = spec_registry.load_registry(reg_path, create=False)
             binding = spec_registry.get_scene_binding(reg, scene_ref)
             if binding:
                 registry_elements = binding.get("elements") or []
                 if not image and binding.get("spec_image_path"):
-                    image = spec_registry.resolve_project_path(project, binding["spec_image_path"])
+                    image = binding["spec_image_path"]
                 if not depth and (binding.get("image") or {}).get("depth_path"):
-                    depth = spec_registry.resolve_project_path(project, binding["image"]["depth_path"])
+                    depth = binding["image"]["depth_path"]
             elif image_id:
                 img_entry = (reg.get("images") or {}).get(image_id)
                 if not img_entry:
                     raise ToolError(f"image {image_id!r} is not registered in {reg_path}", command="image-scene")
                 if not image and img_entry.get("path"):
-                    image = spec_registry.resolve_project_path(project, img_entry["path"])
+                    image = img_entry["path"]
                 if not depth and img_entry.get("depth_path"):
-                    depth = spec_registry.resolve_project_path(project, img_entry["depth_path"])
-        except (spec_registry.RegistryError, OSError, ValueError) as e:
+                    depth = img_entry["depth_path"]
+        except (pathutil.PathResolutionError, spec_registry.RegistryError, OSError, ValueError) as e:
             raise ToolError(str(e), command="image-scene")
 
     if not image:
         raise ToolError("image-scene needs --image illustration.png", command="image-scene")
-    image = _abs(project, image) if image.startswith("res://") else os.path.abspath(image)
+    try:
+        image_res = pathutil.resolve_input_path(project, image, must_exist=True)
+    except pathutil.PathResolutionError as e:
+        raise ToolError(str(e), command="image-scene")
+    image = image_res["path"]
     if not os.path.isfile(image):
         raise ToolError(f"no illustration at {image}", command="image-scene")
+    resolved["image"] = image_res
+
     if depth:
-        depth = _abs(project, depth) if depth.startswith("res://") else os.path.abspath(depth)
+        try:
+            depth_res = pathutil.resolve_input_path(project, depth, must_exist=True)
+        except pathutil.PathResolutionError as e:
+            raise ToolError(str(e), command="image-scene")
+        depth = depth_res["path"]
+        if not os.path.isfile(depth):
+            raise ToolError(f"no depth map at {depth}", command="image-scene")
+        resolved["depth"] = depth_res
+
     try:
         spec, report, assets = image_scene_mod.analyze(
             image,
@@ -1372,7 +1397,7 @@ def image_scene_cmd(project, args):
     with open(os.path.join(out_dir, "walk_targets.json"), "w", encoding="utf-8") as f:
         json.dump({"spawn": report["spawn"], "waypoints": report["waypoints"]}, f, ensure_ascii=False, indent=2)
     result = {"ok": True, "command": "image-scene", "spec": spec["scene"],
-              "spec_file": spec_path, "report": report}
+              "spec_file": spec_path, "report": report, "resolved": resolved}
     if reg_path is not None:
         result["registry"] = reg_path
     if "--no-build" in args:
@@ -1420,20 +1445,34 @@ def spec_diff_cmd(project, args):
     keys) plus per-metric flags."""
     if HERE not in sys.path:
         sys.path.insert(0, HERE)
+    import pathutil
     import spec_diff
 
     spec_image = opt(args, "spec-image")
     report_arg = opt(args, "report")
     reg_arg = opt(args, "registry")
     scene_ref = opt(args, "scene")
+    resolved = {}
     elements = None
     element_source = None
     reg_path = None
 
+    if spec_image:
+        try:
+            spec_res = pathutil.resolve_input_path(project, spec_image, must_exist=True)
+        except pathutil.PathResolutionError as e:
+            raise ToolError(str(e), command="spec-diff")
+        spec_image = spec_res["path"]
+        if not os.path.isfile(spec_image):
+            raise ToolError(f"no specification image at {spec_image}", command="spec-diff")
+        resolved["spec-image"] = spec_res
+
     if reg_arg:
         import spec_registry
         try:
+            reg_res = pathutil.resolve_input_path(project, reg_arg, must_exist=True)
             reg_path = spec_registry.resolve_registry_path(project, reg_arg)
+            resolved["registry"] = reg_res
             reg = spec_registry.load_registry(reg_path, create=False)
             binding = None
             if scene_ref:
@@ -1451,29 +1490,37 @@ def spec_diff_cmd(project, args):
                 raise ToolError(f"no scene binding matched in {reg_path} (pass --scene)", command="spec-diff")
             if binding:
                 if not spec_image and binding.get("spec_image_path"):
-                    spec_image = spec_registry.resolve_project_path(project, binding["spec_image_path"])
+                    spec_res = pathutil.resolve_input_path(project, binding["spec_image_path"], must_exist=True)
+                    spec_image = spec_res["path"]
+                    if not os.path.isfile(spec_image):
+                        raise ToolError(f"no specification image at {spec_image}", command="spec-diff")
+                    resolved["spec-image"] = spec_res
                 if not scene_ref:
                     scene_ref = binding["scene"]
                 if not report_arg:
                     elements = spec_diff.elements_from_registry(binding)
                     element_source = "registry"
-        except (spec_registry.RegistryError, OSError, ValueError) as e:
+        except (pathutil.PathResolutionError, spec_registry.RegistryError, OSError, ValueError) as e:
             raise ToolError(str(e), command="spec-diff")
 
     if not spec_image:
         raise ToolError("spec-diff needs --spec-image illustration.png", command="spec-diff")
-    spec_image = _abs(project, spec_image) if spec_image.startswith("res://") else os.path.abspath(spec_image)
-    if not os.path.isfile(spec_image):
-        raise ToolError(f"no specification image at {spec_image}", command="spec-diff")
 
     report_path = None
     if elements is None:
         if report_arg:
-            report_path = _abs(project, report_arg) if report_arg.startswith("res://") else os.path.abspath(report_arg)
+            try:
+                report_res = pathutil.resolve_input_path(project, report_arg, must_exist=True)
+            except pathutil.PathResolutionError as e:
+                raise ToolError(str(e), command="spec-diff")
+            report_path = report_res["path"]
+            resolved["report"] = report_res
         else:
-            report_path = os.path.join(project, "image_scene", "report.json")
+            report_path = os.path.abspath(os.path.join(project, "image_scene", "report.json"))
         if not os.path.isfile(report_path):
             raise ToolError(f"no generation report at {report_path} (pass --report or --registry)", command="spec-diff")
+        if not report_arg:
+            resolved["report"] = {"path": report_path, "via": "project"}
         with open(report_path, encoding="utf-8") as f:
             elements = spec_diff.elements_from_report(json.load(f))
         element_source = "report"
@@ -1483,15 +1530,29 @@ def spec_diff_cmd(project, args):
                       ("element-agreement-min", "element_agreement_min")):
         if opt(args, flag):
             overrides[key] = float(opt(args, flag))
+    thresholds_arg = opt(args, "thresholds")
+    thresholds_path = None
+    if thresholds_arg:
+        try:
+            thresh_res = pathutil.resolve_input_path(project, thresholds_arg, must_exist=True)
+        except pathutil.PathResolutionError as e:
+            raise ToolError(str(e), command="spec-diff")
+        thresholds_path = thresh_res["path"]
+        resolved["thresholds"] = thresh_res
     try:
-        thresholds = spec_diff.load_thresholds(opt(args, "thresholds") or None, overrides)
+        thresholds = spec_diff.load_thresholds(thresholds_path, overrides)
     except (OSError, ValueError) as e:
         raise ToolError(f"bad thresholds: {e}", command="spec-diff")
     shot = opt(args, "shot-png")
     if shot:
-        shot = os.path.abspath(shot)
+        try:
+            shot_res = pathutil.resolve_input_path(project, shot, must_exist=True)
+        except pathutil.PathResolutionError as e:
+            raise ToolError(str(e), command="spec-diff")
+        shot = shot_res["path"]
         if not os.path.isfile(shot):
             raise ToolError(f"no screenshot at {shot}", command="spec-diff")
+        resolved["shot-png"] = shot_res
         shot_keep = None
     else:
         tmp = tempfile.mkdtemp(prefix="uzu-spec-diff-")
@@ -1510,6 +1571,7 @@ def spec_diff_cmd(project, args):
         verdict["registry"] = reg_path
     if element_source:
         verdict["element_source"] = element_source
+    verdict["resolved"] = resolved
     if opt(args, "out"):
         with open(os.path.abspath(opt(args, "out")), "w", encoding="utf-8") as f:
             json.dump(verdict, f, ensure_ascii=False, indent=2)
