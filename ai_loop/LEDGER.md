@@ -311,3 +311,5 @@
 - 2026-11-28 B-1229 歩行可能帯の推定改善を統合（Gemini 4 生成＋リード手直し2件）。image_scene に A* 経路探索 route_waypoints を追加し、カードのフットプリントを避けて角を挿入、report に walk_routing を追加。moonpost 再生成で歩行検証が到達 3/5 → 15/15（全目標到達）になった。詳細: iterations/2026-11-28-B-1229-gemini.md
 
 - 2026-11-28 B-320 play-log の記録開始点の注記を統合（リード実装）。session 行に pre_start_events（Recorder は常時、Writer は指定時）、summarize に checkpoints_complete を追加。Gemini の (A) は全面書き直しで不採用だったが、既存テストとの矛盾の指摘は正しく回避策を採用した。詳細: iterations/2026-11-28-B-320-lead.md
+
+- 2026-11-28 B-1113 feel-report の一般化を統合（リード実装）。FEEL_DRIVER 契約（expect_met／validate_driver／driver_kind＋汎用ランナー）を追加し、moonpost で playthrough が動作（ok=true）、hikari のレガシー経路は不変。Gemini の生成は別課題の汎用コードで不採用。詳細: iterations/2026-11-28-B-1113-lead.md
