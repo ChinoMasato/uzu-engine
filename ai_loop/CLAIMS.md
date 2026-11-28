@@ -174,3 +174,4 @@
 | B-1327 エンジン→AI のプロンプト要求プロトコル（uzu-prompt-request/1 の定義・発行/回収の口・機械的プロンプト合成・実証2種） | Codex | agent/b-1327-codex | ai_loop/（uzu.py・新規モジュール・仕様文書）, ai_loop/iterations/ | マージ済 | 2026-11-27 |
 | B-1222 仕様画像レジストリ（仕様画像セット登録・要素対応表・生成/検証の共通参照） | Gemini 4 (Antigravity + AI Studio) | agent/b-1222-gemini | ai_loop/（新規レジストリ・uzu.py）, ai_loop/iterations/ | 反映済み（ai-native 統合済み、2026-11-28） | 2026-11-28 |
 | B-1701 生成接続の契約（Lumina SFX 橋・CLI／MCP） | Gemini 4 (AI Studio) | agent/b-1701-gemini | ai_loop/（lumina_bridge・uzu.py）, ai_loop/iterations/ | 反映済み（ai-native 統合済み、2026-11-28） | 2026-11-28 |
+| B-1702 Godot 再生ヘルパーの標準化（UZUGameAudio） | Gemini 4 (AI Studio) | agent/b-1702-gemini | ai_loop/（uzu_game_audio.gd・samples・tests） | 作業中 | 2026-11-28 |

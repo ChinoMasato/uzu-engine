@@ -6,9 +6,9 @@
   "command": 72,
   "mcp": 81,
   "preset": 7,
-  "script": 47,
+  "script": 48,
   "class": 16,
-  "total": 252
+  "total": 253
  },
  "entries": [
   {
@@ -3571,6 +3571,18 @@
     "script"
    ],
    "source": "ai_loop/uzu.py",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "uzu_game_audio",
+   "kind": "script",
+   "description": "",
+   "tags": [
+    "gdscript",
+    "script"
+   ],
+   "source": "ai_loop/uzu_game_audio.gd",
    "required_capabilities": [],
    "fallback": null
   },
