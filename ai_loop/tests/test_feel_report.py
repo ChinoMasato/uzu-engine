@@ -148,5 +148,39 @@ class CompareTest(unittest.TestCase):
         self.assertEqual(diff["shard_1"]["latency_frames"], [2, None])
 
 
+
+class FeelDriverContractTest(unittest.TestCase):
+    """B-1113: the FEEL_DRIVER contract's pure functions."""
+
+    def test_expect_met(self):
+        state = {"Main:delivered": 2, "Main:cleared": False}
+        self.assertTrue(feel_report.expect_met(state, {"Main:delivered": 2}))
+        self.assertFalse(feel_report.expect_met(state, {"Main:delivered": 3}))
+        self.assertFalse(feel_report.expect_met(state, {"Main:cleared": True}))
+        self.assertTrue(feel_report.expect_met(state, {"Main:cleared": False}))
+        # Booleans do not match ints.
+        self.assertFalse(feel_report.expect_met({"Main:x": 1}, {"Main:x": True}))
+        self.assertFalse(feel_report.expect_met({"Main:x": True}, {"Main:x": 1}))
+        self.assertFalse(feel_report.expect_met({}, {"Main:missing": 0}))
+
+    def test_validate_driver(self):
+        good = {"state": ["Main:a"], "legs": [{"name": "l", "goto": [1, 2],
+                "action": "interact", "expect": {"Main:a": 1}}], "success": {"Main:b": True}}
+        self.assertEqual(feel_report.validate_driver(good), [])
+        self.assertTrue(feel_report.validate_driver({}))
+        self.assertTrue(feel_report.validate_driver({"state": ["Main:a"], "legs": [], "success": {"Main:b": 1}}))
+        bad_goto = dict(good, legs=[{"goto": [1], "expect": {"Main:a": 1}}])
+        self.assertTrue(any("goto" in e for e in feel_report.validate_driver(bad_goto)))
+        self.assertTrue(feel_report.validate_driver("nope"))
+
+    def test_driver_kind(self):
+        import types
+        driver_mod = types.SimpleNamespace(FEEL_DRIVER={"state": []})
+        self.assertEqual(feel_report.driver_kind(driver_mod), "driver")
+        legacy_mod = types.SimpleNamespace(STATE=[], ROUTE=[], walk_to=None,
+                                           interact=None, event_names=None)
+        self.assertEqual(feel_report.driver_kind(legacy_mod), "legacy")
+        self.assertIsNone(feel_report.driver_kind(types.SimpleNamespace()))
+
 if __name__ == "__main__":
     unittest.main()

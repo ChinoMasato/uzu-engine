@@ -19,6 +19,22 @@ import play_log  # noqa: E402
 STATE = ["Main:delivered", "Main:cleared", "Main/Player:global_position"]
 TARGETS = [(-3.6, -11.35), (0.95, -11.35), (5.25, -11.35)]
 
+# The generic feel-report driver (B-1113): the same play, declared.
+# watch is empty: moonpost has no juice channels for the probe to sample.
+FEEL_DRIVER = {
+    "state": STATE,
+    "watch": [],
+    "legs": [
+        {"name": "mailbox_1", "goto": [-3.6, -11.35], "action": "interact",
+         "expect": {"Main:delivered": 1}},
+        {"name": "mailbox_2", "goto": [0.95, -11.35], "action": "interact",
+         "expect": {"Main:delivered": 2}},
+        {"name": "mailbox_3", "goto": [5.25, -11.35], "action": "interact",
+         "expect": {"Main:delivered": 3}},
+    ],
+    "success": {"Main:cleared": True},
+}
+
 
 def _pos(obs):
     p = obs["state"]["Main/Player:global_position"]
