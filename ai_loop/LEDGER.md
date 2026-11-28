@@ -292,3 +292,5 @@
 - 2026-11-28 B-1222 統合（リード）: 仕様画像レジストリ（agent/b-1222-gemini @4c0f6fe8600、Gemini 4 が Antigravity と AI Studio の2経路で実装）。spec_registry.py（形式 uzu-spec-registry/1、observed／inferred の要素対応表を生成 B-1221 と検証 B-1223 が共通参照）、uzu.py spec-registry コマンド＋image-scene／spec-diff の --registry、scene_spec への spec_image 記録（B-1509）。新規テスト 5/5 pass、ai_loop 全176件で失敗は既存の test_animation 4件のみ（クリーンな ai-native でも同一、ベースライン確認済み）。エンジン本体の変更なし。Antigravity の Gemini 無料枠は途中で枯渇し、残りは AI Studio（別枠）の Gemini 4 Hydrogen が生成、適用・検証はリード。記録 iterations/2026-11-28-B-1222-gemini.md。
 
 - 2026-11-28 B-1701 (Gemini 4 / AI Studio): Lumina SFX 生成接続の契約。lumina_bridge＋uzu.py sfx-lumina＋MCP sfx_generate。実スキル通しで見本3音の配置と全音クレジットを確認。記録 iterations/2026-11-28-B-1701-gemini.md。
+
+- 2026-11-28 B-1702 (Gemini 4 / AI Studio): UZUGameAudio 再生ヘルパー標準化（Lumina MIT 取り込み＋UZUSfx とのイベント統一口）。実バイナリでの自己検証13項目 pass、リード修正0件。記録 iterations/2026-11-28-B-1702-gemini.md。
