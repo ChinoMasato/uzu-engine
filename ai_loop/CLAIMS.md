@@ -178,3 +178,4 @@
 | B-1703 ライセンス台帳と同梱ガード（Lumina SFX） | Gemini 4 (AI Studio) | agent/b-1703-gemini | ai_loop/（lumina_bridge・uzu.py・tests） | 反映済み（ai-native 統合済み、2026-11-28） | 2026-11-28 |
 | B-1704 『灯りの欠片』への Lumina 実証 | リード（Muse） | agent/b-1704-lead | ai_loop/samples/hikari・ai_loop/（sfx配置） | 反映済み（ai-native 統合済み、2026-11-28） | 2026-11-28 |
 | B-313 操作ログの標準化 | Gemini 4 (AI Studio)＋リード | agent/b-313-gemini | ai_loop/play_log.py・ai_loop/uzu.py | 反映済み | 2026-11-28 |
+| B-1333 Skills over MCP 試作 | Gemini 4 (AI Studio)＋リード | agent/b-1333-gemini | ai_loop/mcp_server.py・ai_loop/skills | 反映済み | 2026-11-28 |

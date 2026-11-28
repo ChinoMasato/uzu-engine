@@ -13,6 +13,7 @@ Register with Claude Code, for example:
 Standard library only.
 """
 
+import hashlib
 import json
 import os
 import subprocess
@@ -20,7 +21,15 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+SKILLS_DIR = os.path.join(HERE, "skills")
 PROTOCOL_VERSION = "2025-06-18"
+DISCOVER_PROTOCOL_VERSION = "2026-07-28"
+SERVER_INFO = {"name": "uzu-engine", "version": "0.1"}
+CAPABILITIES = {
+    "tools": {},
+    "resources": {},
+    "extensions": {"io.modelcontextprotocol/skills": {}},
+}
 
 
 def _str(description):
@@ -118,7 +127,7 @@ TOOLS = {
     "look_apply": ("look", "apply", "Apply the U.ZU look (sky, light, aerial perspective, color grade) and configure the sun.", {"scene": SCENE, "quality": _str("high | standard | low"), "atmosphere": _str("clear | humid | golden_hour | night"), "clouds": {"type": "boolean", "description": "Sky with clouds"}}, ["scene"]),
     "look_hd2d": ("look", "hd2d", "Apply the HD-2D preset in one go: the look, tilt-shift blur, lit outlined pixel-art sprites with blob shadows, one texel size, and a telephoto camera looking down.", {"scene": SCENE, "atmosphere": _str("clear | humid | golden_hour | night (default golden_hour)"), "no-camera": {"type": "boolean", "description": "Leave the camera as it is"}}, ["scene"]),
     "look_particles": ("look", "particles", "Add sparkle particles: light dust, fireflies, snow or embers.", {"scene": SCENE, "kind": _str("dust | fireflies | snow | embers"), "position": _str("x,y,z (default 0,1,0)"), "extents": _str("Half size of the emission box, x,y,z (default 4,2,4)")}, ["scene", "kind"]),
-    "look_godrays": ("look", "godrays", "Add fake god rays: an additive shaft of light along the sun's direction through a position.", {"scene": SCENE, "position": _str("x,y,z the shaft passes through"), "width": _str("Width (default 3)"), "length": _str("Length (default 8)")}, ["scene", "position"]),
+    "look_godrays": ("look", "godrays", "Add fake god rays: an additive shaft of light along the sun's direction through a position.", {"scene": SCENE, "position": _str("x,y,z the shaft passes through"), "width": _str("Width (default 3)"), "length": _str("Length (default 8)")}, ["scene"]),
     "look_water": ("look", "water", "Add a water surface: color and see-through by depth, moving waves, refraction of the bottom, foam at shores, and reflections at grazing angles. Works on every renderer (Web too).", {"scene": SCENE, "position": _str("x,y,z of the surface center (default 0,0,0)"), "size": _str("x,z in meters (default 10,10)"), "shallow": _str("Color of thin water, e.g. #339e94"), "deep": _str("Color of deep water, e.g. #04182a"), "clarity": _str("Meters of water the bottom stays visible through (2)"), "waves": _str("Wave slope strength (0.6)"), "wave-scale": _str("Wave size in meters (1.5)"), "wave-speed": _str("Wave speed (1)"), "swell": _str("Height of the surface swell in meters (0.04)"), "foam": _str("Foam band width in meters where water is shallow; 0 = none (0.3)"), "refraction": _str("Refraction strength (0.03)"), "reflection": _str("Screen-space reflection of the scene, 0..1 (1)")}, ["scene"]),
     "look_rich": ("look", "rich", "Richness report of a scene: static costs (triangles, draw calls, objects, texture memory, props per square meter, lights, the heaviest nodes), model quality (PBR coverage, chamfered edges, triangle density, cheap plain boxes; budget keys min_pbr_coverage, min_bevel_share, max_cheap_meshes), what one rendered frame drew (triangles and draw calls, shadows, video memory), a budget check and hints on what to change. Budget keys are max_<metric> or min_<metric>.", {"scene": _str("Scene (default: the main scene)"), "budget": _str('JSON, e.g. {"max_triangles": 500000, "max_frame_draw_calls": 1500, "min_props_per_m2": 0.5}'), "budget-file": _str("res:// or path to a budget JSON"), "frames": _str("Frames before measuring (10)"), "top": _str("How many of the heaviest nodes (10)"), "no-render": {"type": "boolean", "description": "Static part only (no drawing)"}}, []),
     "ui_report": ("look", "ui-report", "UI richness report of a UI scene (headless): how many controls, panels, buttons and texts, the smallest font, the depth, screen coverage and edge inset, and the problems with a fix for each (small text, text overflow, buttons too small for touch, no margin at the screen edge, overlapping panels, off screen, unstyled default look). ok is false when there are problems.", {"scene": _str("The UI scene, res://..."), "resolution": _str("Screen size to measure at (1280x720)"), "shot": _str("Also save a screenshot here (PNG path)")}, ["scene"]),
@@ -156,6 +165,79 @@ TOOL_CAPABILITIES = {
 }
 
 
+def _parse_frontmatter(text, fallback_name):
+    name = fallback_name
+    description = ""
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {"name": name, "description": description}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        key = key.strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+            value = value[1:-1]
+        if key == "name" and value:
+            name = value
+        elif key == "description":
+            description = value
+    return {"name": name, "description": description}
+
+
+def _load_skills():
+    skills = []
+    resources = {}
+    if not os.path.isdir(SKILLS_DIR):
+        return skills, resources
+    for entry_name in sorted(os.listdir(SKILLS_DIR)):
+        skill_dir = os.path.join(SKILLS_DIR, entry_name)
+        skill_md_path = os.path.join(skill_dir, "SKILL.md")
+        if not os.path.isdir(skill_dir) or not os.path.isfile(skill_md_path):
+            continue
+        with open(skill_md_path, "rb") as f:
+            skill_md_raw = f.read()
+        frontmatter = _parse_frontmatter(skill_md_raw.decode("utf-8", errors="replace"), entry_name)
+        skill_uri = f"skill://{entry_name}/SKILL.md"
+        skill_resources = []
+
+        file_paths = []
+        for root, _, files in os.walk(skill_dir):
+            for fname in sorted(files):
+                full_path = os.path.join(root, fname)
+                rel_path = os.path.relpath(full_path, skill_dir).replace(os.sep, "/")
+                file_paths.append((rel_path, full_path))
+        file_paths.sort(key=lambda item: (0 if item[0] == "SKILL.md" else 1, item[0]))
+
+        for rel_path, full_path in file_paths:
+            uri = f"skill://{entry_name}/{rel_path}"
+            mime = "text/markdown" if rel_path.endswith(".md") else "text/plain"
+            with open(full_path, "rb") as f:
+                raw = f.read()
+            digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+            skill_resources.append({
+                "uri": uri,
+                "digest": digest,
+                "size": len(raw),
+            })
+            resources[uri] = {
+                "uri": uri,
+                "name": rel_path,
+                "mimeType": mime,
+                "text": raw.decode("utf-8", errors="replace"),
+            }
+
+        skills.append({
+            "uri": skill_uri,
+            "frontmatter": frontmatter,
+            "resources": skill_resources,
+        })
+    return skills, resources
+
+
 def call_tool(project, name, arguments):
     script, command, _, _, _ = TOOLS[name]
     if script in ("replay-compare", "catalog", "dialogue"):
@@ -181,7 +263,31 @@ def call_tool(project, name, arguments):
 def handle(project, message):
     method, mid = message.get("method"), message.get("id")
     if method == "initialize":
-        result = {"protocolVersion": PROTOCOL_VERSION, "capabilities": {"tools": {}}, "serverInfo": {"name": "uzu-engine", "version": "0.1"}}
+        result = {"protocolVersion": PROTOCOL_VERSION, "capabilities": CAPABILITIES, "serverInfo": SERVER_INFO}
+    elif method == "server/discover":
+        result = {"protocolVersion": DISCOVER_PROTOCOL_VERSION, "capabilities": CAPABILITIES, "serverInfo": SERVER_INFO}
+    elif method == "skills/list":
+        skills, _ = _load_skills()
+        result = {"skills": skills, "ttlMs": 60000, "cacheScope": "private"}
+    elif method == "skills/get":
+        params = message.get("params") or {}
+        uri = params.get("uri")
+        skills, _ = _load_skills()
+        skill = next((s for s in skills if s["uri"] == uri), None)
+        if skill is None:
+            return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": "unknown skill uri"}}
+        result = {"skill": skill}
+    elif method == "resources/list":
+        _, resources = _load_skills()
+        result = {"resources": [{"uri": r["uri"], "name": r["name"], "mimeType": r["mimeType"]} for r in resources.values()]}
+    elif method == "resources/read":
+        params = message.get("params") or {}
+        uri = params.get("uri")
+        _, resources = _load_skills()
+        resource = resources.get(uri)
+        if resource is None:
+            return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": "unknown resource uri"}}
+        result = {"contents": [{"uri": resource["uri"], "mimeType": resource["mimeType"], "text": resource["text"]}]}
     elif method == "tools/list":
         result = {"tools": [{"name": n, "description": d, "inputSchema": {"type": "object", "properties": p, "required": r}} for n, (_, _, d, p, r) in TOOLS.items()]}
     elif method == "tools/call":
@@ -283,3 +389,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
