@@ -1,0 +1,590 @@
+{
+  "format": "uzu-spec-registry/1",
+  "images": {
+    "moonpost-spec": {
+      "id": "moonpost-spec",
+      "path": "res://spec.png",
+      "title": "月夜の郵便屋さん 仕様イラスト",
+      "width": 1672,
+      "height": 941,
+      "working_size": [
+        768,
+        432
+      ],
+      "depth_path": null,
+      "tags": [],
+      "basis": "observed"
+    }
+  },
+  "scenes": {
+    "res://image_scene/image_scene.tscn": {
+      "scene": "res://image_scene/image_scene.tscn",
+      "spec_image": "moonpost-spec",
+      "spec_image_path": "res://spec.png",
+      "working_size": [
+        768,
+        432
+      ],
+      "report_path": "res://image_scene/report.json",
+      "elements": [
+        {
+          "id": "Card_Foreground_0",
+          "kind": "card",
+          "image_bbox": [
+            288,
+            305,
+            502,
+            380
+          ],
+          "node": "Card_Foreground_0",
+          "basis": "inferred",
+          "reason": "cut-out foreground layer card segmented from the specification illustration",
+          "card": "Card_Foreground_0",
+          "node_type": "MeshInstance3D",
+          "position": [
+            0.095,
+            0.324,
+            -8.31
+          ]
+        },
+        {
+          "id": "Card_Foreground_1",
+          "kind": "card",
+          "image_bbox": [
+            115,
+            319,
+            288,
+            382
+          ],
+          "node": "Card_Foreground_1",
+          "basis": "inferred",
+          "reason": "cut-out foreground layer card segmented from the specification illustration",
+          "card": "Card_Foreground_1",
+          "node_type": "MeshInstance3D",
+          "position": [
+            -1.575,
+            0.272,
+            -8.31
+          ]
+        },
+        {
+          "id": "Card_Midground_0",
+          "kind": "card",
+          "image_bbox": [
+            496,
+            288,
+            643,
+            336
+          ],
+          "node": "Card_Midground_0",
+          "basis": "inferred",
+          "reason": "cut-out midground layer card segmented from the specification illustration",
+          "card": "Card_Midground_0",
+          "node_type": "MeshInstance3D",
+          "position": [
+            3.111,
+            0.403,
+            -12.082
+          ]
+        },
+        {
+          "id": "Card_Midground_1",
+          "kind": "card",
+          "image_bbox": [
+            520,
+            320,
+            694,
+            359
+          ],
+          "node": "Card_Midground_1",
+          "basis": "inferred",
+          "reason": "cut-out midground layer card segmented from the specification illustration",
+          "card": "Card_Midground_1",
+          "node_type": "MeshInstance3D",
+          "position": [
+            3.839,
+            0.336,
+            -12.288
+          ]
+        },
+        {
+          "id": "Card_Midground_2",
+          "kind": "card",
+          "image_bbox": [
+            85,
+            290,
+            254,
+            331
+          ],
+          "node": "Card_Midground_2",
+          "basis": "inferred",
+          "reason": "cut-out midground layer card segmented from the specification illustration",
+          "card": "Card_Midground_2",
+          "node_type": "MeshInstance3D",
+          "position": [
+            -3.577,
+            0.342,
+            -12.038
+          ]
+        },
+        {
+          "id": "Card_Midground_3",
+          "kind": "card",
+          "image_bbox": [
+            645,
+            286,
+            768,
+            310
+          ],
+          "node": "Card_Midground_3",
+          "basis": "inferred",
+          "reason": "cut-out midground layer card segmented from the specification illustration",
+          "card": "Card_Midground_3",
+          "node_type": "MeshInstance3D",
+          "position": [
+            5.247,
+            0.195,
+            -11.85
+          ]
+        },
+        {
+          "id": "Card_Midground_4",
+          "kind": "card",
+          "image_bbox": [
+            313,
+            284,
+            464,
+            306
+          ],
+          "node": "Card_Midground_4",
+          "basis": "inferred",
+          "reason": "cut-out midground layer card segmented from the specification illustration",
+          "card": "Card_Midground_4",
+          "node_type": "MeshInstance3D",
+          "position": [
+            0.084,
+            0.228,
+            -12.939
+          ]
+        },
+        {
+          "id": "Card_Foreground_2",
+          "kind": "card",
+          "image_bbox": [
+            568,
+            374,
+            644,
+            398
+          ],
+          "node": "Card_Foreground_2",
+          "basis": "inferred",
+          "reason": "cut-out foreground layer card segmented from the specification illustration",
+          "card": "Card_Foreground_2",
+          "node_type": "MeshInstance3D",
+          "position": [
+            1.916,
+            0.104,
+            -8.31
+          ]
+        },
+        {
+          "id": "Card_Midground_5",
+          "kind": "card",
+          "image_bbox": [
+            698,
+            325,
+            768,
+            358
+          ],
+          "node": "Card_Midground_5",
+          "basis": "inferred",
+          "reason": "cut-out midground layer card segmented from the specification illustration",
+          "card": "Card_Midground_5",
+          "node_type": "MeshInstance3D",
+          "position": [
+            6.001,
+            0.284,
+            -12.279
+          ]
+        },
+        {
+          "id": "Card_Foreground_3",
+          "kind": "card",
+          "image_bbox": [
+            245,
+            356,
+            378,
+            389
+          ],
+          "node": "Card_Foreground_3",
+          "basis": "inferred",
+          "reason": "cut-out foreground layer card segmented from the specification illustration",
+          "card": "Card_Foreground_3",
+          "node_type": "MeshInstance3D",
+          "position": [
+            -0.626,
+            0.142,
+            -8.31
+          ]
+        },
+        {
+          "id": "Card_Foreground_4",
+          "kind": "card",
+          "image_bbox": [
+            533,
+            380,
+            647,
+            418
+          ],
+          "node": "Card_Foreground_4",
+          "basis": "inferred",
+          "reason": "cut-out foreground layer card segmented from the specification illustration",
+          "card": "Card_Foreground_4",
+          "node_type": "MeshInstance3D",
+          "position": [
+            1.778,
+            0.164,
+            -8.31
+          ]
+        },
+        {
+          "id": "Card_Foreground_5",
+          "kind": "card",
+          "image_bbox": [
+            31,
+            393,
+            107,
+            411
+          ],
+          "node": "Card_Foreground_5",
+          "basis": "inferred",
+          "reason": "cut-out foreground layer card segmented from the specification illustration",
+          "card": "Card_Foreground_5",
+          "node_type": "MeshInstance3D",
+          "position": [
+            -2.719,
+            0.078,
+            -8.31
+          ]
+        },
+        {
+          "id": "Card_Foreground_6",
+          "kind": "card",
+          "image_bbox": [
+            0,
+            404,
+            50,
+            424
+          ],
+          "node": "Card_Foreground_6",
+          "basis": "inferred",
+          "reason": "cut-out foreground layer card segmented from the specification illustration",
+          "card": "Card_Foreground_6",
+          "node_type": "MeshInstance3D",
+          "position": [
+            -3.098,
+            0.086,
+            -8.31
+          ]
+        },
+        {
+          "id": "Card_Foreground_7",
+          "kind": "card",
+          "image_bbox": [
+            306,
+            368,
+            376,
+            390
+          ],
+          "node": "Card_Foreground_7",
+          "basis": "inferred",
+          "reason": "cut-out foreground layer card segmented from the specification illustration",
+          "card": "Card_Foreground_7",
+          "node_type": "MeshInstance3D",
+          "position": [
+            -0.371,
+            0.095,
+            -8.31
+          ]
+        },
+        {
+          "id": "Card_Midground_6",
+          "kind": "card",
+          "image_bbox": [
+            85,
+            338,
+            148,
+            359
+          ],
+          "node": "Card_Midground_6",
+          "basis": "inferred",
+          "reason": "cut-out midground layer card segmented from the specification illustration",
+          "card": "Card_Midground_6",
+          "node_type": "MeshInstance3D",
+          "position": [
+            -4.605,
+            0.181,
+            -12.288
+          ]
+        },
+        {
+          "id": "Card_Midground_7",
+          "kind": "card",
+          "image_bbox": [
+            393,
+            299,
+            488,
+            315
+          ],
+          "node": "Card_Midground_7",
+          "basis": "inferred",
+          "reason": "cut-out midground layer card segmented from the specification illustration",
+          "card": "Card_Midground_7",
+          "node_type": "MeshInstance3D",
+          "position": [
+            0.925,
+            0.131,
+            -11.895
+          ]
+        },
+        {
+          "id": "glow_0",
+          "kind": "glow",
+          "image_bbox": [
+            577,
+            9,
+            648,
+            79
+          ],
+          "node": "Candidate_Glow_0",
+          "basis": "inferred",
+          "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+          "node_type": "Area3D",
+          "confidence": 1.0,
+          "position": [
+            4.255,
+            4.904,
+            -12.939
+          ]
+        },
+        {
+          "id": "glow_1",
+          "kind": "glow",
+          "image_bbox": [
+            48,
+            175,
+            70,
+            193
+          ],
+          "node": "Candidate_Glow_1",
+          "basis": "inferred",
+          "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+          "node_type": "Area3D",
+          "confidence": 0.59,
+          "position": [
+            -6.051,
+            2.296,
+            -12.939
+          ]
+        },
+        {
+          "id": "glow_2",
+          "kind": "glow",
+          "image_bbox": [
+            265,
+            216,
+            276,
+            239
+          ],
+          "node": "Candidate_Glow_2",
+          "basis": "inferred",
+          "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+          "node_type": "Area3D",
+          "confidence": 0.56,
+          "position": [
+            -2.113,
+            1.486,
+            -12.939
+          ]
+        },
+        {
+          "id": "glow_3",
+          "kind": "glow",
+          "image_bbox": [
+            467,
+            213,
+            479,
+            236
+          ],
+          "node": "Candidate_Glow_3",
+          "basis": "inferred",
+          "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+          "node_type": "Area3D",
+          "confidence": 0.54,
+          "position": [
+            1.657,
+            1.542,
+            -12.939
+          ]
+        },
+        {
+          "id": "glow_4",
+          "kind": "glow",
+          "image_bbox": [
+            585,
+            14,
+            614,
+            33
+          ],
+          "node": "Candidate_Glow_4",
+          "basis": "inferred",
+          "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+          "node_type": "Area3D",
+          "confidence": 0.54,
+          "position": [
+            4.013,
+            5.286,
+            -12.939
+          ]
+        },
+        {
+          "id": "glow_5",
+          "kind": "glow",
+          "image_bbox": [
+            242,
+            156,
+            252,
+            167
+          ],
+          "node": "Candidate_Glow_5",
+          "basis": "inferred",
+          "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+          "node_type": "Area3D",
+          "confidence": 0.52,
+          "position": [
+            -2.551,
+            2.715,
+            -12.939
+          ]
+        },
+        {
+          "id": "house_red",
+          "kind": "house",
+          "image_bbox": [
+            94,
+            69,
+            342,
+            296
+          ],
+          "node": "Backdrop",
+          "basis": "inferred",
+          "reason": "B-1221 のカード分割は深度帯の帯状切り抜きで、家ごとの物体カードは生成されない。赤屋根の家は Backdrop 画像内に描かれているため Backdrop へ対応づける"
+        },
+        {
+          "id": "house_tower",
+          "kind": "house",
+          "image_bbox": [
+            393,
+            48,
+            519,
+            294
+          ],
+          "node": "Backdrop",
+          "basis": "inferred",
+          "reason": "同上。青屋根の石塔は Backdrop 内"
+        },
+        {
+          "id": "house_green",
+          "kind": "house",
+          "image_bbox": [
+            549,
+            64,
+            756,
+            285
+          ],
+          "node": "Backdrop",
+          "basis": "inferred",
+          "reason": "同上。緑屋根の家は Backdrop 内"
+        },
+        {
+          "id": "mailbox_red",
+          "kind": "mailbox",
+          "image_bbox": [
+            278,
+            239,
+            312,
+            294
+          ],
+          "node": "Backdrop",
+          "basis": "inferred",
+          "reason": "赤い郵便受けは Backdrop 内に描画。ゲーム側の配達地点は main.tscn の同位置に置いた 3D マーカーが担う"
+        },
+        {
+          "id": "mailbox_blue",
+          "kind": "mailbox",
+          "image_bbox": [
+            393,
+            241,
+            425,
+            294
+          ],
+          "node": "Backdrop",
+          "basis": "inferred",
+          "reason": "青い郵便受けは Backdrop 内に描画"
+        },
+        {
+          "id": "mailbox_green",
+          "kind": "mailbox",
+          "image_bbox": [
+            618,
+            232,
+            650,
+            285
+          ],
+          "node": "Backdrop",
+          "basis": "inferred",
+          "reason": "緑の郵便受けは Backdrop 内に描画"
+        },
+        {
+          "id": "postman",
+          "kind": "character",
+          "image_bbox": [
+            32,
+            250,
+            99,
+            399
+          ],
+          "node": "Backdrop",
+          "basis": "inferred",
+          "reason": "郵便屋は Backdrop 内に描画。ゲーム側の操作キャラは main.tscn の Player（青カプセル＋茶カバン）が担う"
+        },
+        {
+          "id": "moon",
+          "kind": "sky",
+          "image_bbox": [
+            576,
+            16,
+            700,
+            122
+          ],
+          "node": "Backdrop",
+          "basis": "inferred",
+          "reason": "月は Backdrop 内に描画"
+        },
+        {
+          "id": "street",
+          "kind": "ground",
+          "image_bbox": [
+            0,
+            266,
+            768,
+            432
+          ],
+          "node": "Ground",
+          "basis": "inferred",
+          "reason": "石畳の通りは Ground メッシュと前景カード群が担う"
+        }
+      ]
+    }
+  }
+}

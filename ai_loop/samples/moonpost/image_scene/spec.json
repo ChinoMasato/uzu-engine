@@ -1,0 +1,366 @@
+{
+  "scene": "res://image_scene/image_scene.tscn",
+  "look": {
+    "quality": "standard",
+    "atmosphere": "clear"
+  },
+  "ground": {
+    "size": [
+      32.5,
+      19.69
+    ],
+    "position": [
+      0.0,
+      0.0,
+      -10.15
+    ],
+    "color": "#33353e",
+    "collision": true
+  },
+  "camera": {
+    "position": [
+      0.0,
+      1.7,
+      -4.31
+    ],
+    "look_at": [
+      0.0,
+      7.587,
+      -20.0
+    ],
+    "fov": 50.0
+  },
+  "cards": [
+    {
+      "name": "Backdrop",
+      "image": "res://image_scene/background.png",
+      "position": [
+        0.0,
+        7.316,
+        -20.0
+      ],
+      "size": [
+        26.0,
+        14.633
+      ]
+    },
+    {
+      "name": "Card_Foreground_0",
+      "image": "res://image_scene/card_foreground_0.png",
+      "position": [
+        0.095,
+        0.324,
+        -8.31
+      ],
+      "size": [
+        1.848,
+        0.648
+      ],
+      "collision": true
+    },
+    {
+      "name": "Card_Foreground_1",
+      "image": "res://image_scene/card_foreground_1.png",
+      "position": [
+        -1.575,
+        0.272,
+        -8.31
+      ],
+      "size": [
+        1.494,
+        0.544
+      ],
+      "collision": true
+    },
+    {
+      "name": "Card_Midground_0",
+      "image": "res://image_scene/card_midground_0.png",
+      "position": [
+        3.111,
+        0.403,
+        -12.082
+      ],
+      "size": [
+        2.467,
+        0.805
+      ],
+      "collision": true
+    },
+    {
+      "name": "Card_Midground_1",
+      "image": "res://image_scene/card_midground_1.png",
+      "position": [
+        3.839,
+        0.336,
+        -12.288
+      ],
+      "size": [
+        2.997,
+        0.672
+      ],
+      "collision": true
+    },
+    {
+      "name": "Card_Midground_2",
+      "image": "res://image_scene/card_midground_2.png",
+      "position": [
+        -3.577,
+        0.342,
+        -12.038
+      ],
+      "size": [
+        2.819,
+        0.684
+      ],
+      "collision": true
+    },
+    {
+      "name": "Card_Midground_3",
+      "image": "res://image_scene/card_midground_3.png",
+      "position": [
+        5.247,
+        0.195,
+        -11.85
+      ],
+      "size": [
+        2.002,
+        0.391
+      ],
+      "collision": true
+    },
+    {
+      "name": "Card_Midground_4",
+      "image": "res://image_scene/card_midground_4.png",
+      "position": [
+        0.084,
+        0.228,
+        -12.939
+      ],
+      "size": [
+        2.813,
+        0.41
+      ],
+      "collision": false
+    },
+    {
+      "name": "Card_Foreground_2",
+      "image": "res://image_scene/card_foreground_2.png",
+      "position": [
+        1.916,
+        0.104,
+        -8.31
+      ],
+      "size": [
+        0.656,
+        0.207
+      ],
+      "collision": false
+    },
+    {
+      "name": "Card_Midground_5",
+      "image": "res://image_scene/card_midground_5.png",
+      "position": [
+        6.001,
+        0.284,
+        -12.279
+      ],
+      "size": [
+        1.204,
+        0.568
+      ],
+      "collision": true
+    },
+    {
+      "name": "Card_Foreground_3",
+      "image": "res://image_scene/card_foreground_3.png",
+      "position": [
+        -0.626,
+        0.142,
+        -8.31
+      ],
+      "size": [
+        1.148,
+        0.285
+      ],
+      "collision": true
+    },
+    {
+      "name": "Card_Foreground_4",
+      "image": "res://image_scene/card_foreground_4.png",
+      "position": [
+        1.778,
+        0.164,
+        -8.31
+      ],
+      "size": [
+        0.984,
+        0.328
+      ],
+      "collision": true
+    },
+    {
+      "name": "Card_Foreground_5",
+      "image": "res://image_scene/card_foreground_5.png",
+      "position": [
+        -2.719,
+        0.078,
+        -8.31
+      ],
+      "size": [
+        0.656,
+        0.155
+      ],
+      "collision": false
+    },
+    {
+      "name": "Card_Foreground_6",
+      "image": "res://image_scene/card_foreground_6.png",
+      "position": [
+        -3.098,
+        0.086,
+        -8.31
+      ],
+      "size": [
+        0.432,
+        0.173
+      ],
+      "collision": false
+    },
+    {
+      "name": "Card_Foreground_7",
+      "image": "res://image_scene/card_foreground_7.png",
+      "position": [
+        -0.371,
+        0.095,
+        -8.31
+      ],
+      "size": [
+        0.604,
+        0.19
+      ],
+      "collision": false
+    },
+    {
+      "name": "Card_Midground_6",
+      "image": "res://image_scene/card_midground_6.png",
+      "position": [
+        -4.605,
+        0.181,
+        -12.288
+      ],
+      "size": [
+        1.085,
+        0.362
+      ],
+      "collision": true
+    },
+    {
+      "name": "Card_Midground_7",
+      "image": "res://image_scene/card_midground_7.png",
+      "position": [
+        0.925,
+        0.131,
+        -11.895
+      ],
+      "size": [
+        1.556,
+        0.262
+      ],
+      "collision": true
+    }
+  ],
+  "lamps": [
+    [
+      4.255,
+      4.904,
+      -12.939
+    ],
+    [
+      -6.051,
+      2.296,
+      -12.939
+    ],
+    [
+      -2.113,
+      1.486,
+      -12.939
+    ],
+    [
+      1.657,
+      1.542,
+      -12.939
+    ],
+    [
+      4.013,
+      5.286,
+      -12.939
+    ],
+    [
+      -2.551,
+      2.715,
+      -12.939
+    ]
+  ],
+  "markers": [
+    {
+      "name": "Candidate_Glow_0",
+      "kind": "glow",
+      "position": [
+        4.255,
+        4.904,
+        -12.939
+      ],
+      "radius": 0.9
+    },
+    {
+      "name": "Candidate_Glow_1",
+      "kind": "glow",
+      "position": [
+        -6.051,
+        2.296,
+        -12.939
+      ],
+      "radius": 0.9
+    },
+    {
+      "name": "Candidate_Glow_2",
+      "kind": "glow",
+      "position": [
+        -2.113,
+        1.486,
+        -12.939
+      ],
+      "radius": 0.9
+    },
+    {
+      "name": "Candidate_Glow_3",
+      "kind": "glow",
+      "position": [
+        1.657,
+        1.542,
+        -12.939
+      ],
+      "radius": 0.9
+    },
+    {
+      "name": "Candidate_Glow_4",
+      "kind": "glow",
+      "position": [
+        4.013,
+        5.286,
+        -12.939
+      ],
+      "radius": 0.9
+    },
+    {
+      "name": "Candidate_Glow_5",
+      "kind": "glow",
+      "position": [
+        -2.551,
+        2.715,
+        -12.939
+      ],
+      "radius": 0.9
+    }
+  ]
+}
