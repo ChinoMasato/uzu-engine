@@ -53,6 +53,17 @@ TOOLS = {
         },
         ["spec"],
     ),
+    "sfx_generate": (
+        "sfx-lumina",
+        "",
+        "Search, render, and place Lumina SFX WAV files into the Godot project from a uzu-sfx-request/1 JSON file.",
+        {
+            "request": _str("Path to uzu-sfx-request/1 JSON file"),
+            "lumina-dir": _str("Optional path to Lumina skill directory (overrides UZU_LUMINA_DIR)"),
+            "dest": _str("Optional destination res:// directory overriding request.dest"),
+        },
+        ["request"],
+    ),
     "catalog_search": ("catalog", "", "Search the feature catalog (BACKLOG B-403): every uzu.py command, MCP tool, preset, tool script and UZU class with its description, tags and place of implementation, generated from their definitions. Use it to discover what the agent tools can do before reading the docs.", {"query": _str("Keyword(s); every word must match an entry's name, description or tags"), "caps": _str("Agent capability profile (BACKLOG B-404): comma-separated names (image_gen, gpu, blender, browser); matches are annotated with the capabilities the profile is missing"), "profile": _str("Path to a JSON capability profile file (BACKLOG B-404)")}, ["query"]),
     "replay_compare": ("replay-compare", "", "Compare replay JSON or JSONL and report the first differing field. Snapshots matches expected fields at each frame or time.", {"expected": _str("Expected log or snapshot file path"), "actual": _str("Actual log file path"), "snapshots": {"type": "boolean"}}, ["expected", "actual"]),
     "scene_new": ("engine", "new", "Create a new scene file with a root node.", {"scene": SCENE, "type": _str("Root node class, e.g. Node3D"), "name": _str("Root node name")}, ["scene"]),

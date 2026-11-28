@@ -2,13 +2,13 @@
  "version": 1,
  "generated_by": "ai_loop/make_catalog.py",
  "counts": {
-  "cli": 28,
+  "cli": 29,
   "command": 72,
-  "mcp": 80,
+  "mcp": 81,
   "preset": 7,
-  "script": 46,
+  "script": 47,
   "class": 16,
-  "total": 249
+  "total": 252
  },
  "entries": [
   {
@@ -315,6 +315,19 @@
    "usage": "uzu.py selftest [engine | selfplay | tools | all | bake]"
   },
   {
+   "name": "sfx-lumina",
+   "kind": "cli",
+   "description": "search, render specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "tags": [
+    "cli",
+    "uzu.py"
+   ],
+   "source": "ai_loop/uzu.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "usage": "uzu.py sfx-lumina <project> --request <file> [--lumina-dir <dir>] [--dest <res://...>] --image-id ID [--report report.json --spec spec.json]), and maintains shared"
+  },
+  {
    "name": "spec-diff",
    "kind": "cli",
    "description": "spec-image diff verification (B-1223, see ai_loop/spec_diff.py): shoots the scene from its reference camera (or reuses --shot-png) and diffs the frame against the specification illustration -- composition (edge agreement), colour (histogram distance) and per-element presence from the B-1221 report or B-1222 registry -- as one pass/fail JSON with every measured number",
@@ -330,7 +343,7 @@
   {
    "name": "spec-registry",
    "kind": "cli",
-   "description": "specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "description": "",
    "tags": [
     "cli",
     "uzu.py"
@@ -338,7 +351,7 @@
    "source": "ai_loop/uzu.py",
    "required_capabilities": [],
    "fallback": null,
-   "usage": "uzu.py spec-registry <project> register-image|bind-scene|map-element|remove-element|get|list|validate [options] --image-id ID [--report report.json --spec spec.json]), and maintains shared"
+   "usage": "uzu.py spec-registry <project> register-image|bind-scene|map-element|remove-element|get|list|validate [options]"
   },
   {
    "name": "texture-route",
@@ -2752,6 +2765,24 @@
    }
   },
   {
+   "name": "sfx_generate",
+   "kind": "mcp",
+   "description": "Search, render, and place Lumina SFX WAV files into the Godot project from a uzu-sfx-request/1 JSON file.",
+   "tags": [
+    "generate",
+    "mcp",
+    "sfx",
+    "sfx-lumina"
+   ],
+   "source": "ai_loop/mcp_server.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "maps_to": {
+    "tool": "sfx-lumina",
+    "command": ""
+   }
+  },
+  {
    "name": "sfx_make",
    "kind": "mcp",
    "description": "Synthesize a sound effect (no sound files needed) and save it as a WAV: a preset (hit, jump, pickup, coin, explosion, laser, powerup, blip, land), varied by seed, with parameters changed by set. Returns its length, peak, loudness and pitch at the start and end, so you can judge it without listening.",
@@ -3238,6 +3269,18 @@
     "script"
    ],
    "source": "ai_loop/look_tool.gd",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "lumina_bridge",
+   "kind": "script",
+   "description": "",
+   "tags": [
+    "python",
+    "script"
+   ],
+   "source": "ai_loop/lumina_bridge.py",
    "required_capabilities": [],
    "fallback": null
   },
