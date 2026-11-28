@@ -78,3 +78,8 @@ python3 -m unittest discover -s ai_loop/tests を実行した際、エンジン�
 ### 未確認項目
 - （例: GPU レンダリング時の実機プレイ感、実バイナリ環境での test_animation 4件 など、未実施の項目を明記する）
 ```
+
+## play-log の記録開始点（B-320）
+
+- `play_log.Recorder` はラップ開始前のチェックポイント（ゲーム起動直後の "start" 等）を記録しない。完全なチェックポイント列が必要なら、ゲーム開始前に Recorder を生成し、開始前発火が 0 件なら `pre_start_events=0`、既発火があるならその件数を申告する。
+- `play_log.summarize` の `pre_start_events`（整数、または未申告・旧形式なら None）と `checkpoints_complete`（0 のときだけ True）で、チェックポイント列の完全性を判別する。
