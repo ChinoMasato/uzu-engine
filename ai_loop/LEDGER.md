@@ -317,3 +317,5 @@
 - 2026-11-28 B-312 標準自動操作（オートパイロット）を統合。ai_loop/autopilot.py（uzu-autopilot/1 の読み書き・変換・再生）＋uzu.py autopilot／MCP autopilot_play を追加。見本ゲームで操作列を再生し cp1〜cp3 通過・クリア終了を確認。Gemini 生成は手直し0件（小さな指示書＋新規ファイル形）。詳細: iterations/2026-11-28-B-312-gemini.md
 
 - 2026-11-28 B-1110 BGM 生成（UZUMusic）を統合。ai_loop/music_gen.py（uzu-music/1、手続き音楽生成＋ループ継ぎ目計測）＋uzu.py music-gen／MCP music_generate を追加。見本で village／battle／title の3場面ループを生成し継ぎ目 jump 0.01 未満を確認。Gemini 自律モード2種（AI Studio 委任・アプリ Task モード）は文脈と検証の捏造で不採用、小さな指示書の生成は手直し0件。詳細: iterations/2026-11-28-B-1110-gemini.md
+
+- 2026-11-28 B-316 デバッグ標準キャプチャを統合。ai_loop/debug_capture.py（uzu-debug-capture/1、CapturePlanner＋CaptureGame で開始／チェックポイント／定期／終了の撮影と対応表 manifest）＋uzu.py debug-capture／MCP debug_capture を追加。見本ゲーム実走で cp1〜cp3 対応の PNG 3枚と対応表を確認。Gemini 生成は土台無視の全面創作で不採用、リード実装。あわせて B-1110 の music_generate が MCP の TOOLS に取り込まれて存在しなかった配線バグを修正。詳細: iterations/2026-11-28-B-316-lead.md
