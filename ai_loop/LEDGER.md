@@ -294,3 +294,5 @@
 - 2026-11-28 B-1701 (Gemini 4 / AI Studio): Lumina SFX 生成接続の契約。lumina_bridge＋uzu.py sfx-lumina＋MCP sfx_generate。実スキル通しで見本3音の配置と全音クレジットを確認。記録 iterations/2026-11-28-B-1701-gemini.md。
 
 - 2026-11-28 B-1702 (Gemini 4 / AI Studio): UZUGameAudio 再生ヘルパー標準化（Lumina MIT 取り込み＋UZUSfx とのイベント統一口）。実バイナリでの自己検証13項目 pass、リード修正0件。記録 iterations/2026-11-28-B-1702-gemini.md。
+
+- 2026-11-28 B-1703 (Gemini 4 / AI Studio): Lumina クレジット台帳（uzu_sfx_credits.json・マージ式）＋ライセンス警告＋同梱ガード（--check-export、実バンクで違反3,365件を検出）。リード修正2点（実カタログの sounds キー対応＝指示書の情報不足、manifest の null 化）。記録 iterations/2026-11-28-B-1703-gemini.md。
