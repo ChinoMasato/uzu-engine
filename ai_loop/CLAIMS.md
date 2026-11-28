@@ -180,3 +180,4 @@
 | B-313 操作ログの標準化 | Gemini 4 (AI Studio)＋リード | agent/b-313-gemini | ai_loop/play_log.py・ai_loop/uzu.py | 反映済み | 2026-11-28 |
 | B-1333 Skills over MCP 試作 | Gemini 4 (AI Studio)＋リード | agent/b-1333-gemini | ai_loop/mcp_server.py・ai_loop/skills | 反映済み | 2026-11-28 |
 | B-1005 イメージ先行サンプル | リード | agent/b-1005-lead | ai_loop/samples/moonpost・ai_loop/BACKLOG.md | 反映済み | 2026-11-28 |
+| B-1226 レジストリ bbox 範囲検査 | Gemini 4 (AI Studio)＋リード | agent/b-1226-gemini | ai_loop/spec_registry.py | 作業中 | 2026-11-28 |
