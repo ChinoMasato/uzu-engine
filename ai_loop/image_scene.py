@@ -252,6 +252,144 @@ def segment_bands(rgba, w, h, band_of):
     return found, labels
 
 
+OBJECT_STEP_TOL = 10  # Per-step colour delta (max channel, 0-255) that the
+# object-cut region growing still treats as the same surface (B-1228/B-1230).
+
+
+def grow_background_mask(rgba, w, h, x0, y0, x1, y1, step_tol=OBJECT_STEP_TOL):
+    """Background mask (bytearray over the crop) for the crop rectangle:
+    pixels reachable from the crop border through steps whose per-channel
+    colour delta to the current pixel stays within step_tol. The painted
+    outlines of an object stop the growth, so the foreground is whatever
+    the border cannot reach (B-1228 v2; a single border-median colour
+    failed on rich illustrations, fg ratio ~1.0)."""
+    cw, ch = x1 - x0, y1 - y0
+    seen = bytearray(cw * ch)
+    stack = []
+    for xx in range(cw):
+        for yy in (0, ch - 1):
+            p = yy * cw + xx
+            if not seen[p]:
+                seen[p] = 1
+                stack.append(p)
+    for yy in range(ch):
+        for xx in (0, cw - 1):
+            p = yy * cw + xx
+            if not seen[p]:
+                seen[p] = 1
+                stack.append(p)
+    while stack:
+        p = stack.pop()
+        px, py = p % cw, p // cw
+        i = ((y0 + py) * w + (x0 + px)) * 4
+        r, g, b = rgba[i], rgba[i + 1], rgba[i + 2]
+        for qx, qy in ((px - 1, py), (px + 1, py), (px, py - 1), (px, py + 1)):
+            if 0 <= qx < cw and 0 <= qy < ch:
+                q = qy * cw + qx
+                if not seen[q]:
+                    j = ((y0 + qy) * w + (x0 + qx)) * 4
+                    if (abs(rgba[j] - r) <= step_tol and abs(rgba[j + 1] - g) <= step_tol
+                            and abs(rgba[j + 2] - b) <= step_tol):
+                        seen[q] = 1
+                        stack.append(q)
+    return seen
+
+
+def object_cutout(rgba, w, h, bbox, step_tol=OBJECT_STEP_TOL, margin_ratio=0.18):
+    """Cut one registered object out of the illustration (B-1230).
+
+    The background is grown on a margin-expanded crop (so the object's
+    own edges are interior), foreground components are kept when at
+    least a quarter of their area lies inside the registered bbox and
+    they cover at least 1% of the crop, holes are filled, and the card
+    is clipped to the registered bbox: the ground strip in front of an
+    object lies outside its bbox and stays with the ground/backdrop
+    (a coverage-based ground cut was measured and rejected in B-1228:
+    the houses' own bases span 0.93-1.00 of the bbox width).
+
+    Returns (texture bytearray for the bbox, metrics dict) or None for a
+    degenerate bbox."""
+    x0, y0, x1, y1 = (int(v) for v in bbox)
+    x0, y0 = max(0, x0), max(0, y0)
+    x1, y1 = min(w, x1), min(h, y1)
+    bw, bh = x1 - x0, y1 - y0
+    if bw < 8 or bh < 8:
+        return None
+    mx = round(bw * margin_ratio)
+    my = round(bh * margin_ratio)
+    cx0, cy0 = max(0, x0 - mx), max(0, y0 - my)
+    cx1, cy1 = min(w, x1 + mx), min(h, y1 + my)
+    cw, ch = cx1 - cx0, cy1 - cy0
+    bg = grow_background_mask(rgba, w, h, cx0, cy0, cx1, cy1, step_tol)
+    fg = bytearray(cw * ch)
+    for p in range(cw * ch):
+        fg[p] = 0 if bg[p] else 1
+    ox0, oy0 = x0 - cx0, y0 - cy0
+    comps, labels = components(fg, cw, ch, 1)
+    totals = {}
+    inside = {}
+    for p in range(cw * ch):
+        lab = labels[p]
+        if lab >= 0:
+            totals[lab] = totals.get(lab, 0) + 1
+            px, py = p % cw, p // cw
+            if ox0 <= px < ox0 + bw and oy0 <= py < oy0 + bh:
+                inside[lab] = inside.get(lab, 0) + 1
+    keep_labels = set()
+    for comp in comps:
+        lab = comp["label"]
+        if totals.get(lab, 0) >= 0.01 * cw * ch and inside.get(lab, 0) >= 0.25 * totals.get(lab, 0):
+            keep_labels.add(lab)
+    keep = bytearray(cw * ch)
+    for p in range(cw * ch):
+        if labels[p] in keep_labels:
+            keep[p] = 1
+    # Fill holes: background components that never touch the crop border.
+    inv = bytearray(cw * ch)
+    for p in range(cw * ch):
+        inv[p] = 0 if keep[p] else 1
+    _, inv_labels = components(inv, cw, ch, 1)
+    border_labels = set()
+    for xx in range(cw):
+        border_labels.add(inv_labels[xx])
+        border_labels.add(inv_labels[(ch - 1) * cw + xx])
+    for yy in range(ch):
+        border_labels.add(inv_labels[yy * cw])
+        border_labels.add(inv_labels[yy * cw + cw - 1])
+    for p in range(cw * ch):
+        if inv[p] and inv_labels[p] not in border_labels:
+            keep[p] = 1
+    tex = bytearray(bw * bh * 4)
+    kept = 0
+    for yy in range(bh):
+        for xx in range(bw):
+            if keep[(oy0 + yy) * cw + (ox0 + xx)]:
+                kept += 1
+                src = ((y0 + yy) * w + (x0 + xx)) * 4
+                dst = (yy * bw + xx) * 4
+                tex[dst:dst + 4] = rgba[src:src + 4]
+    border_touch = 0
+    border_n = 0
+    for xx in range(bw):
+        for yy in (0, bh - 1):
+            border_n += 1
+            if keep[(oy0 + yy) * cw + (ox0 + xx)]:
+                border_touch += 1
+    for yy in range(bh):
+        for xx in (0, bw - 1):
+            border_n += 1
+            if keep[(oy0 + yy) * cw + (ox0 + xx)]:
+                border_touch += 1
+    metrics = {
+        "fg_ratio": round(kept / float(bw * bh), 3),
+        "border_touch": round(border_touch / float(max(border_n, 1)), 3),
+        "components_kept": len(keep_labels),
+        "step_tol": step_tol,
+        "clipped_bbox": [x0, y0, x1, y1],
+    }
+    return tex, metrics
+
+
 def mean_color(rgba, w, comp_pixels):
     acc = [0, 0, 0]
     for p in comp_pixels:
@@ -835,6 +973,54 @@ def analyze(image_path, depth_path=None, depth_white_far=True,
         candidates.append(injected)
         injected_count += 1
 
+    # Object cards (B-1230): every registered element with an image_bbox
+    # also gets an alpha-cut object card (B-1228's region growing), so a
+    # registered house or prop is a movable object with its own texture
+    # instead of only a marker pinned to the backdrop. The band cards
+    # stay as the scenery layer underneath (two-layer composition).
+    object_card_reports = []
+    for re_item in reg_list:
+        if re_item.get("kind") == "card":
+            continue
+        if re_item.get("kind") in ("ground", "sky", "backdrop"):
+            # Layers, not objects: the ground strip and sky elements are
+            # the scenery the object cards stand in front of.
+            continue
+        bbox = re_item.get("image_bbox")
+        if not isinstance(bbox, list) or len(bbox) != 4:
+            continue
+        cut = object_cutout(rgba, w, h, bbox)
+        if cut is None:
+            continue
+        tex, metrics = cut
+        entry_report = {"element": re_item.get("id"), "kind": re_item.get("kind"),
+                        "image_bbox": [int(v) for v in bbox], **metrics}
+        if metrics["fg_ratio"] > 0.97 or metrics["fg_ratio"] < 0.03:
+            entry_report["status"] = "skipped"
+            entry_report["reason"] = ("the region growing kept %.3f of the box: the object is not "
+                                      "separable from its surroundings at this tolerance" % metrics["fg_ratio"])
+            object_card_reports.append(entry_report)
+            continue
+        safe_id = "".join(c if c.isalnum() or c in "-_" else "_" for c in str(re_item.get("id", "object")))
+        fname = "object_%s.png" % safe_id
+        bx0, by0, bx1, by1 = metrics["clipped_bbox"]
+        assets[fname] = write_png_bytes(bx1 - bx0, by1 - by0, tex)
+        band = "foreground" if by1 >= horizon + 0.75 * max(h - horizon, 1) else "midground"
+        z = z_of_band[band]
+        s = meters_per_px(z)
+        cw_m, ch_m = (bx1 - bx0) * s, (by1 - by0) * s
+        cx_m, _ = project((bx0 + bx1) / 2.0, (by0 + by1) / 2.0, z)
+        entry = {
+            "name": "Object_%s" % safe_id,
+            "image": out_res + "/" + fname,
+            "position": [round(cx_m, 3), round(ch_m / 2.0, 3), round(z, 3)],
+            "size": [round(cw_m, 3), round(ch_m, 3)],
+            "collision": bool(0.7 <= cw_m <= 0.4 * backdrop_width),
+        }
+        spec_cards.append(entry)
+        entry_report.update({"status": "cut", "file": fname, "card": entry["name"]})
+        object_card_reports.append(entry_report)
+
     # Ground: coloured from the sample above (observed), sized to run from
     # behind the camera to the backdrop's base.
     ground_color = "#%02x%02x%02x" % tuple(int(v) for v in ground_rgb)
@@ -908,6 +1094,7 @@ def analyze(image_path, depth_path=None, depth_white_far=True,
         "waypoints": waypoints,
         "walk_routing": walk_legs,
         "candidates": {"interact": candidates, "collision": collision_candidates},
+        "object_cards": object_card_reports,
         "camera": {"position": spec["camera"]["position"], "look_at": look_at, "fov": fov,
                    "basis": "inferred",
                    "reason": "placed so the backdrop fills the frame at the given fov; B-1223 diffs the scene against the illustration from here"},

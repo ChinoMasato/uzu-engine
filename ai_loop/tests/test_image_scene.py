@@ -171,5 +171,45 @@ class RouteWaypointsTest(unittest.TestCase):
         self.assertEqual(legs[0]["from"], self.spawn)
         self.assertEqual(legs[0]["to"], waypoints[0])
 
+class ObjectCutoutTest(unittest.TestCase):
+    """B-1230: object_cutout separates a registered object from a smooth
+    background by region growing (B-1228 v2), in pure Python."""
+
+    def _image(self):
+        # 80x60: vertical two-tone background (smooth step at y=40 via a
+        # hard band change the growing must cross only at the border),
+        # and a solid red house with a dark outline at [30..49]x[15..39].
+        w, h = 80, 60
+        px = bytearray(w * h * 4)
+        for y in range(h):
+            for x in range(w):
+                i = (y * w + x) * 4
+                px[i:i + 4] = bytes([40, 50, 90, 255]) if y < 40 else bytes([70, 80, 50, 255])
+        for y in range(15, 40):
+            for x in range(30, 50):
+                i = (y * w + x) * 4
+                edge = x in (30, 49) or y in (15, 39)
+                px[i:i + 4] = bytes([20, 15, 10, 255]) if edge else bytes([200, 60, 40, 255])
+        return w, h, px
+
+    def test_cutout_separates_the_object(self):
+        w, h, px = self._image()
+        cut = image_scene.object_cutout(px, w, h, [26, 11, 54, 44])
+        self.assertIsNotNone(cut)
+        tex, metrics = cut
+        # The house is 20x25 of the 28x33 box.
+        self.assertAlmostEqual(metrics["fg_ratio"], (20 * 25) / (28 * 33), delta=0.06)
+        bw = 54 - 26
+        centre = ((24 * bw) + 14) * 4  # Inside the house (rel. 40,35 -> box 14,24).
+        corner = 0  # Box corner: background.
+        self.assertEqual(tex[centre + 3], 255)
+        self.assertEqual(tex[corner + 3], 0)
+        self.assertEqual(metrics["components_kept"], 1)
+
+    def test_degenerate_bbox_returns_none(self):
+        w, h, px = self._image()
+        self.assertIsNone(image_scene.object_cutout(px, w, h, [0, 0, 4, 4]))
+
+
 if __name__ == "__main__":
     unittest.main()
