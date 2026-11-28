@@ -339,3 +339,148 @@ class SpecRegistryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+class SpecRegistryBboxWarningsTest(unittest.TestCase):
+    """B-1226: working-pixel coordinate system documentation and bbox range warnings."""
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp(prefix="uzu_spec_reg_bbox_"))
+        self.project = self.dir / "game"
+        (self.project / "art").mkdir(parents=True)
+        (self.project / "project.godot").write_text(
+            '[application]\nconfig/name="RegBboxTest"\nrun/main_scene="res://scenes/village.tscn"\n',
+            encoding="utf-8",
+        )
+        # 960x540 downscales to working_size [768, 432].
+        self.village_png = self.project / "art" / "village_spec.png"
+        draw_scene_png(self.village_png, 960, 540)
+        self.reg_path = self.project / "spec_registry.json"
+
+        spec_registry.run_cli(str(self.project), [
+            "register-image", "--id", "village_square", "--image", "res://art/village_spec.png",
+        ])
+        spec_registry.run_cli(str(self.project), [
+            "bind-scene", "--scene", "res://scenes/village.tscn", "--image-id", "village_square",
+        ])
+
+    def tearDown(self):
+        shutil.rmtree(self.dir, ignore_errors=True)
+
+    def test_validate_warns_on_out_of_bounds_bbox(self):
+        reg = spec_registry.load_registry(str(self.reg_path))
+        # Raw-pixel bbox exceeding working_size [768, 432].
+        spec_registry.upsert_element(reg, "res://scenes/village.tscn", {
+            "id": "street_raw",
+            "kind": "ground",
+            "image_bbox": [0, 266, 960, 540],
+            "node": "StreetMesh",
+            "basis": "observed",
+            "evidence": "street along the lower frame",
+        })
+        spec_registry.save_registry(str(self.reg_path), reg)
+
+        validated = spec_registry.run_cli(str(self.project), ["validate"])
+        self.assertTrue(validated["ok"], validated)
+        self.assertEqual(validated["errors"], [])
+        self.assertEqual(len(validated["warnings"]), 1)
+        msg = validated["warnings"][0]
+        self.assertIn("street_raw", msg)
+        self.assertIn("[0, 266, 960, 540]", msg)
+        self.assertIn("[768, 432]", msg)
+
+    def test_validate_no_warnings_when_bbox_within_working_size(self):
+        reg = spec_registry.load_registry(str(self.reg_path))
+        spec_registry.upsert_element(reg, "res://scenes/village.tscn", {
+            "id": "street_working",
+            "kind": "ground",
+            "image_bbox": [0, 266, 768, 432],
+            "node": "StreetMesh",
+            "basis": "observed",
+            "evidence": "street along the lower frame in working pixels",
+        })
+        spec_registry.save_registry(str(self.reg_path), reg)
+
+        validated = spec_registry.run_cli(str(self.project), ["validate"])
+        self.assertTrue(validated["ok"], validated)
+        self.assertEqual(validated["errors"], [])
+        self.assertEqual(validated["warnings"], [])
+
+    def test_map_element_includes_warnings_for_out_of_bounds_bbox(self):
+        single = spec_registry.run_cli(str(self.project), [
+            "map-element", "--scene", "res://scenes/village.tscn",
+            "--id", "wide_sky", "--kind", "sky", "--bbox", "0,0,960,240",
+            "--node", "SkyBackdrop", "--basis", "observed",
+            "--evidence", "sky recorded in source image pixels",
+        ])
+        self.assertTrue(single["ok"], single)
+        self.assertIn("warnings", single)
+        self.assertEqual(len(single["warnings"]), 1)
+        self.assertIn("wide_sky", single["warnings"][0])
+        self.assertIn("[0, 0, 960, 240]", single["warnings"][0])
+        self.assertIn("[768, 432]", single["warnings"][0])
+
+        in_bounds = spec_registry.run_cli(str(self.project), [
+            "map-element", "--scene", "res://scenes/village.tscn",
+            "--id", "inn_door", "--kind", "door", "--bbox", "140,230,190,340",
+            "--node", "InnDoor", "--basis", "observed",
+            "--evidence", "door within working_size bounds",
+        ])
+        self.assertTrue(in_bounds["ok"], in_bounds)
+        self.assertNotIn("warnings", in_bounds)
+
+        batch_path = self.project / "batch_elements.json"
+        batch_path.write_text(json.dumps([
+            {
+                "id": "batch_oob",
+                "kind": "tree",
+                "image_bbox": [700, 100, 820, 450],
+                "node": "EdgeTree",
+                "basis": "observed",
+                "evidence": "tree extending past working_size",
+            },
+            {
+                "id": "batch_ok",
+                "kind": "lamp",
+                "image_bbox": [200, 150, 240, 220],
+                "node": "StreetLamp",
+                "basis": "inferred",
+                "reason": "lamp along street",
+            },
+        ]), encoding="utf-8")
+        batch = spec_registry.run_cli(str(self.project), [
+            "map-element", "--scene", "res://scenes/village.tscn",
+            "--elements", str(batch_path),
+        ])
+        self.assertTrue(batch["ok"], batch)
+        self.assertIn("warnings", batch)
+        self.assertEqual(len(batch["warnings"]), 1)
+        self.assertIn("batch_oob", batch["warnings"][0])
+        self.assertIn("[700, 100, 820, 450]", batch["warnings"][0])
+        self.assertIn("[768, 432]", batch["warnings"][0])
+
+    def test_degenerate_bbox_produces_warning(self):
+        w_x = spec_registry.bbox_warnings(
+            {"id": "flat_x", "image_bbox": [200, 100, 200, 250]},
+            [768, 432],
+        )
+        self.assertEqual(len(w_x), 1)
+        self.assertIn("flat_x", w_x[0])
+        self.assertIn("[200, 100, 200, 250]", w_x[0])
+        self.assertIn("[768, 432]", w_x[0])
+
+        w_y = spec_registry.bbox_warnings(
+            {"id": "inverted_y", "image_bbox": [100, 300, 220, 200]},
+            [768, 432],
+        )
+        self.assertEqual(len(w_y), 1)
+        self.assertIn("inverted_y", w_y[0])
+        self.assertIn("[100, 300, 220, 200]", w_y[0])
+        self.assertIn("[768, 432]", w_y[0])
+
+        self.assertEqual(
+            spec_registry.bbox_warnings({"id": "no_ws", "image_bbox": [100, 300, 220, 200]}, None),
+            [],
+        )
+        self.assertEqual(
+            spec_registry.bbox_warnings({"id": "no_bbox"}, [768, 432]),
+            [],
+        )
