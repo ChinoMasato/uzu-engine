@@ -86,6 +86,8 @@ var juice_events: Array = []
 var juice_enabled := true
 var cleared := false
 var play_seconds := 0.0
+var sfx_events: Array = [] # Sound firing log (B-1704), mirrors juice_events.
+var sound: HikariSound # B-1704: Lumina/SFX wiring (see sound.gd).
 var dialogue_lines: Array = []
 var lantern_glow := 0.0
 
@@ -148,6 +150,10 @@ func _ready() -> void:
 	stage_current = stages[0].duplicate()
 	stage_target = stages[0].duplicate()
 	_apply_stage(stage_current, 1.0)
+	sound = HikariSound.new()
+	sound.on_play = func(name: String) -> void: sfx_events.append(name)
+	add_child(sound)
+	sound.set_stage(0)
 	_built = true
 	_loading_layer.queue_free()
 	UZUTelemetry.checkpoint("start")
@@ -192,6 +198,9 @@ func _process(delta: float) -> void:
 	_update_camera(delta)
 	_update_stage(delta)
 	_update_interactable()
+	if sound:
+		var moving := not dialogue_open and Input.get_vector("move_left", "move_right", "move_up", "move_down").length() > 0.0
+		sound.set_walking(moving, player.global_position)
 	if lantern_glow > 0.0 and lantern_light:
 		lantern_light.light_energy = lerpf(lantern_light.light_energy, 2.6, delta * 1.5)
 
@@ -756,11 +765,15 @@ func _advance_dialogue() -> void:
 		_juice_motion(dialogue_panel, false)
 		return
 	dialogue_text.text = dialogue_lines.pop_front()
+	if sound:
+		sound.play(&"talk_blip", player.global_position)
 
 func _collect_shard(it: Dictionary) -> void:
 	shards += 1
 	UZUTelemetry.checkpoint("shard_%d" % shards)
 	juice_events.append("pickup")
+	if sound:
+		sound.play(&"pickup_shard", player.global_position)
 	if juice_enabled:
 		UZUJuice.impact(player, "pickup")
 	if it["node"]:
@@ -771,6 +784,8 @@ func _collect_shard(it: Dictionary) -> void:
 	if it.get("sparkles"):
 		(it["sparkles"] as Node).queue_free()
 	stage_target = stages[mini(shards, 3)].duplicate()
+	if sound:
+		sound.set_stage(mini(shards, 3))
 	hud_shards.text = "%d / 3" % shards
 	var icon := hud_shard_icons[shards - 1]
 	icon.modulate = Color.WHITE # Collected: the shard lights up.
@@ -792,6 +807,8 @@ func _touch_lantern() -> void:
 	lantern_glow = 1.0
 	UZUTelemetry.checkpoint("lantern_lit")
 	juice_events.append("lantern")
+	if sound:
+		sound.play(&"lantern_ignite", lantern_pos + Vector3(0, 1.0, 0))
 	if juice_enabled:
 		UZUJuice.impact(player, "pickup", 1.5)
 		UZUJuice.kick(0.7)
