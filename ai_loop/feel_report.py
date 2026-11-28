@@ -34,6 +34,36 @@ Usage (through uzu.py):
       No gameplay: the probe fires hitstop / shake / slowmo / kick on a
       schedule inside the project, proving every channel end to end.
 
+Playthrough drivers (B-1113): the playthrough mode reads the project's
+verify_playthrough.py. Two shapes are supported. The legacy shape (the
+hikari sample) exports STATE / ROUTE / walk_to / interact / event_names
+and is driven step for step as before. Any other game instead exports a
+declarative FEEL_DRIVER:
+
+    FEEL_DRIVER = {
+        "state": ["Main:delivered", "Main:cleared",
+                  "Main/Player:global_position"],   # required
+        "watch": ["Main/Player:modulate"],         # optional, default []
+        "position": "Main/Player:global_position", # optional: the state
+                        # key _goto reads (default: the key ending in
+                        # ":global_position")
+        "actions": {"left": "move_left", "right": "move_right",
+                    "up": "move_up", "down": "move_down"},  # optional
+        "goto_tolerance": 0.45,                    # optional, metres
+        "legs": [                                  # required, non-empty
+            {"name": "mailbox_1", "goto": [-3.6, -11.35],
+             "action": "interact", "expect": {"Main:delivered": 1}},
+        ],
+        "success": {"Main:cleared": True},         # required
+    }
+
+Each leg walks to its goto point (a grid-free steering walk on the
+position state), presses its action, and retries until every expect
+entry matches the observed state (at most 4 tries). The report then
+carries "success" (the success expectations against the final state)
+and "final_state"; the legacy-only "cleared" / "final_shards" keys are
+absent for driver games.
+
 Honest limits: UZUJuice's deadlines run on the wall clock while the
 lockstep driver blocks on stdin between commands, so an effect's curve
 is only sampled on process frames -- long driver pauses compress the
@@ -69,6 +99,116 @@ FLASH_WATCH = "Main/Player:modulate"
 GAUGE_WATCH = "find:ShardGauge:value"
 ATTRIB_WINDOW = 240  # Physics frames after a press in which an onset belongs to that event.
 SAMPLE_CAP = 240
+
+DEFAULT_DRIVER_ACTIONS = {"left": "move_left", "right": "move_right",
+                          "up": "move_up", "down": "move_down"}
+
+
+def expect_met(state, expect):
+    """True when every expected entry matches the observed state dict.
+    Booleans only match booleans (True does not equal 1 here)."""
+    state = state or {}
+    for key, want in (expect or {}).items():
+        got = state.get(key)
+        if isinstance(want, bool) or isinstance(got, bool):
+            if got is not want:
+                return False
+        elif got != want:
+            return False
+    return True
+
+
+def validate_driver(spec):
+    """Validate a FEEL_DRIVER dict; returns a list of error strings."""
+    errors = []
+    if not isinstance(spec, dict):
+        return ["FEEL_DRIVER must be a dict"]
+    state = spec.get("state")
+    if not isinstance(state, list) or not state or not all(isinstance(p, str) for p in state):
+        errors.append("FEEL_DRIVER['state'] must be a non-empty list of state paths")
+    legs = spec.get("legs")
+    if not isinstance(legs, list) or not legs:
+        errors.append("FEEL_DRIVER['legs'] must be a non-empty list")
+    else:
+        for i, leg in enumerate(legs):
+            if not isinstance(leg, dict):
+                errors.append(f"FEEL_DRIVER['legs'][{i}] must be a dict")
+                continue
+            goto = leg.get("goto")
+            if goto is not None and not (isinstance(goto, (list, tuple)) and len(goto) in (2, 3)
+                                         and all(isinstance(v, (int, float)) for v in goto)):
+                errors.append(f"FEEL_DRIVER['legs'][{i}]['goto'] must be [x, z] or [x, y, z]")
+            if not isinstance(leg.get("expect"), dict) or not leg.get("expect"):
+                errors.append(f"FEEL_DRIVER['legs'][{i}]['expect'] must be a non-empty dict")
+    if not isinstance(spec.get("success"), dict) or not spec.get("success"):
+        errors.append("FEEL_DRIVER['success'] must be a non-empty dict")
+    watch = spec.get("watch")
+    if watch is not None and not (isinstance(watch, list) and all(isinstance(w, str) for w in watch)):
+        errors.append("FEEL_DRIVER['watch'] must be a list of watch strings")
+    actions = spec.get("actions")
+    if actions is not None and not isinstance(actions, dict):
+        errors.append("FEEL_DRIVER['actions'] must be a dict of direction -> input action")
+    tol = spec.get("goto_tolerance")
+    if tol is not None and not (isinstance(tol, (int, float)) and tol > 0):
+        errors.append("FEEL_DRIVER['goto_tolerance'] must be a positive number")
+    return errors
+
+
+def driver_kind(module):
+    """Which playthrough shape a verify_playthrough module exports:
+    "driver" (FEEL_DRIVER), "legacy" (STATE/ROUTE/...), or None."""
+    if getattr(module, "FEEL_DRIVER", None) is not None:
+        return "driver"
+    if all(hasattr(module, name) for name in ("STATE", "ROUTE", "walk_to", "interact", "event_names")):
+        return "legacy"
+    return None
+
+
+def _position_of(state, key):
+    """(x, z) from a state value that is a list [x, y, z] or a dict."""
+    value = (state or {}).get(key)
+    if isinstance(value, dict):
+        return float(value["x"]), float(value["z"])
+    if isinstance(value, (list, tuple)) and len(value) >= 3:
+        return float(value[0]), float(value[2])
+    return None
+
+
+def _goto(game, tx, tz, state_paths, actions, tol=0.45, position_key=None, budget=900):
+    """Steering walk toward (tx, tz) on the position state, the way the
+    moonpost verifier walks (B-1005): observe, press the direction
+    actions toward the target, release, until within tol or out of
+    budget. Returns True when the target was reached."""
+    import math
+    frames = 0
+    while frames < budget:
+        obs = game.observe(state=state_paths)
+        state = obs.get("state", {})
+        key = position_key
+        if key is None:
+            key = next((k for k in state if k.endswith(":global_position")), None)
+        pos = _position_of(state, key) if key else None
+        if pos is None:
+            return False
+        x, z = pos
+        dx, dz = tx - x, tz - z
+        if math.hypot(dx, dz) < tol:
+            return True
+        press = []
+        if dx > 0.15:
+            press.append(actions["right"])
+        elif dx < -0.15:
+            press.append(actions["left"])
+        if dz < -0.15:
+            press.append(actions["up"])
+        elif dz > 0.15:
+            press.append(actions["down"])
+        if not press:
+            press.append(actions["up"])
+        game.step(frames=6, press=press, state=state_paths)
+        game.step(frames=1, release=press)
+        frames += 7
+    return False
 
 
 # ------------------------------------------------------------------ probe data
@@ -386,18 +526,133 @@ def _load_verify_playthrough(project):
     return module
 
 
-def _settle(game, vp, seconds):
+def _settle(game, state_paths, seconds):
     """A real-time settle after an interaction: step one frame at a time
     with small sleeps, so wall-clock effects (the flash deadline, the
     kick spring) live out their real durations and are sampled as
     curves -- instead of being compressed into one dt jump, merged into
     the next event's segment, or cut off by the end of the run."""
     for _ in range(max(1, int(seconds / 0.012))):
-        game.step(frames=1, state=vp.STATE)
+        game.step(frames=1, state=state_paths)
         time.sleep(0.012)
 
 
+
+def _run_driver_playthrough(project, vp, seed=7, juice=True, watch=None):
+    """The FEEL_DRIVER route (B-1113): walk each leg, press its action,
+    retry until the leg's expectations hold; same probe recording and
+    event attribution as the legacy route."""
+    from aiplayer import Game
+
+    driver = vp.FEEL_DRIVER
+    errors = validate_driver(driver)
+    if errors:
+        raise ValueError("invalid FEEL_DRIVER: " + "; ".join(errors))
+    state_paths = list(driver["state"])
+    if watch is None:
+        watch = list(driver.get("watch") or [])
+    actions = dict(DEFAULT_DRIVER_ACTIONS)
+    actions.update(driver.get("actions") or {})
+    tol = float(driver.get("goto_tolerance") or 0.45)
+    work = tempfile.mkdtemp(prefix="uzu_feel_")
+    feel_path = os.path.join(work, "feel.jsonl")
+    extra_args = ["--uzu-feel", feel_path]
+    if watch:
+        extra_args += ["--uzu-feel-watch", ",".join(watch)]
+    if not juice:
+        extra_args.append("--uzu-no-juice")
+    presses = []
+    checkpoints = []
+
+    with Game(project, seed=seed,
+              extra_autoloads={"UZUFeelProbe": "selfplay/feel_probe.gd"},
+              extra_user_args=extra_args) as game:
+        orig_step = game.step
+
+        def recording_step(frames=1, press=(), release=(), state=None, image=None):
+            before = game.last.get("frame")
+            obs = orig_step(frames=frames, press=press, release=release, state=state, image=image)
+            presses.append({"frame_before": before, "press": list(press),
+                            "frames": frames, "frame_after": obs.get("frame")})
+            for e in obs.get("events", []):
+                if isinstance(e, dict) and e.get("type") == "checkpoint":
+                    checkpoints.append({"id": e.get("id"), "frame": obs.get("frame"),
+                                        "telemetry_frame": e.get("frame")})
+            return obs
+
+        game.step = recording_step
+        game.observe(state=state_paths)
+        leg_results = []
+        final = {}
+        for leg in driver["legs"]:
+            reached = None
+            if leg.get("goto"):
+                goto = leg["goto"]
+                reached = _goto(game, float(goto[0]), float(goto[-1]), state_paths,
+                                actions, tol=tol, position_key=driver.get("position"))
+            action = leg.get("action")
+            tries = 0
+            met = False
+            obs = game.observe(state=state_paths)
+            final = obs.get("state", {})
+            while tries < 4 and not met:
+                if action:
+                    game.step(frames=3, press=[action], state=state_paths)
+                    game.step(frames=2, release=[action], state=state_paths)
+                tries += 1
+                obs = game.observe(state=state_paths)
+                final = obs.get("state", {})
+                met = expect_met(final, leg["expect"])
+            leg_results.append({"name": leg.get("name", ""), "reached": reached,
+                                "expect_met": met, "tries": tries})
+            _settle(game, state_paths, 0.35)
+        _settle(game, state_paths, 1.6)
+        obs = game.observe(state=state_paths)
+        final = obs.get("state", {}) or final
+
+    events = []
+    for cp in checkpoints:
+        press_frame = None
+        for p in presses:
+            if p["press"] and p["frame_before"] is not None and cp["frame"] is not None \
+                    and p["frame_before"] <= cp["frame"]:
+                press_frame = p["frame_before"]
+        events.append({"id": cp["id"], "frame": cp["frame"], "press_frame": press_frame})
+
+    analysis = analyze(load_records(feel_path))
+    attributed = attribute(analysis, [e for e in events if e["press_frame"] is not None])
+    return {
+        "format": FORMAT,
+        "mode": "playthrough",
+        "game": os.path.basename(os.path.abspath(project)),
+        "conditions": {"seed": seed, "juice": juice, "watch": watch},
+        "driver": {"legs": leg_results},
+        "success": expect_met(final, driver["success"]),
+        "final_state": final,
+        "checkpoints": [c["id"] for c in checkpoints],
+        "events": attributed["events"],
+        "unattributed": attributed["unattributed"],
+        "ui_events": analysis["ui_events"],
+        "ui_curves": analysis["curves"],
+        "probe_samples": analysis["samples"],
+    }
+
+
 def run_playthrough(project, seed=7, juice=True, watch=None):
+    """Dispatch on the project's verify_playthrough.py shape (B-1113):
+    FEEL_DRIVER modules take the generic route, legacy hikari-shaped
+    modules the original step-for-step route."""
+    vp = _load_verify_playthrough(project)
+    kind = driver_kind(vp)
+    if kind == "driver":
+        return _run_driver_playthrough(project, vp, seed=seed, juice=juice, watch=watch)
+    if kind == "legacy":
+        return _run_legacy_playthrough(project, seed=seed, juice=juice, watch=watch)
+    raise ValueError("verify_playthrough.py defines neither FEEL_DRIVER nor the "
+                     "legacy STATE/ROUTE shape")
+
+
+def _run_legacy_playthrough(project, seed=7, juice=True, watch=None):
     """The hikari route of verify_playthrough.py, with the feel probe
     installed and every step recorded. Returns the feel report."""
     from aiplayer import Game
@@ -449,8 +704,8 @@ def run_playthrough(project, seed=7, juice=True, watch=None):
                 elif obs.get("state", {}).get("Main:shards") == want_shards:
                     break
             final = obs.get("state", {})
-            _settle(game, vp, 0.35)  # Let this event's effects finish before the next leg.
-        _settle(game, vp, 1.6)  # The lantern's kick spring needs the longest tail.
+            _settle(game, vp.STATE, 0.35)  # Let this event's effects finish before the next leg.
+        _settle(game, vp.STATE, 1.6)  # The lantern's kick spring needs the longest tail.
 
     # The press that caused each checkpoint: the newest interact press
     # issued at or before the observation the checkpoint arrived in.
@@ -551,11 +806,20 @@ def main(argv):
         else:
             watch = [w.strip() for w in args.watch.split(",")] if args.watch else None
             report = run_playthrough(project, seed=args.seed, juice=not args.no_juice, watch=watch)
-            ok = report["cleared"] and report["final_shards"] == 3
-            summary = {"ok": ok, "command": "feel-report", "mode": "playthrough",
-                       "juice": not args.no_juice, "cleared": report["cleared"],
-                       "events": {e["id"]: {"latency_frames": e["latency_frames"],
-                                            "channels": headline(e)} for e in report["events"]}}
+            if "success" in report:
+                ok = bool(report["success"])
+                summary = {"ok": ok, "command": "feel-report", "mode": "playthrough",
+                           "juice": not args.no_juice, "success": report["success"],
+                           "final_state": report["final_state"],
+                           "legs": report["driver"]["legs"],
+                           "events": {e["id"]: {"latency_frames": e["latency_frames"],
+                                                "channels": headline(e)} for e in report["events"]}}
+            else:
+                ok = report["cleared"] and report["final_shards"] == 3
+                summary = {"ok": ok, "command": "feel-report", "mode": "playthrough",
+                           "juice": not args.no_juice, "cleared": report["cleared"],
+                           "events": {e["id"]: {"latency_frames": e["latency_frames"],
+                                                "channels": headline(e)} for e in report["events"]}}
         out_path = args.out or os.path.join(project, "feel_report.json")
         if args.compare:
             with open(args.compare, encoding="utf-8") as f:
