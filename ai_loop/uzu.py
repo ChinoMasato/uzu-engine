@@ -50,6 +50,7 @@ or through ai_loop\\windows\\uzu.bat.
   uzu.py spec-registry <project> register-image|bind-scene|map-element|remove-element|get|list|validate [options]
   uzu.py sfx-lumina <project> (--request <file> [--lumina-dir <dir>] [--dest <res://...>] | --check-export <dir>)   search, render, export guard
       and place Lumina SFX into the project (B-1701)
+  uzu.py play-log <log.jsonl> [--out <summary.json>]   summarize a recorded play log (B-313)
                   specification image registry (B-1222, see ai_loop/spec_registry.py): registers
                   specification illustrations (--id ID --image PATH), binds scenes (--scene res://...
                   --image-id ID [--report report.json --spec spec.json]), and maintains shared
@@ -1274,6 +1275,19 @@ def sfx_cmd(project, args):
         return lumina_bridge.run_cli(project, args)
     except (lumina_bridge.LuminaBridgeError, OSError, ValueError) as e:
         raise ToolError(str(e), command="sfx-lumina")
+
+
+def play_log_cmd(log_path, args):
+    """Summarize a recorded uzu-play-log/1 JSONL file (B-313,
+    see ai_loop/play_log.py): [--out <summary.json>]."""
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import play_log
+
+    try:
+        return play_log.run_cli(log_path, args)
+    except (play_log.PlayLogError, OSError, ValueError) as e:
+        raise ToolError(str(e), command="play-log")
 
 
 def image_scene_cmd(project, args):
@@ -2718,15 +2732,15 @@ def main(argv):
             result = {"ok": False, "error": e.message}
         print(json.dumps(result, ensure_ascii=False))
         return 0 if result.get("ok") else 1
-    if tool not in ("engine", "look", "selfplay", "build", "enrich", "ui", "map", "audit-scene", "collision-check", "image-scene", "spec-diff", "spec-registry", "anim", "sfx-lumina") or not rest:
+    if tool not in ("engine", "look", "selfplay", "build", "enrich", "ui", "map", "audit-scene", "collision-check", "image-scene", "spec-diff", "spec-registry", "anim", "sfx-lumina", "play-log") or not rest:
         print(__doc__, file=sys.stderr)
         return 2
     project = os.path.abspath(rest[0])
-    if not os.path.exists(os.path.join(project, "project.godot")):
+    if tool != "play-log" and not os.path.exists(os.path.join(project, "project.godot")):
         print(json.dumps({"ok": False, "error": f"{rest[0]} is not a project (no project.godot)"}))
         return 2
     try:
-        result = {"engine": engine, "look": look, "selfplay": selfplay, "build": build, "enrich": enrich, "ui": ui, "map": map_, "audit-scene": audit_scene_cmd, "collision-check": collision_check_cmd, "image-scene": image_scene_cmd, "spec-diff": spec_diff_cmd, "spec-registry": spec_registry_cmd, "anim": animation_cmd, "sfx-lumina": sfx_cmd}[tool](project, rest[1:])
+        result = {"engine": engine, "look": look, "selfplay": selfplay, "build": build, "enrich": enrich, "ui": ui, "map": map_, "audit-scene": audit_scene_cmd, "collision-check": collision_check_cmd, "image-scene": image_scene_cmd, "spec-diff": spec_diff_cmd, "spec-registry": spec_registry_cmd, "anim": animation_cmd, "sfx-lumina": sfx_cmd, "play-log": play_log_cmd}[tool](project, rest[1:])
     except ToolError as e:
         result = {"ok": False, "error": e.message, **e.extra}
         print(json.dumps(result, ensure_ascii=False))
