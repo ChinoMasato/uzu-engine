@@ -105,5 +105,71 @@ class ImageSceneTest(unittest.TestCase):
         self.assertEqual(report2["depth"]["basis"], "inferred")
 
 
+class RouteWaypointsTest(unittest.TestCase):
+    def setUp(self):
+        self.walk = {"x": [-7.8, 7.8], "z": [-17.0, -6.31]}
+        self.spawn = [0.0, 0.0, -7.81]
+
+    def _segment_clear_on_grid(self, a, b, footprints, clearance=0.45):
+        steps = 200
+        for s in range(steps + 1):
+            t = s / steps
+            px = a[0] + (b[0] - a[0]) * t
+            pz = a[2] + (b[2] - a[2]) * t
+            if not (self.walk["x"][0] <= px <= self.walk["x"][1]):
+                return False
+            if not (self.walk["z"][0] <= pz <= self.walk["z"][1]):
+                return False
+            for cx, cz, w in footprints:
+                half_w = w * 0.5 + clearance
+                if (cx - half_w) <= px <= (cx + half_w) and (cz - clearance) <= pz <= (cz + clearance):
+                    return False
+        return True
+
+    def test_no_obstacles_keeps_waypoints_unchanged(self):
+        waypoints = [
+            [0.0, 0.0, -11.65],
+            [-5.46, 0.0, -10.95],
+            [5.46, 0.0, -10.95],
+            [1.66, 0.0, -11.54],
+            [0.0, 0.0, -7.81],
+        ]
+        routed, legs = image_scene.route_waypoints(self.spawn, waypoints, [], self.walk)
+        self.assertEqual(routed, waypoints)
+        self.assertEqual(len(legs), len(waypoints))
+        for leg in legs:
+            self.assertTrue(leg["routed"])
+            self.assertEqual(leg["inserted"], 0)
+
+    def test_center_wall_routes_through_side_gap_and_preserves_reachability(self):
+        waypoints = [[0.0, 0.0, -11.65], [0.0, 0.0, -7.81]]
+        footprints = [[0.0, -9.5, 4.0]]  # Blocks x in [-2.45, 2.45]; gaps exist on both sides.
+        routed, legs = image_scene.route_waypoints(self.spawn, waypoints, footprints, self.walk)
+        self.assertGreater(len(routed), len(waypoints))
+        self.assertEqual(len(legs), 2)
+        self.assertTrue(all(leg["routed"] for leg in legs))
+        self.assertGreaterEqual(legs[0]["inserted"], 1)
+        self.assertGreaterEqual(legs[1]["inserted"], 1)
+        # Intermediate waypoints detour around the central wall through a side gap.
+        self.assertTrue(any(abs(pt[0]) > 2.45 for pt in routed))
+        # Every leg in the resulting path stays within walk_area and clear of expanded footprints.
+        chain = [self.spawn] + routed
+        for a, b in zip(chain, chain[1:]):
+            self.assertTrue(self._segment_clear_on_grid(a, b, footprints), (a, b))
+        # Deterministic across repeated calls.
+        routed2, legs2 = image_scene.route_waypoints(self.spawn, waypoints, footprints, self.walk)
+        self.assertEqual((routed, legs), (routed2, legs2))
+
+    def test_completely_blocked_leg_leaves_target_with_routed_false(self):
+        waypoints = [[0.0, 0.0, -11.65]]
+        footprints = [[0.0, -9.5, 20.0]]  # Spans [-10.45, 10.45], blocking the full walk width.
+        routed, legs = image_scene.route_waypoints(self.spawn, waypoints, footprints, self.walk)
+        self.assertEqual(routed, waypoints)
+        self.assertEqual(len(legs), 1)
+        self.assertFalse(legs[0]["routed"])
+        self.assertEqual(legs[0]["inserted"], 0)
+        self.assertEqual(legs[0]["from"], self.spawn)
+        self.assertEqual(legs[0]["to"], waypoints[0])
+
 if __name__ == "__main__":
     unittest.main()
