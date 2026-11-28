@@ -313,3 +313,5 @@
 - 2026-11-28 B-320 play-log の記録開始点の注記を統合（リード実装）。session 行に pre_start_events（Recorder は常時、Writer は指定時）、summarize に checkpoints_complete を追加。Gemini の (A) は全面書き直しで不採用だったが、既存テストとの矛盾の指摘は正しく回避策を採用した。詳細: iterations/2026-11-28-B-320-lead.md
 
 - 2026-11-28 B-1113 feel-report の一般化を統合（リード実装）。FEEL_DRIVER 契約（expect_met／validate_driver／driver_kind＋汎用ランナー）を追加し、moonpost で playthrough が動作（ok=true）、hikari のレガシー経路は不変。Gemini の生成は別課題の汎用コードで不採用。詳細: iterations/2026-11-28-B-1113-lead.md
+
+- 2026-11-28 B-312 標準自動操作（オートパイロット）を統合。ai_loop/autopilot.py（uzu-autopilot/1 の読み書き・変換・再生）＋uzu.py autopilot／MCP autopilot_play を追加。見本ゲームで操作列を再生し cp1〜cp3 通過・クリア終了を確認。Gemini 生成は手直し0件（小さな指示書＋新規ファイル形）。詳細: iterations/2026-11-28-B-312-gemini.md
