@@ -186,7 +186,7 @@
 | B-1110 BGM 生成（UZUMusic） | Gemini 4 (AI Studio)＋リード | agent/b-1110-gemini | ai_loop/music_gen.py・ai_loop/uzu.py・ai_loop/mcp_server.py | 反映済み | 2026-11-28 |
 | B-316 デバッグ標準キャプチャ | リード（Gemini 生成は不採用） | agent/b-316-gemini | ai_loop/debug_capture.py・ai_loop/uzu.py・ai_loop/mcp_server.py | 反映済み | 2026-11-28 |
 | B-1228 カード分割の物体単位化の検討 | リード | agent/b-1228-lead | ai_loop/image_scene.py・試作スクリプト | 反映済み | 2026-11-28 |
-| B-1230 物体カードの本実装 | リード | agent/b-1230-lead | ai_loop/image_scene.py | 作業中 | 2026-11-28 |
+| B-1230 物体カードの本実装 | リード | agent/b-1230-lead | ai_loop/image_scene.py | 反映済み | 2026-11-28 |
 | B-1225 CLI パス解決の統一 | Gemini 4 (AI Studio)＋リード | agent/b-1225-gemini | ai_loop/pathutil.py・ai_loop/uzu.py・ai_loop/spec_registry.py | 反映済み | 2026-11-28 |
 | B-1226 レジストリ bbox 範囲検査 | Gemini 4 (AI Studio)＋リード | agent/b-1226-gemini | ai_loop/spec_registry.py | 反映済み | 2026-11-28 |
 | B-1227 spec-diff 候補ゲート分離 | リード（Gemini 生成は不採用） | agent/b-1227-gemini | ai_loop/spec_diff.py | 反映済み | 2026-11-28 |

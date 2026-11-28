@@ -321,3 +321,5 @@
 - 2026-11-28 B-316 デバッグ標準キャプチャを統合。ai_loop/debug_capture.py（uzu-debug-capture/1、CapturePlanner＋CaptureGame で開始／チェックポイント／定期／終了の撮影と対応表 manifest）＋uzu.py debug-capture／MCP debug_capture を追加。見本ゲーム実走で cp1〜cp3 対応の PNG 3枚と対応表を確認。Gemini 生成は土台無視の全面創作で不採用、リード実装。あわせて B-1110 の music_generate が MCP の TOOLS に取り込まれて存在しなかった配線バグを修正。詳細: iterations/2026-11-28-B-316-lead.md
 
 - 2026-11-28 B-1228 カード分割の物体単位化を検討し、試作成功で採用方向とした。境界色の中央値による氾濫（v1）は fg_ratio 0.97〜1.0 で失敗、境界シードの領域成長（v2、step_tol=10）は家3軒を個別カードとして切り出せた（fg_ratio 0.57〜0.79、コンタクトシートで目視確認）。帯状カードとの二層併用が結論で、本実装（接地帯の分離つき）は B-1230 に登録。詳細: iterations/2026-11-28-B-1228-lead.md
+
+- 2026-11-28 B-1230 物体カードの本実装を統合。image_scene.py に grow_background_mask／object_cutout（B-1228 v2 の純 Python 移植）を追加し、レジストリ要素から Object_<id> カードを生成（帯状カードと二層併用、切り分け不能は理由つきで skipped）。接地帯は coverage カットを実測で退け、bbox クリップを規則とした。moonpost で家3軒 fg 0.60〜0.73＋郵便受け・郵便屋も生成、歩行経路は不変。詳細: iterations/2026-11-28-B-1230-lead.md
