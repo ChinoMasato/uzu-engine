@@ -2,13 +2,13 @@
  "version": 1,
  "generated_by": "ai_loop/make_catalog.py",
  "counts": {
-  "cli": 30,
+  "cli": 31,
   "command": 72,
-  "mcp": 81,
+  "mcp": 82,
   "preset": 7,
-  "script": 50,
+  "script": 51,
   "class": 16,
-  "total": 256
+  "total": 259
  },
  "entries": [
   {
@@ -49,6 +49,19 @@
    "required_capabilities": [],
    "fallback": null,
    "usage": "uzu.py audit-scene <project> --scene res://x.tscn [--spec-set DIR] [--out report.json]"
+  },
+  {
+   "name": "autopilot",
+   "kind": "cli",
+   "description": "replay a saved operation sequence (uzu-autopilot/1, B-312) specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "tags": [
+    "cli",
+    "uzu.py"
+   ],
+   "source": "ai_loop/uzu.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "usage": "uzu.py autopilot <project> <sequence.json> [--seed N] [--state a,b] [--log l.jsonl] --image-id ID [--report report.json --spec spec.json]), and maintains shared"
   },
   {
    "name": "build",
@@ -237,7 +250,7 @@
   {
    "name": "play-log",
    "kind": "cli",
-   "description": "summarize a recorded play log (B-313) specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "description": "summarize a recorded play log (B-313)",
    "tags": [
     "cli",
     "uzu.py"
@@ -245,7 +258,7 @@
    "source": "ai_loop/uzu.py",
    "required_capabilities": [],
    "fallback": null,
-   "usage": "uzu.py play-log <log.jsonl> [--out <summary.json>] --image-id ID [--report report.json --spec spec.json]), and maintains shared"
+   "usage": "uzu.py play-log <log.jsonl> [--out <summary.json>]"
   },
   {
    "name": "prompt-request",
@@ -1592,6 +1605,23 @@
    "maps_to": {
     "tool": "engine",
     "command": "import"
+   }
+  },
+  {
+   "name": "autopilot_play",
+   "kind": "mcp",
+   "description": "Replay a saved operation sequence (uzu-autopilot/1, B-312) in the project with the standard autopilot; optionally record a B-313 play log. Returns steps executed, checkpoints reached, and whether the game ended.",
+   "tags": [
+    "autopilot",
+    "mcp",
+    "play"
+   ],
+   "source": "ai_loop/mcp_server.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "maps_to": {
+    "tool": "autopilot",
+    "command": ""
    }
   },
   {
@@ -3098,6 +3128,18 @@
     "script"
    ],
    "source": "ai_loop/audit_tool.gd",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "autopilot",
+   "kind": "script",
+   "description": "Standard autopilot sequence loader, converter, and runner for ai_loop.",
+   "tags": [
+    "python",
+    "script"
+   ],
+   "source": "ai_loop/autopilot.py",
    "required_capabilities": [],
    "fallback": null
   },

@@ -1,0 +1,48 @@
+{
+ "format": "uzu-autopilot/1",
+ "game": "sample_game",
+ "seed": 1,
+ "steps": [
+  {
+   "frames": 72,
+   "press": [
+    "move_right"
+   ],
+   "release": []
+  },
+  {
+   "frames": 1,
+   "press": [
+    "jump"
+   ],
+   "release": []
+  },
+  {
+   "frames": 149,
+   "press": [],
+   "release": [
+    "jump"
+   ]
+  },
+  {
+   "frames": 1,
+   "press": [
+    "jump"
+   ],
+   "release": []
+  },
+  {
+   "frames": 1,
+   "press": [],
+   "release": [
+    "jump"
+   ]
+  },
+  {
+   "frames": 376,
+   "press": [],
+   "release": [],
+   "note": "run to the goal"
+  }
+ ]
+}
