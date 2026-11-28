@@ -1,3 +1,10 @@
+"""Lumina SFX bridge, credit manifest generator, and export guard.
+
+Usage:
+  uzu.py sfx-lumina <project> --request <file> [--lumina-dir <dir>] [--dest <res://...>]
+  uzu.py sfx-lumina <project> --check-export <dir>
+"""
+
 import json
 import math
 import os
@@ -14,11 +21,20 @@ except ImportError:
     import audio_check
 
 REQUEST_FORMAT = "uzu-sfx-request/1"
+MANIFEST_FORMAT = "uzu-sfx-credits/1"
+MANIFEST_FILENAME = "uzu_sfx_credits.json"
 DEFAULT_DEST = "res://audio/sfx"
 DEFAULT_LUMINA_SUBPATH = Path("workspace") / "custom-skills" / "lumina-sfx"
 DEFAULT_TIMEOUT_SEC = 120
 SILENCE_PEAK_DB = -120.0
 EVENT_NAME_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+CATALOG_RECIPE_THRESHOLD = 50
+LUMINA_SKILL_FILES = frozenset({
+    "sources/recordings.json",
+    "qa/release-masters.json",
+    "scripts/search.mjs",
+    "scripts/remix.mjs",
+})
 
 
 class LuminaBridgeError(Exception):
@@ -169,6 +185,193 @@ def _normalize_credits(*sources):
     for src in sources:
         _collect(src)
     return normalized
+
+
+def _is_free_license(license_str):
+    if not isinstance(license_str, str):
+        return False
+    norm = re.sub(r"\s+", "", license_str.upper())
+    if not norm:
+        return False
+    if norm.startswith("CC0"):
+        return True
+    if "PUBLICDOMAIN" in norm:
+        return True
+    if norm == "PD":
+        return True
+    return False
+
+
+def _collect_license_warnings(placed):
+    warnings = []
+    for entry in placed:
+        event = entry.get("event")
+        credits = entry.get("credits") or []
+        if entry.get("credits_missing") or not credits:
+            warnings.append({
+                "event": event,
+                "license": None,
+                "reason": "credits missing; license cannot be verified as CC0/Public Domain",
+            })
+            continue
+        for credit in credits:
+            lic = credit.get("license", "")
+            if not _is_free_license(lic):
+                warnings.append({
+                    "event": event,
+                    "license": lic if lic else None,
+                    "reason": (
+                        f"license {lic!r} is not CC0 or Public Domain (attribution or restrictions may apply)"
+                        if lic
+                        else "credit license is empty; cannot verify CC0 or Public Domain"
+                    ),
+                })
+    return warnings
+
+
+def _update_manifest(dest_abs, placed):
+    manifest_path = dest_abs / MANIFEST_FILENAME
+    warnings = []
+    manifest = {"format": MANIFEST_FORMAT, "sounds": {}}
+
+    if manifest_path.exists():
+        try:
+            existing = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            warnings.append({
+                "event": None,
+                "license": None,
+                "reason": f"failed to read existing credit manifest {MANIFEST_FILENAME}: {exc}",
+            })
+            return warnings
+        if (
+            not isinstance(existing, dict)
+            or existing.get("format") != MANIFEST_FORMAT
+            or not isinstance(existing.get("sounds"), dict)
+        ):
+            warnings.append({
+                "event": None,
+                "license": None,
+                "reason": f"existing credit manifest {MANIFEST_FILENAME} has invalid structure; not overwriting",
+            })
+            return warnings
+        manifest = {
+            "format": MANIFEST_FORMAT,
+            "sounds": dict(existing["sounds"]),
+        }
+
+    for entry in placed:
+        manifest["sounds"][entry["event"]] = {
+            "file": entry["file"],
+            "lumina_id": entry.get("lumina_id"),
+            "credits": list(entry.get("credits") or []),
+        }
+
+    try:
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        warnings.append({
+            "event": None,
+            "license": None,
+            "reason": f"failed to write credit manifest {MANIFEST_FILENAME}: {exc}",
+        })
+    return warnings
+
+
+def _is_lumina_catalog_json(file_path):
+    if file_path.name != "catalog.json":
+        return False
+    try:
+        data = json.loads(file_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return False
+    if isinstance(data, dict):
+        # The real Lumina catalog keeps its entries under "sounds"
+        # ({"schemaVersion": 1, "count": 2882, "sounds": [...]}).
+        for key in ("recipes", "sounds"):
+            entries = data.get(key)
+            if isinstance(entries, list) and len(entries) > CATALOG_RECIPE_THRESHOLD:
+                return True
+        return False
+    if isinstance(data, list) and len(data) > CATALOG_RECIPE_THRESHOLD:
+        return any(
+            isinstance(item, dict)
+            and "id" in item
+            and isinstance(item.get("file"), str)
+            and item["file"].startswith("recipes/")
+            for item in data
+        )
+    return False
+
+
+def _is_lumina_recipe_ts(rel_path):
+    return rel_path.suffix.lower() == ".ts" and "recipes" in rel_path.parts[:-1]
+
+
+def _is_lumina_skill_file(rel_path):
+    return rel_path.as_posix() in LUMINA_SKILL_FILES
+
+
+EXPORT_RULES = (
+    {
+        "name": "lumina-catalog",
+        "description": "Lumina catalog.json containing more than 50 recipes",
+        "match": lambda file_path, rel_path: _is_lumina_catalog_json(file_path),
+    },
+    {
+        "name": "lumina-recipes",
+        "description": "TypeScript recipe source file under a recipes directory",
+        "match": lambda file_path, rel_path: _is_lumina_recipe_ts(rel_path),
+    },
+    {
+        "name": "lumina-skill-file",
+        "description": "Lumina skill metadata or script file",
+        "match": lambda file_path, rel_path: _is_lumina_skill_file(rel_path),
+    },
+)
+
+
+def check_export(path):
+    target = Path(path)
+    if not target.is_dir():
+        return {
+            "ok": False,
+            "command": "sfx-lumina",
+            "checked": str(path),
+            "violations": [],
+            "errors": [f"export directory not found: {path}"],
+        }
+
+    violations = []
+    for dirpath, dirnames, filenames in os.walk(target):
+        dirnames.sort()
+        filenames.sort()
+        dir_p = Path(dirpath)
+        for filename in filenames:
+            file_path = dir_p / filename
+            if not file_path.is_file():
+                continue
+            rel_path = file_path.relative_to(target)
+            for rule in EXPORT_RULES:
+                try:
+                    matched = rule["match"](file_path, rel_path)
+                except OSError:
+                    matched = False
+                if matched:
+                    violations.append({
+                        "path": rel_path.as_posix(),
+                        "rule": rule["name"],
+                    })
+
+    return {
+        "ok": len(violations) == 0,
+        "command": "sfx-lumina",
+        "checked": str(path),
+        "violations": violations,
+    }
 
 
 def _extract_candidates(search_data):
@@ -429,10 +632,16 @@ def generate_sfx(project, request, lumina_dir=None, runner=None):
         except Exception as exc:
             errors.append({"event": event, "error": str(exc)})
 
+    warnings = _collect_license_warnings(placed)
+    if placed:
+        warnings.extend(_update_manifest(dest_abs, placed))
+
     return {
         "ok": len(errors) == 0,
         "command": "sfx-lumina",
         "placed": placed,
+        "manifest": _res_file_path(res_prefix, MANIFEST_FILENAME) if placed else None,
+        "warnings": warnings,
         "errors": errors,
     }
 
@@ -441,6 +650,7 @@ def run_cli(project, args):
     request_path = None
     lumina_dir = None
     dest_override = None
+    check_export_dir = None
     i = 0
     while i < len(args):
         arg = args[i]
@@ -459,8 +669,16 @@ def run_cli(project, args):
                 raise LuminaBridgeError("--dest requires a destination path")
             dest_override = args[i + 1]
             i += 2
+        elif arg == "--check-export":
+            if i + 1 >= len(args):
+                raise LuminaBridgeError("--check-export requires a directory path")
+            check_export_dir = args[i + 1]
+            i += 2
         else:
             raise LuminaBridgeError(f"unknown argument: {arg}")
+
+    if check_export_dir is not None:
+        return check_export(check_export_dir)
 
     if not request_path:
         raise LuminaBridgeError("--request <file> is required")

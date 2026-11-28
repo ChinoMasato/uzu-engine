@@ -48,7 +48,7 @@ or through ai_loop\\windows\\uzu.bat.
                   distance) and per-element presence from the B-1221 report or B-1222 registry --
                   as one pass/fail JSON with every measured number
   uzu.py spec-registry <project> register-image|bind-scene|map-element|remove-element|get|list|validate [options]
-  uzu.py sfx-lumina <project> --request <file> [--lumina-dir <dir>] [--dest <res://...>]   search, render
+  uzu.py sfx-lumina <project> (--request <file> [--lumina-dir <dir>] [--dest <res://...>] | --check-export <dir>)   search, render, export guard
       and place Lumina SFX into the project (B-1701)
                   specification image registry (B-1222, see ai_loop/spec_registry.py): registers
                   specification illustrations (--id ID --image PATH), binds scenes (--scene res://...

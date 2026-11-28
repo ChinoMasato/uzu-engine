@@ -317,7 +317,7 @@
   {
    "name": "sfx-lumina",
    "kind": "cli",
-   "description": "search, render specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "description": "search, render, export guard specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
    "tags": [
     "cli",
     "uzu.py"
@@ -325,7 +325,7 @@
    "source": "ai_loop/uzu.py",
    "required_capabilities": [],
    "fallback": null,
-   "usage": "uzu.py sfx-lumina <project> --request <file> [--lumina-dir <dir>] [--dest <res://...>] --image-id ID [--report report.json --spec spec.json]), and maintains shared"
+   "usage": "uzu.py sfx-lumina <project> (--request <file> [--lumina-dir <dir>] [--dest <res://...>] | --check-export <dir>) --image-id ID [--report report.json --spec spec.json]), and maintains shared"
   },
   {
    "name": "spec-diff",
@@ -3275,7 +3275,7 @@
   {
    "name": "lumina_bridge",
    "kind": "script",
-   "description": "",
+   "description": "Lumina SFX bridge, credit manifest generator, and export guard.",
    "tags": [
     "python",
     "script"
