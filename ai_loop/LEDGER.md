@@ -296,3 +296,5 @@
 - 2026-11-28 B-1702 (Gemini 4 / AI Studio): UZUGameAudio 再生ヘルパー標準化（Lumina MIT 取り込み＋UZUSfx とのイベント統一口）。実バイナリでの自己検証13項目 pass、リード修正0件。記録 iterations/2026-11-28-B-1702-gemini.md。
 
 - 2026-11-28 B-1703 (Gemini 4 / AI Studio): Lumina クレジット台帳（uzu_sfx_credits.json・マージ式）＋ライセンス警告＋同梱ガード（--check-export、実バンクで違反3,365件を検出）。リード修正2点（実カタログの sounds キー対応＝指示書の情報不足、manifest の null 化）。記録 iterations/2026-11-28-B-1703-gemini.md。
+
+- 2026-11-28 B-1704 (リード): 『灯りの欠片』へ Lumina 実証投入。無音だった8種の場面（歩行・拾う・会話・点火・タイトル・環境音3種）に音が付き、検証ランで発火を実測。Phase 17（B-1701〜B-1704）全完了。記録 iterations/2026-11-28-B-1704-lead.md。
