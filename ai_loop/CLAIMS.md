@@ -183,3 +183,4 @@
 | B-1225 CLI パス解決の統一 | Gemini 4 (AI Studio)＋リード | agent/b-1225-gemini | ai_loop/pathutil.py・ai_loop/uzu.py・ai_loop/spec_registry.py | 反映済み | 2026-11-28 |
 | B-1226 レジストリ bbox 範囲検査 | Gemini 4 (AI Studio)＋リード | agent/b-1226-gemini | ai_loop/spec_registry.py | 反映済み | 2026-11-28 |
 | B-1227 spec-diff 候補ゲート分離 | リード（Gemini 生成は不採用） | agent/b-1227-gemini | ai_loop/spec_diff.py | 反映済み | 2026-11-28 |
+| B-1229 歩行可能帯の推定改善 | Gemini 4 (AI Studio)＋リード | agent/b-1229-gemini | ai_loop/image_scene.py | 反映済み | 2026-11-28 |

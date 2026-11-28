@@ -30,6 +30,7 @@ assets maps file names to PNG bytes to write next to the spec. The CLI
 wiring lives in ai_loop/uzu.py ("image-scene").
 """
 
+import heapq
 import math
 import struct
 import zlib
@@ -285,6 +286,224 @@ def to_registry_elements(spec, report):
 
 
 # ---------------------------------------------------------------- layout
+
+
+def route_waypoints(spawn, waypoints, footprints, walk, cell=0.3, clearance=0.6):
+    """Route spawn -> wp1 -> wp2 ... around obstacle footprints on the walk
+    grid using deterministic A*. Inserts only turning corners where a
+    straight line is blocked; leaves clear legs and unreachable legs
+    unchanged. Returns (new_waypoints, legs)."""
+    if not waypoints:
+        return [], []
+
+    x_min, x_max = float(walk["x"][0]), float(walk["x"][1])
+    z_min, z_max = float(walk["z"][0]), float(walk["z"][1])
+    span_x = max(x_max - x_min, 0.0)
+    span_z = max(z_max - z_min, 0.0)
+    nx = max(1, int(math.ceil(span_x / cell - 1e-9)))
+    nz = max(1, int(math.ceil(span_z / cell - 1e-9)))
+
+    boxes = [
+        (cx - w * 0.5 - clearance, cx + w * 0.5 + clearance,
+         cz - clearance, cz + clearance)
+        for cx, cz, w in (footprints or [])
+    ]
+
+    def point_blocked(px, pz):
+        for bx0, bx1, bz0, bz1 in boxes:
+            if bx0 <= px <= bx1 and bz0 <= pz <= bz1:
+                return True
+        return False
+
+    def segment_clear(x0, z0, x1, z1):
+        dx = x1 - x0
+        dz = z1 - z0
+        for bx0, bx1, bz0, bz1 in boxes:
+            t_enter, t_exit = 0.0, 1.0
+            if abs(dx) < 1e-12:
+                if x0 < bx0 or x0 > bx1:
+                    continue
+            else:
+                tx0 = (bx0 - x0) / dx
+                tx1 = (bx1 - x0) / dx
+                if tx0 > tx1:
+                    tx0, tx1 = tx1, tx0
+                t_enter = max(t_enter, tx0)
+                t_exit = min(t_exit, tx1)
+                if t_enter > t_exit:
+                    continue
+            if abs(dz) < 1e-12:
+                if z0 < bz0 or z0 > bz1:
+                    continue
+            else:
+                tz0 = (bz0 - z0) / dz
+                tz1 = (bz1 - z0) / dz
+                if tz0 > tz1:
+                    tz0, tz1 = tz1, tz0
+                t_enter = max(t_enter, tz0)
+                t_exit = min(t_exit, tz1)
+                if t_enter > t_exit:
+                    continue
+            return False
+        return True
+
+    def cell_x(ix):
+        if span_x < cell:
+            return round((x_min + x_max) * 0.5, 3)
+        return round(min(x_max, max(x_min, x_min + (ix + 0.5) * cell)), 3)
+
+    def cell_z(iz):
+        if span_z < cell:
+            return round((z_min + z_max) * 0.5, 3)
+        return round(min(z_max, max(z_min, z_min + (iz + 0.5) * cell)), 3)
+
+    gx_coords = [cell_x(ix) for ix in range(nx)]
+    gz_coords = [cell_z(iz) for iz in range(nz)]
+    blocked = [[point_blocked(gx_coords[ix], gz_coords[iz]) for ix in range(nx)]
+               for iz in range(nz)]
+
+    def to_cell(px, pz):
+        # The nearest free cell for a point. A point inside an expanded
+        # footprint is not hopeless: the expansion is a safety margin around
+        # a thin card (the built collider is 0.2 m deep), and the walker
+        # only has to get within reach of the point. Such a point maps to
+        # the closest free cell, and the final hop to the point itself is
+        # exempt from the segment test.
+        ix0 = min(nx - 1, max(0, int((px - x_min) / cell)))
+        iz0 = min(nz - 1, max(0, int((pz - z_min) / cell)))
+        if not point_blocked(px, pz) and not blocked[iz0][ix0] \
+                and segment_clear(px, pz, gx_coords[ix0], gz_coords[iz0]):
+            return (ix0, iz0)
+        inside = point_blocked(px, pz)
+        best = None
+        best_key = None
+        for radius in range(0, 5):
+            for d_ix in range(-radius, radius + 1):
+                for d_iz in range(-radius, radius + 1):
+                    if max(abs(d_ix), abs(d_iz)) != radius:
+                        continue
+                    ix, iz = ix0 + d_ix, iz0 + d_iz
+                    if 0 <= ix < nx and 0 <= iz < nz and not blocked[iz][ix]:
+                        cx, cz = gx_coords[ix], gz_coords[iz]
+                        if not inside and not segment_clear(px, pz, cx, cz):
+                            continue
+                        d2 = (cx - px) ** 2 + (cz - pz) ** 2
+                        key = (round(d2, 9), ix, iz)
+                        if best_key is None or key < best_key:
+                            best_key = key
+                            best = (ix, iz)
+            if best is not None:
+                break
+        return best
+
+    sqrt2 = math.sqrt(2.0)
+    dirs = (
+        (1, 0, 1.0), (-1, 0, 1.0), (0, 1, 1.0), (0, -1, 1.0),
+        (1, 1, sqrt2), (1, -1, sqrt2), (-1, 1, sqrt2), (-1, -1, sqrt2),
+    )
+
+    def heuristic(a, b):
+        adx = abs(a[0] - b[0])
+        adz = abs(a[1] - b[1])
+        return (adx + adz) + (sqrt2 - 2.0) * min(adx, adz)
+
+    def astar(start_c, goal_c):
+        if start_c == goal_c:
+            return [start_c]
+        g_score = {start_c: 0.0}
+        came_from = {}
+        closed = set()
+        heap = [(round(heuristic(start_c, goal_c), 9), start_c[0], start_c[1])]
+        while heap:
+            _, ix, iz = heapq.heappop(heap)
+            cur = (ix, iz)
+            if cur in closed:
+                continue
+            if cur == goal_c:
+                path = [cur]
+                while cur in came_from:
+                    cur = came_from[cur]
+                    path.append(cur)
+                path.reverse()
+                return path
+            closed.add(cur)
+            g_cur = g_score[cur]
+            cx0, cz0 = gx_coords[ix], gz_coords[iz]
+            for dx, dz, step_cost in dirs:
+                nx_i, nz_i = ix + dx, iz + dz
+                if not (0 <= nx_i < nx and 0 <= nz_i < nz):
+                    continue
+                if blocked[nz_i][nx_i]:
+                    continue
+                if dx != 0 and dz != 0:
+                    if blocked[iz][nx_i] or blocked[nz_i][ix]:
+                        continue
+                nb = (nx_i, nz_i)
+                if nb in closed:
+                    continue
+                if not segment_clear(cx0, cz0, gx_coords[nx_i], gz_coords[nz_i]):
+                    continue
+                tentative_g = g_cur + step_cost
+                if tentative_g < g_score.get(nb, float("inf")) - 1e-12:
+                    g_score[nb] = tentative_g
+                    came_from[nb] = cur
+                    f_val = tentative_g + heuristic(nb, goal_c)
+                    heapq.heappush(heap, (round(f_val, 9), nx_i, nz_i))
+        return None
+
+    new_waypoints = []
+    legs = []
+    curr = [float(spawn[0]), float(spawn[1]), float(spawn[2])]
+
+    for raw_wp in waypoints:
+        wp = [float(raw_wp[0]), float(raw_wp[1]), float(raw_wp[2])]
+        sx, sy, sz = curr
+        gx, gy, gz = wp
+
+        if segment_clear(sx, sz, gx, gz):
+            new_waypoints.append(list(raw_wp))
+            legs.append({"from": list(curr), "to": list(raw_wp), "routed": True, "inserted": 0})
+            curr = list(wp)
+            continue
+
+        start_c = to_cell(sx, sz)
+        goal_c = to_cell(gx, gz)
+        cell_path = astar(start_c, goal_c) if (start_c is not None and goal_c is not None) else None
+        if not cell_path:
+            new_waypoints.append(list(raw_wp))
+            legs.append({"from": list(curr), "to": list(raw_wp), "routed": False, "inserted": 0})
+            curr = list(wp)
+            continue
+
+        pts = [(sx, sz)]
+        for ix, iz in cell_path:
+            pt = (gx_coords[ix], gz_coords[iz])
+            if abs(pt[0] - pts[-1][0]) > 1e-6 or abs(pt[1] - pts[-1][1]) > 1e-6:
+                pts.append(pt)
+        if abs(gx - pts[-1][0]) > 1e-6 or abs(gz - pts[-1][1]) > 1e-6:
+            pts.append((gx, gz))
+
+        corners = []
+        i = 0
+        n_pts = len(pts)
+        while i < n_pts - 1:
+            best_j = i + 1
+            for j in range(n_pts - 1, i, -1):
+                if segment_clear(pts[i][0], pts[i][1], pts[j][0], pts[j][1]):
+                    best_j = j
+                    break
+            if best_j < n_pts - 1:
+                cx, cz = pts[best_j]
+                corners.append([cx, sy, cz])
+            i = best_j
+
+        for c_pt in corners:
+            new_waypoints.append(c_pt)
+        new_waypoints.append(list(raw_wp))
+        legs.append({"from": list(curr), "to": list(raw_wp), "routed": True, "inserted": len(corners)})
+        curr = list(wp)
+
+    return new_waypoints, legs
 
 
 def analyze(image_path, depth_path=None, depth_white_far=True,
@@ -643,6 +862,8 @@ def analyze(image_path, depth_path=None, depth_white_far=True,
         if walk["z"][0] <= tz <= walk["z"][1]:
             waypoints.append([round(max(walk["x"][0], min(tx, walk["x"][1])), 2), 0.0, round(tz, 2)])
     waypoints.append(spawn)
+    footprints = [c["footprint"] for c in collision_candidates]
+    waypoints, walk_legs = route_waypoints(spawn, waypoints, footprints, walk)
 
     look_at = [0.0, round(backdrop_h * (1.0 - horizon_frac), 3), backdrop_z]
     top_mean = sum(luminance(rgba, p * 4) for p in range(0, w * (h // 3))) / max(w * (h // 3), 1)
@@ -685,6 +906,7 @@ def analyze(image_path, depth_path=None, depth_white_far=True,
         "walk_area": walk,
         "spawn": spawn,
         "waypoints": waypoints,
+        "walk_routing": walk_legs,
         "candidates": {"interact": candidates, "collision": collision_candidates},
         "camera": {"position": spec["camera"]["position"], "look_at": look_at, "fov": fov,
                    "basis": "inferred",
