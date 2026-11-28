@@ -6,6 +6,17 @@ Log format ``uzu-play-log/1`` (JSONL, one JSON object per line):
 - ``{"kind": "state", "frame": <int>, "state": {<path>: <value>, ...}}``
 - ``{"kind": "checkpoint", "frame": <int>, "id": <str>}``
 - ``{"kind": "end", "frame": <int>, "reason": <str>}``
+
+Recording start point (B-320): a Recorder can only record checkpoints that
+fire after it wraps the game, so a checkpoint the game emits at startup
+(before wrapping) is silently absent from the log. The session entry
+therefore carries ``pre_start_events`` when known: an int >= 0 declaring
+how many checkpoints fired before recording started, or ``"unknown"``.
+``Recorder`` always writes it (default ``"unknown"``; pass an int to
+declare). ``PlayLogWriter.session`` writes it only when passed. Logs
+without the key are pre-B-320 logs. ``summarize`` reports
+``pre_start_events`` (int, or None when unknown / absent) and
+``checkpoints_complete`` (True only when it is exactly 0).
 """
 
 from __future__ import annotations
@@ -22,6 +33,16 @@ class PlayLogError(Exception):
 
 def _same_value(a, b) -> bool:
     return a == b and (isinstance(a, bool) is isinstance(b, bool))
+
+
+def _check_pre_start_events(value):
+    """Validate a pre_start_events declaration: int >= 0 or "unknown"."""
+    if value == "unknown":
+        return value
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise PlayLogError(
+            f"pre_start_events must be a non-negative int or 'unknown', got {value!r}")
+    return value
 
 
 class PlayLogWriter:
@@ -41,17 +62,18 @@ class PlayLogWriter:
         self._fp.write(json.dumps(entry, ensure_ascii=False) + "\n")
         self._fp.flush()
 
-    def session(self, game, seed=None, state_paths=()) -> None:
+    def session(self, game, seed=None, state_paths=(), pre_start_events=None) -> None:
         game_str = os.fspath(game) if isinstance(game, os.PathLike) else ("" if game is None else str(game))
-        self._write(
-            {
-                "kind": "session",
-                "format": FORMAT,
-                "game": game_str,
-                "seed": seed,
-                "state_paths": list(state_paths) if state_paths is not None else [],
-            }
-        )
+        entry = {
+            "kind": "session",
+            "format": FORMAT,
+            "game": game_str,
+            "seed": seed,
+            "state_paths": list(state_paths) if state_paths is not None else [],
+        }
+        if pre_start_events is not None:
+            entry["pre_start_events"] = _check_pre_start_events(pre_start_events)
+        self._write(entry)
 
     def op(self, frame: int, frames: int, press=(), release=()) -> None:
         self._write(
@@ -113,6 +135,7 @@ class Recorder:
         game_label: str = "",
         state_paths=(),
         snapshot_every: int = 0,
+        pre_start_events=None,
     ):
         self._game = game
         self._state_paths = list(state_paths) if state_paths is not None else []
@@ -127,7 +150,9 @@ class Recorder:
         seed = getattr(game, "seed", None)
 
         self._writer = PlayLogWriter(log_path)
-        self._writer.session(label, seed, self._state_paths)
+        self._writer.session(label, seed, self._state_paths,
+                             pre_start_events="unknown" if pre_start_events is None
+                             else _check_pre_start_events(pre_start_events))
 
     def _update_frame(self, obs, delta: int = 0) -> int:
         if isinstance(obs, dict) and obs.get("frame") is not None:
@@ -216,14 +241,19 @@ def record_game(
     game_label: str = "",
     state_paths=(),
     snapshot_every: int = 0,
+    pre_start_events=None,
 ) -> Recorder:
-    """Wrap an ``aiplayer.Game`` instance and record play to ``log_path``."""
+    """Wrap an ``aiplayer.Game`` instance and record play to ``log_path``.
+
+    ``pre_start_events`` declares how many checkpoints fired before the
+    wrap (0 = none, so the log's checkpoint list is complete)."""
     return Recorder(
         game=game,
         log_path=log_path,
         game_label=game_label,
         state_paths=state_paths,
         snapshot_every=snapshot_every,
+        pre_start_events=pre_start_events,
     )
 
 
@@ -241,6 +271,8 @@ def summarize(path) -> dict:
     final_state = {}
     ended = False
     has_session = False
+    pre_start_events = None
+    checkpoints_complete = False
 
     def _error(msg: str) -> dict:
         return {
@@ -255,6 +287,8 @@ def summarize(path) -> dict:
             "state_transitions": state_transitions,
             "final_state": final_state,
             "ended": ended,
+            "pre_start_events": pre_start_events,
+            "checkpoints_complete": checkpoints_complete,
         }
 
     try:
@@ -289,6 +323,10 @@ def summarize(path) -> dict:
                     has_session = True
                     game = entry.get("game", "")
                     seed = entry.get("seed", None)
+                    raw_pre = entry.get("pre_start_events")
+                    if isinstance(raw_pre, int) and not isinstance(raw_pre, bool) and raw_pre >= 0:
+                        pre_start_events = raw_pre
+                        checkpoints_complete = raw_pre == 0
                     continue
 
                 entry_frame = entry.get("frame")
@@ -340,6 +378,8 @@ def summarize(path) -> dict:
         "state_transitions": state_transitions,
         "final_state": final_state,
         "ended": ended,
+        "pre_start_events": pre_start_events,
+        "checkpoints_complete": checkpoints_complete,
     }
 
 

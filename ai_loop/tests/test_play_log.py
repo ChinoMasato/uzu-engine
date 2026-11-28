@@ -308,5 +308,68 @@ class TestMalformedLogAndCli(unittest.TestCase):
             self.assertEqual(written["final_state"], {"/root:score": 10})
 
 
+class TestPreStartEvents(unittest.TestCase):
+    """B-320: the session line declares checkpoints fired before recording."""
+
+    def _session_line(self, log_path):
+        with open(log_path, "r", encoding="utf-8") as fp:
+            return json.loads(fp.readline())
+
+    def test_recorder_defaults_to_unknown(self):
+        stub = StubGame()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log_path = os.path.join(tmpdir, "rec.jsonl")
+            with play_log.record_game(stub, log_path) as rec:
+                rec.step(frames=1)
+            self.assertEqual(self._session_line(log_path)["pre_start_events"], "unknown")
+            summary = play_log.summarize(log_path)
+            self.assertTrue(summary["ok"])
+            self.assertIsNone(summary["pre_start_events"])
+            self.assertFalse(summary["checkpoints_complete"])
+
+    def test_recorder_declares_zero_and_positive(self):
+        stub = StubGame()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log0 = os.path.join(tmpdir, "zero.jsonl")
+            with play_log.record_game(stub, log0, pre_start_events=0):
+                pass
+            self.assertEqual(self._session_line(log0)["pre_start_events"], 0)
+            summary = play_log.summarize(log0)
+            self.assertEqual(summary["pre_start_events"], 0)
+            self.assertTrue(summary["checkpoints_complete"])
+
+            log2 = os.path.join(tmpdir, "two.jsonl")
+            with play_log.record_game(stub, log2, pre_start_events=2):
+                pass
+            self.assertEqual(self._session_line(log2)["pre_start_events"], 2)
+            summary = play_log.summarize(log2)
+            self.assertEqual(summary["pre_start_events"], 2)
+            self.assertFalse(summary["checkpoints_complete"])
+
+    def test_writer_omits_key_unless_passed(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log_path = os.path.join(tmpdir, "w.jsonl")
+            with play_log.PlayLogWriter(log_path) as writer:
+                writer.session("/g", seed=1, state_paths=[])
+            self.assertNotIn("pre_start_events", self._session_line(log_path))
+            summary = play_log.summarize(log_path)
+            self.assertIsNone(summary["pre_start_events"])
+            self.assertFalse(summary["checkpoints_complete"])
+
+            log_path2 = os.path.join(tmpdir, "w2.jsonl")
+            with play_log.PlayLogWriter(log_path2) as writer:
+                writer.session("/g", seed=1, state_paths=[], pre_start_events=0)
+            self.assertEqual(self._session_line(log_path2)["pre_start_events"], 0)
+            self.assertTrue(play_log.summarize(log_path2)["checkpoints_complete"])
+
+    def test_invalid_pre_start_events_rejected(self):
+        stub = StubGame()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with self.assertRaises(play_log.PlayLogError):
+                play_log.record_game(stub, os.path.join(tmpdir, "x.jsonl"), pre_start_events=-1)
+            with self.assertRaises(play_log.PlayLogError):
+                play_log.record_game(stub, os.path.join(tmpdir, "y.jsonl"), pre_start_events=True)
+
+
 if __name__ == "__main__":
     unittest.main()
