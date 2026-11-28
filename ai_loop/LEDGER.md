@@ -305,3 +305,5 @@
 - 2026-11-28 B-1225 CLI のパス解決の統一を統合（Gemini 4 生成、手直し0件）。入力パスは ai_loop/pathutil.py に集約し res://→絶対→プロジェクト相対→CWD 相対の順で解決、結果 JSON に resolved を報告。moonpost の手順が全てプロジェクト相対で通ることを実走確認。新規テスト9件、全テストは既知の test_animation 4件のみ失敗。詳細: iterations/2026-11-28-B-1225-gemini.md
 
 - 2026-11-28 B-1226 レジストリ bbox の座標系明記と範囲検査を統合（Gemini 4 生成、手直し0件）。image_bbox は working pixels が正と docstring に明記し、範囲外・退化 bbox は validate／map-element が warnings で返す（ok は不変）。B-1005 の事故例（[0,580,1672,941]）で警告が出ることを実走確認。詳細: iterations/2026-11-28-B-1226-gemini.md
+
+- 2026-11-28 B-1227 spec-diff の候補ゲート分離を統合（リード実装）。候補（kind=glow）は advisory として内訳に残し合否から分離。moonpost の verdict が ok=true（gating 25/25、advisory に glow 4件の落否）になった。Gemini 4 の生成は土台ファイルを無視した別物だったため不採用（生成の誤り、経路7件目で初の全面不採用）。詳細: iterations/2026-11-28-B-1227-lead.md

@@ -19,6 +19,13 @@ illustration, mechanically, and returns a verdict as structured JSON:
     region's mean-colour distance, and how much the region still stands
     out from its surroundings compared to the spec (contrast ratio).
 
+Candidates (B-1227): elements of kind "glow" are the B-1221 detector's
+unverified bright-blob guesses. They are reported in the verdict's
+"advisory" breakdown but never gate it: the overall ok is decided by the
+composition and colour metrics plus the gating elements (cards and
+registered semantic elements). Every element entry carries a "candidate"
+flag saying which side of that line it is on.
+
 Every number is reported per element, so an agent can tell *which* element
 is off and by how much, and pick the next fix. Thresholds are data
 (DEFAULT_THRESHOLDS, overridable from a JSON file or CLI flags) because
@@ -335,6 +342,13 @@ def element_check(w, h, spec, shot, spec_edges, shot_edges, element, th):
 # ---------------------------------------------------------------- verdict
 
 
+def is_candidate(element):
+    """A candidate is an unverified detector guess (B-1227): kind "glow",
+    the bright blobs B-1221 picks out of the illustration. Candidates are
+    reported as advisory and never gate the verdict."""
+    return element.get("kind") == "glow"
+
+
 def elements_from_report(report):
     """The element list of a B-1221 generation report: layer cards plus
     interact candidates, each {id, kind, bbox, basis} in working pixels.
@@ -343,10 +357,12 @@ def elements_from_report(report):
     layers = report.get("layers", {})
     for card in layers.get("cards", []):
         elements.append({"id": card.get("name", ""), "kind": "card",
-                         "bbox": card["image_bbox"], "basis": card.get("basis", "inferred")})
+                         "bbox": card["image_bbox"], "basis": card.get("basis", "inferred"),
+                         "candidate": False})
     for cand in report.get("candidates", {}).get("interact", []):
         elements.append({"id": cand.get("id", ""), "kind": cand.get("kind", ""),
-                         "bbox": cand["image_bbox"], "basis": cand.get("basis", "inferred")})
+                         "bbox": cand["image_bbox"], "basis": cand.get("basis", "inferred"),
+                         "candidate": is_candidate(cand)})
     return elements
 
 
@@ -369,6 +385,7 @@ def elements_from_registry(registry_or_scene, scene=None):
             "kind": elem.get("kind", ""),
             "bbox": list(bbox),
             "basis": elem.get("basis", "inferred"),
+            "candidate": is_candidate(elem),
         }
         if elem.get("node"):
             item["node"] = elem["node"]
@@ -405,6 +422,17 @@ def compare(spec_path, shot_path, elements, thresholds=None):
     spec_edges = edge_map(w, h, spec_lum)
     shot_edges = edge_map(w, h, shot_lum)
     checks = [element_check(w, h, spec, shot, spec_edges, shot_edges, e, th) for e in elements]
+    for element, check in zip(elements, checks):
+        check["candidate"] = is_candidate(element)
+    gating = {"checked": 0, "passed": 0, "failed": []}
+    advisory = {"checked": 0, "passed": 0, "failed": []}
+    for check in checks:
+        bucket = advisory if check["candidate"] else gating
+        bucket["checked"] += 1
+        if check["pass"]:
+            bucket["passed"] += 1
+        else:
+            bucket["failed"].append(check["id"])
     metrics = {
         "composition": {"score": round(comp, 4), "threshold": th["composition_min"],
                         "pass": comp >= th["composition_min"]},
@@ -412,7 +440,7 @@ def compare(spec_path, shot_path, elements, thresholds=None):
                   "pass": col <= th["color_max"]},
     }
     ok = metrics["composition"]["pass"] and metrics["color"]["pass"] \
-        and all(c["pass"] for c in checks)
+        and not gating["failed"]
     return {
         "format": "uzu-spec-diff/1",
         "ok": bool(ok),
@@ -420,6 +448,8 @@ def compare(spec_path, shot_path, elements, thresholds=None):
         "shot": os.path.abspath(shot_path),
         "working_size": [w, h],
         "metrics": metrics,
+        "gating": gating,
+        "advisory": advisory,
         "elements": checks,
         "thresholds": th,
         "notes": notes,
