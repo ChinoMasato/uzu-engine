@@ -2,13 +2,13 @@
  "version": 1,
  "generated_by": "ai_loop/make_catalog.py",
  "counts": {
-  "cli": 31,
+  "cli": 32,
   "command": 72,
   "mcp": 82,
   "preset": 7,
-  "script": 51,
+  "script": 52,
   "class": 16,
-  "total": 259
+  "total": 261
  },
  "entries": [
   {
@@ -53,7 +53,7 @@
   {
    "name": "autopilot",
    "kind": "cli",
-   "description": "replay a saved operation sequence (uzu-autopilot/1, B-312) specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "description": "replay a saved operation sequence (uzu-autopilot/1, B-312)",
    "tags": [
     "cli",
     "uzu.py"
@@ -61,7 +61,7 @@
    "source": "ai_loop/uzu.py",
    "required_capabilities": [],
    "fallback": null,
-   "usage": "uzu.py autopilot <project> <sequence.json> [--seed N] [--state a,b] [--log l.jsonl] --image-id ID [--report report.json --spec spec.json]), and maintains shared"
+   "usage": "uzu.py autopilot <project> <sequence.json> [--seed N] [--state a,b] [--log l.jsonl]"
   },
   {
    "name": "build",
@@ -233,6 +233,19 @@
    "required_capabilities": [],
    "fallback": null,
    "usage": "uzu.py map <project> nature|city --scene res://main.tscn [--spec JSON-or-file] [--set key=value ...] [--overview top.png] [--replace] [--camera] [--look golden_hour] [--shot out.png] [--inline] [--spec-set [dir]] options [nature|city] <project> walk --scene res://x.tscn [--from spawn] [--to plaza,gate_east] [--seconds 90] <project> walk-graph --graph region_graph.json [--scene res://x.tscn] [--seconds 0] [--block-node <id>] [--out report.json]"
+  },
+  {
+   "name": "music-gen",
+   "kind": "cli",
+   "description": "generate procedural BGM WAVs (uzu-music/1, B-1110) specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "tags": [
+    "cli",
+    "uzu.py"
+   ],
+   "source": "ai_loop/uzu.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "usage": "uzu.py music-gen <project> [--preset NAME] [--seed N] [--bars N] [--all] [--out <dir>] --image-id ID [--report report.json --spec spec.json]), and maintains shared"
   },
   {
    "name": "picture",
@@ -3372,6 +3385,18 @@
     "script"
    ],
    "source": "ai_loop/mcp_server.py",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "music_gen",
+   "kind": "script",
+   "description": "Procedural stereo WAV music generator for U.ZU Engine ai_loop.",
+   "tags": [
+    "python",
+    "script"
+   ],
+   "source": "ai_loop/music_gen.py",
    "required_capabilities": [],
    "fallback": null
   },
