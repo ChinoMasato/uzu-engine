@@ -2,13 +2,13 @@
  "version": 1,
  "generated_by": "ai_loop/make_catalog.py",
  "counts": {
-  "cli": 27,
+  "cli": 28,
   "command": 72,
   "mcp": 80,
   "preset": 7,
-  "script": 44,
-  "class": 15,
-  "total": 245
+  "script": 46,
+  "class": 16,
+  "total": 249
  },
  "entries": [
   {
@@ -193,7 +193,7 @@
    "source": "ai_loop/uzu.py",
    "required_capabilities": [],
    "fallback": null,
-   "usage": "uzu.py image-scene <project> --image illustration.png [--depth depth.png] [--out image_scene] [--fov 50] [--backdrop-width 26] [--no-build] [--no-walk] [--shot out.png] [--seconds 60]"
+   "usage": "uzu.py image-scene <project> --image illustration.png [--depth depth.png] [--out image_scene] [--registry spec_registry.json] [--image-id ID] [--scene res://x.tscn] [--fov 50] [--backdrop-width 26] [--no-build] [--no-walk] [--shot out.png] [--seconds 60]"
   },
   {
    "name": "look",
@@ -317,7 +317,7 @@
   {
    "name": "spec-diff",
    "kind": "cli",
-   "description": "spec-image diff verification (B-1223, see ai_loop/spec_diff.py): shoots the scene from its reference camera (or reuses --shot-png) and diffs the frame against the specification illustration -- composition (edge agreement), colour (histogram distance) and per-element presence from the B-1221 generation report -- as one pass/fail JSON with every measured number",
+   "description": "spec-image diff verification (B-1223, see ai_loop/spec_diff.py): shoots the scene from its reference camera (or reuses --shot-png) and diffs the frame against the specification illustration -- composition (edge agreement), colour (histogram distance) and per-element presence from the B-1221 report or B-1222 registry -- as one pass/fail JSON with every measured number",
    "tags": [
     "cli",
     "uzu.py"
@@ -325,7 +325,20 @@
    "source": "ai_loop/uzu.py",
    "required_capabilities": [],
    "fallback": null,
-   "usage": "uzu.py spec-diff <project> --spec-image illustration.png [--report report.json] [--scene res://x.tscn] [--shot-png shot.png] [--thresholds t.json] [--frames 8] [--out verdict.json]"
+   "usage": "uzu.py spec-diff <project> [--spec-image illustration.png] [--report report.json] [--registry spec_registry.json] [--scene res://x.tscn] [--shot-png shot.png] [--thresholds t.json] [--frames 8] [--out verdict.json]"
+  },
+  {
+   "name": "spec-registry",
+   "kind": "cli",
+   "description": "specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "tags": [
+    "cli",
+    "uzu.py"
+   ],
+   "source": "ai_loop/uzu.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "usage": "uzu.py spec-registry <project> register-image|bind-scene|map-element|remove-element|get|list|validate [options] --image-id ID [--report report.json --spec spec.json]), and maintains shared"
   },
   {
    "name": "texture-route",
@@ -356,7 +369,7 @@
   {
    "name": "ui-quality",
    "kind": "cli",
-   "description": "AAA UI quality gate (B-1310, see ai_loop/ui_quality.py): texture repetition index (autocorrelation peak at tile lags), WCAG contrast (body >= 4.5, heading >= 3.0), 5-state completeness (focus must not be StyleBoxEmpty), theme coverage of the standard controls and spacing/radius/shadow scale conformance, as one uzu-ui-quality/1 JSON verdict. Theme data comes from --probe or from running ai_loop/ui_quality_probe.gd with --engine. Exit 0 = pass, 1 = fail",
+   "description": "AAA UI quality gate (B-1310, see ai_loop/ui_quality.py): texture repetition index (autocorrelation peak at tile lags), WCAG contrast (body >= 4.5, heading >= 3.0, slider groove/fill >= 2.0), 5-state completeness (focus must not be StyleBoxEmpty), theme coverage of the standard controls and spacing/radius/shadow scale conformance, as one uzu-ui-quality/1 JSON verdict. With --texture-image (an empty-panel sheet at native resolution) the texture is also scored on its own: designed micro-patterns by period residue + cell uniformity, other materials by a visibility index, plus frame centre-slice coverage. Theme data comes from --probe or from running ai_loop/ui_quality_probe.gd with --engine. Exit 0 = pass, 1 = fail",
    "tags": [
     "cli",
     "uzu.py"
@@ -364,7 +377,7 @@
    "source": "ai_loop/uzu.py",
    "required_capabilities": [],
    "fallback": null,
-   "usage": "uzu.py ui-quality [--probe probe.json] [--engine PATH] [--theme wafu] [--image shot.png] [--region x,y,w,h] [--out report.json]"
+   "usage": "uzu.py ui-quality [--probe probe.json] [--engine PATH] [--theme wafu] [--image shot.png] [--region x,y,w,h] [--texture-image sheet.png] [--texture-region x,y,w,h] [--out report.json]"
   },
   {
    "name": "action-add",
@@ -3387,6 +3400,18 @@
    "fallback": null
   },
   {
+   "name": "spec_registry",
+   "kind": "script",
+   "description": "Specification image registry (BACKLOG B-1222): maps scenes to their",
+   "tags": [
+    "python",
+    "script"
+   ],
+   "source": "ai_loop/spec_registry.py",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
    "name": "spec_set",
    "kind": "script",
    "description": "The generation spec set (BACKLOG B-1509): four JSON documents that travel",
@@ -3421,6 +3446,18 @@
    "source": "ai_loop/texture_route.py",
    "required_capabilities": [],
    "fallback": "Without image_gen, texture-route picks the procedural PBR presets (B-1209) instead of a generated image (B-902)."
+  },
+  {
+   "name": "ui_containment_probe",
+   "kind": "script",
+   "description": "B-1315: containment probe for the UI quality gate (ai_loop/ui_quality.py). Instantiates built sample screens and checks, for every leaf Control inside a structural panel, that its rect stays within the panel's safe area: the stylebox conten",
+   "tags": [
+    "gdscript",
+    "script"
+   ],
+   "source": "ai_loop/ui_containment_probe.gd",
+   "required_capabilities": [],
+   "fallback": null
   },
   {
    "name": "ui_font",
@@ -3623,6 +3660,18 @@
     "uzu"
    ],
    "source": "doc/classes/UZUTiltShift.xml",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "UZUTouchStick",
+   "kind": "class",
+   "description": "A virtual analog stick for touch layouts, drawn from the UZUUI theme's colours.",
+   "tags": [
+    "class",
+    "uzu"
+   ],
+   "source": "doc/classes/UZUTouchStick.xml",
    "required_capabilities": [],
    "fallback": null
   },

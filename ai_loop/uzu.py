@@ -33,18 +33,25 @@ or through ai_loop\\windows\\uzu.bat.
                   pass/fail JSON with frames, seconds and stuck points; --block-node fences one node in
                   to prove that exactly its edges fail
   uzu.py image-scene <project> --image illustration.png [--depth depth.png] [--out image_scene]
+                  [--registry spec_registry.json] [--image-id ID] [--scene res://x.tscn]
                   [--fov 50] [--backdrop-width 26] [--no-build] [--no-walk] [--shot out.png]
                   [--seconds 60]   image-first scaffold (B-1221, see ai_loop/image_scene.py): the
                   illustration becomes a B-1207 spec -- backdrop card, cut-out layer cards,
                   candidate interact markers, the reference camera -- plus a generation report;
                   the spec is built and a capsule walker walks its waypoints
-  uzu.py spec-diff <project> --spec-image illustration.png [--report report.json] [--scene res://x.tscn]
-                  [--shot-png shot.png] [--thresholds t.json] [--frames 8] [--out verdict.json]
+  uzu.py spec-diff <project> [--spec-image illustration.png] [--report report.json]
+                  [--registry spec_registry.json] [--scene res://x.tscn] [--shot-png shot.png]
+                  [--thresholds t.json] [--frames 8] [--out verdict.json]
                   spec-image diff verification (B-1223, see ai_loop/spec_diff.py): shoots the scene
                   from its reference camera (or reuses --shot-png) and diffs the frame against the
                   specification illustration -- composition (edge agreement), colour (histogram
-                  distance) and per-element presence from the B-1221 generation report -- as one
-                  pass/fail JSON with every measured number
+                  distance) and per-element presence from the B-1221 report or B-1222 registry --
+                  as one pass/fail JSON with every measured number
+  uzu.py spec-registry <project> register-image|bind-scene|map-element|remove-element|get|list|validate [options]
+                  specification image registry (B-1222, see ai_loop/spec_registry.py): registers
+                  specification illustrations (--id ID --image PATH), binds scenes (--scene res://...
+                  --image-id ID [--report report.json --spec spec.json]), and maintains shared
+                  observed/inferred element correspondences (illustration regions <-> scene nodes)
   uzu.py audit-scene <project> --scene res://x.tscn [--spec-set DIR] [--out report.json]
                   re-read audit of a saved scene (B-1511): recounts triangles, textures (count and
                   dimensions), placed instances and collision from the artifact itself -- never from
@@ -1258,32 +1265,64 @@ def image_scene_cmd(project, args):
     """Image-first scaffold (B-1221): a specification illustration becomes a
     B-1207 build spec (backdrop card, cut-out layer cards, candidate markers,
     the reference camera) plus a generation report, written into
-    <project>/<out>/ (default image_scene/). Unless --no-build, the spec is
-    built; unless --no-walk, a capsule walker then walks the scaffold's
-    waypoints in a copy of the project and the per-waypoint result comes
-    back. Everything derived is a candidate (basis: inferred) -- see
-    ai_loop/image_scene.py."""
+    <project>/<out>/ (default image_scene/). When --registry (or --image-id)
+    is given, registered B-1222 element mappings from ai_loop/spec_registry.py
+    override matching generated names/bases and inject unmatched elements.
+    Unless --no-build, the spec is built; unless --no-walk, a capsule walker
+    then walks the scaffold's waypoints in a copy of the project and the
+    per-waypoint result comes back."""
     if HERE not in sys.path:
         sys.path.insert(0, HERE)
     import image_scene as image_scene_mod
 
+    out_name = opt(args, "out", "image_scene").strip("/")
     image = opt(args, "image")
+    depth = opt(args, "depth")
+    reg_arg = opt(args, "registry")
+    image_id = opt(args, "image-id")
+    scene_ref = opt(args, "scene") or f"res://{out_name}/{out_name}.tscn"
+    registry_elements = None
+    reg_path = None
+    if reg_arg or image_id:
+        import spec_registry
+        try:
+            reg_path = spec_registry.resolve_registry_path(project, reg_arg)
+            reg = spec_registry.load_registry(reg_path, create=False)
+            binding = spec_registry.get_scene_binding(reg, scene_ref)
+            if binding:
+                registry_elements = binding.get("elements") or []
+                if not image and binding.get("spec_image_path"):
+                    image = spec_registry.resolve_project_path(project, binding["spec_image_path"])
+                if not depth and (binding.get("image") or {}).get("depth_path"):
+                    depth = spec_registry.resolve_project_path(project, binding["image"]["depth_path"])
+            elif image_id:
+                img_entry = (reg.get("images") or {}).get(image_id)
+                if not img_entry:
+                    raise ToolError(f"image {image_id!r} is not registered in {reg_path}", command="image-scene")
+                if not image and img_entry.get("path"):
+                    image = spec_registry.resolve_project_path(project, img_entry["path"])
+                if not depth and img_entry.get("depth_path"):
+                    depth = spec_registry.resolve_project_path(project, img_entry["depth_path"])
+        except (spec_registry.RegistryError, OSError, ValueError) as e:
+            raise ToolError(str(e), command="image-scene")
+
     if not image:
         raise ToolError("image-scene needs --image illustration.png", command="image-scene")
-    image = os.path.abspath(image)
+    image = _abs(project, image) if image.startswith("res://") else os.path.abspath(image)
     if not os.path.isfile(image):
         raise ToolError(f"no illustration at {image}", command="image-scene")
-    out_name = opt(args, "out", "image_scene").strip("/")
-    depth = opt(args, "depth")
+    if depth:
+        depth = _abs(project, depth) if depth.startswith("res://") else os.path.abspath(depth)
     try:
         spec, report, assets = image_scene_mod.analyze(
             image,
-            depth_path=os.path.abspath(depth) if depth else None,
+            depth_path=depth,
             depth_white_far="--depth-black-far" not in args,
             fov=float(opt(args, "fov", "50")),
             backdrop_width=float(opt(args, "backdrop-width", "26")),
             out_res="res://" + out_name,
             scene_name=out_name,
+            registry_elements=registry_elements,
         )
     except (OSError, ValueError, zlib.error) as e:
         raise ToolError(f"could not analyse the illustration: {e}", command="image-scene")
@@ -1305,6 +1344,8 @@ def image_scene_cmd(project, args):
         json.dump({"spawn": report["spawn"], "waypoints": report["waypoints"]}, f, ensure_ascii=False, indent=2)
     result = {"ok": True, "command": "image-scene", "spec": spec["scene"],
               "spec_file": spec_path, "report": report}
+    if reg_path is not None:
+        result["registry"] = reg_path
     if "--no-build" in args:
         return result
     run([find_godot(), "--headless", "--path", project, "--import"], timeout=900)
@@ -1343,29 +1384,71 @@ def spec_diff_cmd(project, args):
     illustration with ai_loop/spec_diff.py -- composition (edge agreement),
     colour (histogram distance) and per-element presence, the elements
     taken from the B-1221 generation report (--report, default
-    <project>/image_scene/report.json; the B-1222 registry will be able to
-    feed the same shape later). --shot-png reuses an existing screenshot
-    instead of rendering. Thresholds come from --thresholds (a JSON file
-    with spec_diff.DEFAULT_THRESHOLDS keys) plus per-metric flags."""
+    <project>/image_scene/report.json) or from a B-1222 specification
+    image registry (--registry spec_registry.json [--scene res://x.tscn]).
+    --shot-png reuses an existing screenshot instead of rendering. Thresholds
+    come from --thresholds (a JSON file with spec_diff.DEFAULT_THRESHOLDS
+    keys) plus per-metric flags."""
     if HERE not in sys.path:
         sys.path.insert(0, HERE)
     import spec_diff
 
     spec_image = opt(args, "spec-image")
+    report_arg = opt(args, "report")
+    reg_arg = opt(args, "registry")
+    scene_ref = opt(args, "scene")
+    elements = None
+    element_source = None
+    reg_path = None
+
+    if reg_arg:
+        import spec_registry
+        try:
+            reg_path = spec_registry.resolve_registry_path(project, reg_arg)
+            reg = spec_registry.load_registry(reg_path, create=False)
+            binding = None
+            if scene_ref:
+                binding = spec_registry.get_scene_binding(reg, scene_ref)
+                if not binding:
+                    raise ToolError(f"scene {scene_ref!r} is not registered in {reg_path}", command="spec-diff")
+            elif len(reg.get("scenes") or {}) == 1:
+                only_scene = next(iter(reg["scenes"]))
+                binding = spec_registry.get_scene_binding(reg, only_scene)
+            elif spec_image:
+                matches = spec_registry.find_scenes_for_image(reg, spec_image, project=project)
+                if matches:
+                    binding = matches[0]
+            if not binding and not report_arg:
+                raise ToolError(f"no scene binding matched in {reg_path} (pass --scene)", command="spec-diff")
+            if binding:
+                if not spec_image and binding.get("spec_image_path"):
+                    spec_image = spec_registry.resolve_project_path(project, binding["spec_image_path"])
+                if not scene_ref:
+                    scene_ref = binding["scene"]
+                if not report_arg:
+                    elements = spec_diff.elements_from_registry(binding)
+                    element_source = "registry"
+        except (spec_registry.RegistryError, OSError, ValueError) as e:
+            raise ToolError(str(e), command="spec-diff")
+
     if not spec_image:
         raise ToolError("spec-diff needs --spec-image illustration.png", command="spec-diff")
     spec_image = _abs(project, spec_image) if spec_image.startswith("res://") else os.path.abspath(spec_image)
     if not os.path.isfile(spec_image):
         raise ToolError(f"no specification image at {spec_image}", command="spec-diff")
-    report_path = opt(args, "report")
-    if report_path:
-        report_path = _abs(project, report_path) if report_path.startswith("res://") else os.path.abspath(report_path)
-    else:
-        report_path = os.path.join(project, "image_scene", "report.json")
-    if not os.path.isfile(report_path):
-        raise ToolError(f"no generation report at {report_path} (pass --report)", command="spec-diff")
-    with open(report_path, encoding="utf-8") as f:
-        elements = spec_diff.elements_from_report(json.load(f))
+
+    report_path = None
+    if elements is None:
+        if report_arg:
+            report_path = _abs(project, report_arg) if report_arg.startswith("res://") else os.path.abspath(report_arg)
+        else:
+            report_path = os.path.join(project, "image_scene", "report.json")
+        if not os.path.isfile(report_path):
+            raise ToolError(f"no generation report at {report_path} (pass --report or --registry)", command="spec-diff")
+        with open(report_path, encoding="utf-8") as f:
+            elements = spec_diff.elements_from_report(json.load(f))
+        element_source = "report"
+
     overrides = {}
     for flag, key in (("composition-min", "composition_min"), ("color-max", "color_max"),
                       ("element-agreement-min", "element_agreement_min")):
@@ -1385,20 +1468,41 @@ def spec_diff_cmd(project, args):
         tmp = tempfile.mkdtemp(prefix="uzu-spec-diff-")
         shot = os.path.join(tmp, "shot.png")
         shot_keep = tmp
-        screenshot(project, shot, int(opt(args, "frames", "8")), scene=opt(args, "scene") or "")
+        screenshot(project, shot, int(opt(args, "frames", "8")), scene=scene_ref or "")
     try:
         verdict = spec_diff.compare(spec_image, shot, elements, thresholds)
     except (OSError, ValueError, zlib.error) as e:
         raise ToolError(f"could not diff the images: {e}", command="spec-diff")
     verdict["command"] = "spec-diff"
-    verdict["scene"] = opt(args, "scene") or _main_scene(project)
-    verdict["report"] = report_path
+    verdict["scene"] = scene_ref or _main_scene(project)
+    if report_path:
+        verdict["report"] = report_path
+    if reg_path:
+        verdict["registry"] = reg_path
+    if element_source:
+        verdict["element_source"] = element_source
     if opt(args, "out"):
         with open(os.path.abspath(opt(args, "out")), "w", encoding="utf-8") as f:
             json.dump(verdict, f, ensure_ascii=False, indent=2)
     if shot_keep:
         shutil.rmtree(shot_keep, ignore_errors=True)
     return verdict
+
+
+def spec_registry_cmd(project, args):
+    """Specification image registry (B-1222, see ai_loop/spec_registry.py):
+    register specification images (register-image), bind scenes to spec images
+    and import B-1221 reports (bind-scene), edit element correspondences with
+    observed/inferred provenance (map-element, remove-element), inspect tables
+    (get, list), and validate entries against project files (validate)."""
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import spec_registry
+
+    try:
+        return spec_registry.run_cli(project, args)
+    except (spec_registry.RegistryError, OSError, ValueError) as e:
+        raise ToolError(str(e), command="spec-registry")
 
 
 def map_(project, args):
@@ -2599,7 +2703,7 @@ def main(argv):
             result = {"ok": False, "error": e.message}
         print(json.dumps(result, ensure_ascii=False))
         return 0 if result.get("ok") else 1
-    if tool not in ("engine", "look", "selfplay", "build", "enrich", "ui", "map", "audit-scene", "collision-check", "image-scene", "spec-diff", "anim") or not rest:
+    if tool not in ("engine", "look", "selfplay", "build", "enrich", "ui", "map", "audit-scene", "collision-check", "image-scene", "spec-diff", "spec-registry", "anim") or not rest:
         print(__doc__, file=sys.stderr)
         return 2
     project = os.path.abspath(rest[0])
@@ -2607,7 +2711,7 @@ def main(argv):
         print(json.dumps({"ok": False, "error": f"{rest[0]} is not a project (no project.godot)"}))
         return 2
     try:
-        result = {"engine": engine, "look": look, "selfplay": selfplay, "build": build, "enrich": enrich, "ui": ui, "map": map_, "audit-scene": audit_scene_cmd, "collision-check": collision_check_cmd, "image-scene": image_scene_cmd, "spec-diff": spec_diff_cmd, "anim": animation_cmd}[tool](project, rest[1:])
+        result = {"engine": engine, "look": look, "selfplay": selfplay, "build": build, "enrich": enrich, "ui": ui, "map": map_, "audit-scene": audit_scene_cmd, "collision-check": collision_check_cmd, "image-scene": image_scene_cmd, "spec-diff": spec_diff_cmd, "spec-registry": spec_registry_cmd, "anim": animation_cmd}[tool](project, rest[1:])
     except ToolError as e:
         result = {"ok": False, "error": e.message, **e.extra}
         print(json.dumps(result, ensure_ascii=False))

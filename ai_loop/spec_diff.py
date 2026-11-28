@@ -248,6 +248,8 @@ def element_check(w, h, spec, shot, spec_edges, shot_edges, element, th):
     x1, y1 = min(x1, w), min(y1, h)
     out = {"id": element.get("id", ""), "kind": element.get("kind", ""),
            "basis": element.get("basis", "inferred"), "bbox": [x0, y0, x1, y1]}
+    if element.get("node"):
+        out["node"] = element["node"]
     if x1 - x0 < 3 or y1 - y0 < 3:
         out.update({"pass": False, "verdict": "too_small",
                     "hint": "the element's box is under 3x3 working pixels: too small to judge"})
@@ -336,7 +338,7 @@ def element_check(w, h, spec, shot, spec_edges, shot_edges, element, th):
 def elements_from_report(report):
     """The element list of a B-1221 generation report: layer cards plus
     interact candidates, each {id, kind, bbox, basis} in working pixels.
-    This is the seam where the B-1222 registry will plug in later."""
+    This is the seam where the B-1222 registry plugs in via elements_from_registry()."""
     elements = []
     layers = report.get("layers", {})
     for card in layers.get("cards", []):
@@ -345,6 +347,32 @@ def elements_from_report(report):
     for cand in report.get("candidates", {}).get("interact", []):
         elements.append({"id": cand.get("id", ""), "kind": cand.get("kind", ""),
                          "bbox": cand["image_bbox"], "basis": cand.get("basis", "inferred")})
+    return elements
+
+
+def elements_from_registry(registry_or_scene, scene=None):
+    """The element list of a B-1222 specification image registry scene binding:
+    each {id, kind, bbox, basis, node?} in working pixels."""
+    if scene is not None:
+        import spec_registry
+        binding = spec_registry.get_scene_binding(registry_or_scene, scene)
+        if not binding:
+            raise ValueError(f"scene {scene!r} is not registered in the specification registry")
+        raw_elements = binding.get("elements") or []
+    else:
+        raw_elements = (registry_or_scene or {}).get("elements") or []
+    elements = []
+    for elem in raw_elements:
+        bbox = elem.get("image_bbox") if "image_bbox" in elem else elem.get("bbox")
+        item = {
+            "id": elem.get("id", ""),
+            "kind": elem.get("kind", ""),
+            "bbox": list(bbox),
+            "basis": elem.get("basis", "inferred"),
+        }
+        if elem.get("node"):
+            item["node"] = elem["node"]
+        elements.append(item)
     return elements
 
 
@@ -400,22 +428,48 @@ def compare(spec_path, shot_path, elements, thresholds=None):
 
 def main(argv):
     """Standalone, engine-free: spec_diff.py --spec-image A.png --shot B.png
-    --report report.json [--thresholds t.json] [--out verdict.json]."""
+    --report report.json [--registry spec_registry.json --scene res://scene.tscn]
+    [--thresholds t.json] [--out verdict.json]."""
     def opt(name, default=""):
         for i, a in enumerate(argv):
             if a == "--" + name and i + 1 < len(argv):
                 return argv[i + 1]
         return default
     spec_image, shot = opt("spec-image"), opt("shot")
-    if not spec_image or not shot:
-        print(__doc__)
-        return 2
+    reg_path, scene_ref = opt("registry"), opt("scene")
     elements = []
+    element_source = None
     if opt("report"):
         with open(opt("report"), encoding="utf-8") as f:
             elements = elements_from_report(json.load(f))
+        element_source = "report"
+    if reg_path:
+        import spec_registry
+        reg = spec_registry.load_registry(reg_path)
+        binding = None
+        if scene_ref:
+            binding = spec_registry.get_scene_binding(reg, scene_ref)
+        elif len(reg.get("scenes") or {}) == 1:
+            only_scene = next(iter(reg["scenes"]))
+            binding = spec_registry.get_scene_binding(reg, only_scene)
+        elif spec_image:
+            matches = spec_registry.find_scenes_for_image(reg, spec_image)
+            if matches:
+                binding = matches[0]
+        if binding:
+            if not spec_image and binding.get("spec_image_path"):
+                base_dir = os.path.dirname(os.path.abspath(reg_path))
+                spec_image = spec_registry.resolve_project_path(base_dir, binding["spec_image_path"])
+            if not elements:
+                elements = elements_from_registry(binding)
+                element_source = "registry"
+    if not spec_image or not shot:
+        print(__doc__)
+        return 2
     th = load_thresholds(opt("thresholds") or None)
     verdict = compare(spec_image, shot, elements, th)
+    if element_source:
+        verdict["element_source"] = element_source
     if opt("out"):
         with open(opt("out"), "w", encoding="utf-8") as f:
             json.dump(verdict, f, ensure_ascii=False, indent=2)
