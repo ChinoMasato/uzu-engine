@@ -16,9 +16,13 @@ const MAIN_SCENE := "res://main.tscn"
 var _hint: Control # The start prompt plaque; it pulses quietly until pressed.
 var _loading_label: Label
 var _loading := false
+var _audio: UZUGameAudio # B-1704: title click through the Phase 17 helper.
 
 func _ready() -> void:
 	InputSetup.setup()
+	_audio = UZUGameAudio.new()
+	add_child(_audio)
+	_audio.register_event(&"ui_click", PackedStringArray(["res://audio/sfx/ui_click.wav"]), {"base_volume_db": -3.0, "pitch_jitter": 0.03})
 	# Fallback: the flat illustration on a quad behind the UZUPicture relief,
 	# so the title still shows the art on GPUs/browsers where the picture's
 	# shaders do not run (seen on iOS Safari).
@@ -115,6 +119,8 @@ func _input(event: InputEvent) -> void:
 		start = true
 	if start:
 		_loading = true
+		if _audio:
+			_audio.play_event(&"ui_click", Vector3.ZERO)
 		if _hint:
 			_hint.modulate.a = 1.0
 			_hint.visible = false

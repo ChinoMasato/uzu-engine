@@ -1,0 +1,93 @@
+{
+  "format": "uzu-sfx-credits/1",
+  "sounds": {
+    "footstep_grass": {
+      "file": "res://audio/sfx/footstep_grass.wav",
+      "lumina_id": "footsteps:grass",
+      "credits": [
+        {
+          "title": "Footsteps_Mountain_Boots_Grass_Mono.wav",
+          "author": "Nox_Sound",
+          "license": "CC0-1.0",
+          "url": "https://freesound.org/people/Nox_Sound/sounds/556042/"
+        }
+      ]
+    },
+    "pickup_shard": {
+      "file": "res://audio/sfx/pickup_shard.wav",
+      "lumina_id": "coin-pickup-chime",
+      "credits": []
+    },
+    "lantern_ignite": {
+      "file": "res://audio/sfx/lantern_ignite.wav",
+      "lumina_id": "soft-air-match-cut",
+      "credits": []
+    },
+    "ambient_dusk": {
+      "file": "res://audio/sfx/ambient_dusk.wav",
+      "lumina_id": "distant-marsh-birds-at-dusk-loop",
+      "credits": [
+        {
+          "title": "Many Frogs at Night in Marsh.wav",
+          "author": "bmacphail",
+          "license": "CC0-1.0",
+          "url": "https://freesound.org/people/bmacphail/sounds/569543/"
+        },
+        {
+          "title": "Birds Loop",
+          "author": "vdr3",
+          "license": "CC0-1.0",
+          "url": "https://freesound.org/people/vdr3/sounds/393699/"
+        }
+      ]
+    },
+    "ambient_night": {
+      "file": "res://audio/sfx/ambient_night.wav",
+      "lumina_id": "crickets-beneath-a-half-open-window-loop",
+      "credits": [
+        {
+          "title": "Night crickets",
+          "author": "Vrymaa",
+          "license": "CC0-1.0",
+          "url": "https://freesound.org/people/Vrymaa/sounds/734642/"
+        },
+        {
+          "title": "Rustling Leaves.wav",
+          "author": "FunWithSound",
+          "license": "CC0-1.0",
+          "url": "https://freesound.org/people/FunWithSound/sounds/406099/"
+        }
+      ]
+    },
+    "ui_click": {
+      "file": "res://audio/sfx/ui_click.wav",
+      "lumina_id": "settings-tab-walnut-detent",
+      "credits": [
+        {
+          "title": "Light Switch ON / OFF",
+          "author": "FillSoko",
+          "license": "CC0-1.0",
+          "url": "https://freesound.org/people/FillSoko/sounds/257958/"
+        }
+      ]
+    },
+    "ambient_day": {
+      "file": "res://audio/sfx/ambient_day.wav",
+      "lumina_id": "robin-singing-over-a-brook-loop",
+      "credits": [
+        {
+          "title": "Small brook, stream, water sound",
+          "author": "SamsterBirdies",
+          "license": "CC0-1.0",
+          "url": "https://freesound.org/people/SamsterBirdies/sounds/584269/"
+        },
+        {
+          "title": "Robin singing",
+          "author": "naturenotesuk",
+          "license": "CC0-1.0",
+          "url": "https://freesound.org/people/naturenotesuk/sounds/418425/"
+        }
+      ]
+    }
+  }
+}

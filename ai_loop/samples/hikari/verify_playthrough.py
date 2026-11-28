@@ -26,7 +26,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", ".."))
 from aiplayer import Game  # noqa: E402
 
-STATE = ["Main/Player:global_position", "Main:shards", "Main:cleared", "Main:juice_events"]
+STATE = ["Main/Player:global_position", "Main:shards", "Main:cleared", "Main:juice_events", "Main:sfx_events"]
 # (name, [waypoints (x, z) ..., target], shards expected after interacting)
 # Waypoints follow the village's open lanes; every leg keeps clear of the
 # obstacle radii in main.gd (houses 2.75, pond 2.65, trees 1.0, NPCs 0.85).
@@ -38,6 +38,21 @@ ROUTE = [
 ]
 EXPECTED_EVENTS = ["start", "shard_1", "shard_2", "shard_3", "lantern_lit"]
 EXPECTED_JUICE = ["pickup", "pickup", "pickup", "lantern"]
+
+
+def _sfx_ok(events):
+    """B-1704: the Lumina/SFX wiring fired for every formerly silent beat
+    on the route: footsteps while walking, one pickup chime per shard,
+    the lantern ignite, and the ambience reached the night stage."""
+    if not isinstance(events, list):
+        return False
+    return (
+        events.count("pickup_shard") == 3
+        and events.count("lantern_ignite") == 1
+        and events.count("footstep_start") >= 1
+        and "ambient_0" in events
+        and "ambient_3" in events
+    )
 
 
 def event_names(events):
@@ -172,6 +187,8 @@ def main():
             "final_cleared": run["final_state"].get("Main:cleared"),
             "juice_events": run["final_state"].get("Main:juice_events"),
             "juice_fired": run["final_state"].get("Main:juice_events") == EXPECTED_JUICE,
+            "sfx_events": run["final_state"].get("Main:sfx_events"),
+            "sfx_fired": _sfx_ok(run["final_state"].get("Main:sfx_events")),
         })
     report = {
         "game": "hikari no kakera (ai_loop/samples/hikari)",
@@ -182,7 +199,7 @@ def main():
     }
     report["passed"] = all(
         c["checkpoints_in_order"] and c["final_shards"] == 3 and c["final_cleared"] is True
-        and c["juice_fired"]
+        and c["juice_fired"] and c["sfx_fired"]
         for c in checks
     ) and report["start_hash_deterministic"]
     with open(out_path, "w", encoding="utf-8") as f:
