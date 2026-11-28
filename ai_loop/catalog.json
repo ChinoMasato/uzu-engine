@@ -2,13 +2,13 @@
  "version": 1,
  "generated_by": "ai_loop/make_catalog.py",
  "counts": {
-  "cli": 32,
+  "cli": 33,
   "command": 72,
-  "mcp": 82,
+  "mcp": 84,
   "preset": 7,
-  "script": 52,
+  "script": 53,
   "class": 16,
-  "total": 261
+  "total": 265
  },
  "entries": [
   {
@@ -131,6 +131,19 @@
    "usage": "uzu.py collision-check <project> --scene res://x.tscn [--start x,z ...] [--cell 0.5] [--step 0.25] [--char-width 0.7] [--body-height 1.8] [--out report.json] [--heatmap map.png]"
   },
   {
+   "name": "debug-capture",
+   "kind": "cli",
+   "description": "generate procedural BGM WAVs (uzu-music/1, B-1110) specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "tags": [
+    "cli",
+    "uzu.py"
+   ],
+   "source": "ai_loop/uzu.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "usage": "uzu.py debug-capture <project> <sequence.json> [--out <dir>] [--every N] [--log <play.jsonl>] [--seed N] --image-id ID [--report report.json --spec spec.json]), and maintains shared"
+  },
+  {
    "name": "dialogue",
    "kind": "cli",
    "description": "validate or build dialogue/quest data (B-406)",
@@ -237,7 +250,7 @@
   {
    "name": "music-gen",
    "kind": "cli",
-   "description": "generate procedural BGM WAVs (uzu-music/1, B-1110) specification image registry (B-1222, see ai_loop/spec_registry.py): registers specification illustrations (--id ID --image PATH), binds scenes (--scene res://... observed/inferred element correspondences (illustration regions <-> scene nodes)",
+   "description": "",
    "tags": [
     "cli",
     "uzu.py"
@@ -245,7 +258,7 @@
    "source": "ai_loop/uzu.py",
    "required_capabilities": [],
    "fallback": null,
-   "usage": "uzu.py music-gen <project> [--preset NAME] [--seed N] [--bars N] [--all] [--out <dir>] --image-id ID [--report report.json --spec spec.json]), and maintains shared"
+   "usage": "uzu.py music-gen <project> [--preset NAME] [--seed N] [--bars N] [--all] [--out <dir>]"
   },
   {
    "name": "picture",
@@ -1709,6 +1722,24 @@
    }
   },
   {
+   "name": "debug_capture",
+   "kind": "mcp",
+   "description": "Replay a saved operation sequence (uzu-autopilot/1) with standard debug screenshots (uzu-debug-capture/1, B-316): saves PNGs at the start frame, every checkpoint, every N frames and the final frame, and returns the manifest mapping each shot to its frame and checkpoint. Optionally records a B-313 play log alongside.",
+   "tags": [
+    "capture",
+    "debug",
+    "debug-capture",
+    "mcp"
+   ],
+   "source": "ai_loop/mcp_server.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "maps_to": {
+    "tool": "debug-capture",
+    "command": ""
+   }
+  },
+  {
    "name": "dialogue_validate",
    "kind": "mcp",
    "description": "Validate a dialogue and quest-flag graph. Report unreachable nodes, missing branches, flag errors and text lengths. Optionally write the verified graph.",
@@ -2264,6 +2295,24 @@
    "maps_to": {
     "tool": "map",
     "command": "walk-graph"
+   }
+  },
+  {
+   "name": "music_generate",
+   "kind": "mcp",
+   "description": "Generate procedural BGM WAV files (uzu-music/1, B-1110) into the project's bgm folder: chord progression + melody/bass/drums from scene presets (village/battle/title), seed-fixed. Returns key, tempo, length, event counts and the measured loop-seam values for each WAV.",
+   "tags": [
+    "generate",
+    "mcp",
+    "music",
+    "music-gen"
+   ],
+   "source": "ai_loop/mcp_server.py",
+   "required_capabilities": [],
+   "fallback": null,
+   "maps_to": {
+    "tool": "music-gen",
+    "command": ""
    }
   },
   {
@@ -3241,6 +3290,18 @@
     "script"
    ],
    "source": "ai_loop/collision_tool.gd",
+   "required_capabilities": [],
+   "fallback": null
+  },
+  {
+   "name": "debug_capture",
+   "kind": "script",
+   "description": "Standard debug capture for autopilot runs (B-316).",
+   "tags": [
+    "python",
+    "script"
+   ],
+   "source": "ai_loop/debug_capture.py",
    "required_capabilities": [],
    "fallback": null
   },

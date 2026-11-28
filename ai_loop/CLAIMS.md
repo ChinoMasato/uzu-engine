@@ -184,6 +184,7 @@
 | B-1113 feel-report 一般化 | リード（Gemini 生成は不採用） | agent/b-1113-gemini | ai_loop/feel_report.py・ai_loop/samples/moonpost/verify_playthrough.py | 反映済み | 2026-11-28 |
 | B-312 標準自動操作（オートパイロット） | Gemini 4 (AI Studio)＋リード | agent/b-312-gemini | ai_loop/autopilot.py・ai_loop/uzu.py・ai_loop/mcp_server.py | 反映済み | 2026-11-28 |
 | B-1110 BGM 生成（UZUMusic） | Gemini 4 (AI Studio)＋リード | agent/b-1110-gemini | ai_loop/music_gen.py・ai_loop/uzu.py・ai_loop/mcp_server.py | 反映済み | 2026-11-28 |
+| B-316 デバッグ標準キャプチャ | Gemini 4 (AI Studio)＋リード | agent/b-316-gemini | ai_loop/debug_capture.py・ai_loop/uzu.py・ai_loop/mcp_server.py | 作業中 | 2026-11-28 |
 | B-1225 CLI パス解決の統一 | Gemini 4 (AI Studio)＋リード | agent/b-1225-gemini | ai_loop/pathutil.py・ai_loop/uzu.py・ai_loop/spec_registry.py | 反映済み | 2026-11-28 |
 | B-1226 レジストリ bbox 範囲検査 | Gemini 4 (AI Studio)＋リード | agent/b-1226-gemini | ai_loop/spec_registry.py | 反映済み | 2026-11-28 |
 | B-1227 spec-diff 候補ゲート分離 | リード（Gemini 生成は不採用） | agent/b-1227-gemini | ai_loop/spec_diff.py | 反映済み | 2026-11-28 |

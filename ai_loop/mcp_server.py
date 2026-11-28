@@ -79,6 +79,12 @@ TOOLS = {
         "Replay a saved operation sequence (uzu-autopilot/1, B-312) in the project with the standard autopilot; optionally record a B-313 play log. Returns steps executed, checkpoints reached, and whether the game ended.",
         {
             "sequence": _str("Path to the uzu-autopilot/1 sequence JSON file"),
+            "seed": _str("Seed override (optional)"),
+            "state": _str("Comma-separated state paths to read at each step (optional)"),
+            "log": _str("Optional play-log JSONL path to record"),
+        },
+        ["sequence"],
+    ),
     "music_generate": (
         "music-gen",
         "",
@@ -92,9 +98,16 @@ TOOLS = {
         },
         [],
     ),
-            "seed": _str("Seed override (optional)"),
-            "state": _str("Comma-separated state paths to read at each step (optional)"),
+    "debug_capture": (
+        "debug-capture",
+        "",
+        "Replay a saved operation sequence (uzu-autopilot/1) with standard debug screenshots (uzu-debug-capture/1, B-316): saves PNGs at the start frame, every checkpoint, every N frames and the final frame, and returns the manifest mapping each shot to its frame and checkpoint. Optionally records a B-313 play log alongside.",
+        {
+            "sequence": _str("Path to the uzu-autopilot/1 sequence JSON file"),
+            "out": _str("Output directory for shots and manifest.json (optional)"),
+            "every": _str("Also capture every N frames when > 0 (optional)"),
             "log": _str("Optional play-log JSONL path to record"),
+            "seed": _str("Seed override (optional)"),
         },
         ["sequence"],
     ),
