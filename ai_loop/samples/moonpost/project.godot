@@ -1,0 +1,14 @@
+config_version=5
+
+[application]
+
+config/name="U.ZU image-first sample: moonpost"
+run/main_scene="res://main.tscn"
+
+[autoload]
+
+UZUTelemetry="*res://telemetry.gd"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"

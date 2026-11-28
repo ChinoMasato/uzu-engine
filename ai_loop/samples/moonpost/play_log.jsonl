@@ -1,0 +1,159 @@
+{"kind": "session", "format": "uzu-play-log/1", "game": "moonpost", "seed": 7, "state_paths": ["Main:delivered", "Main:cleared", "Main/Player:global_position"]}
+{"kind": "state", "frame": 2, "state": {"Main/Player:global_position": [-6.40000009536743, 0.947277784347534, -10.6000003814697], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "state", "frame": 3, "state": {"Main/Player:global_position": [-6.40000009536743, 0.941833317279816, -10.6000003814697], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 9, "frames": 6, "press": ["move_right", "move_up"], "release": []}
+{"kind": "state", "frame": 9, "state": {"Main/Player:global_position": [-6.15958261489868, 0.851999998092651, -10.8404178619385], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 10, "frames": 1, "press": [], "release": ["move_right", "move_up"]}
+{"kind": "state", "frame": 11, "state": {"Main/Player:global_position": [-6.15958261489868, 0.800277769565582, -10.8404178619385], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 17, "frames": 6, "press": ["move_right", "move_up"], "release": []}
+{"kind": "state", "frame": 17, "state": {"Main/Player:global_position": [-5.91916513442993, 0.579777777194977, -11.0808353424072], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 18, "frames": 1, "press": [], "release": ["move_right", "move_up"]}
+{"kind": "state", "frame": 19, "state": {"Main/Player:global_position": [-5.91916513442993, 0.500195324420929, -11.0808353424072], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 25, "frames": 6, "press": ["move_right", "move_up"], "release": []}
+{"kind": "state", "frame": 25, "state": {"Main/Player:global_position": [-5.67874813079834, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 26, "frames": 1, "press": [], "release": ["move_right", "move_up"]}
+{"kind": "state", "frame": 27, "state": {"Main/Player:global_position": [-5.67874813079834, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 33, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 33, "state": {"Main/Player:global_position": [-5.33874702453613, 0.500837743282318, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 34, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 35, "state": {"Main/Player:global_position": [-5.33874702453613, 0.500837743282318, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 41, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 41, "state": {"Main/Player:global_position": [-4.99874591827393, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 42, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 43, "state": {"Main/Player:global_position": [-4.99874591827393, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 49, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 49, "state": {"Main/Player:global_position": [-4.65874481201172, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 50, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 51, "state": {"Main/Player:global_position": [-4.65874481201172, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 57, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 57, "state": {"Main/Player:global_position": [-4.31874370574951, 0.500838279724121, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 58, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 59, "state": {"Main/Player:global_position": [-4.31874370574951, 0.500838279724121, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 65, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 65, "state": {"Main/Player:global_position": [-3.97874283790588, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 66, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 67, "state": {"Main/Player:global_position": [-3.97874283790588, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 0}}
+{"kind": "op", "frame": 70, "frames": 3, "press": ["interact"], "release": []}
+{"kind": "checkpoint", "frame": 70, "id": "deliver_1"}
+{"kind": "state", "frame": 70, "state": {"Main/Player:global_position": [-3.97874283790588, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 72, "frames": 2, "press": [], "release": ["interact"]}
+{"kind": "state", "frame": 73, "state": {"Main/Player:global_position": [-3.97874283790588, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "state", "frame": 74, "state": {"Main/Player:global_position": [-3.97874283790588, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 80, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 80, "state": {"Main/Player:global_position": [-3.63874316215515, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 81, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 82, "state": {"Main/Player:global_position": [-3.63874316215515, 0.500838756561279, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 88, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 88, "state": {"Main/Player:global_position": [-3.29874277114868, 0.500811100006104, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 89, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 90, "state": {"Main/Player:global_position": [-3.29874277114868, 0.500089764595032, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 96, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 96, "state": {"Main/Player:global_position": [-2.95874238014221, 0.498974293470383, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 97, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 98, "state": {"Main/Player:global_position": [-2.95874238014221, 0.498974293470383, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 104, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 104, "state": {"Main/Player:global_position": [-2.61874222755432, 0.500822007656097, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 105, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 106, "state": {"Main/Player:global_position": [-2.61874222755432, 0.499753057956696, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 112, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 112, "state": {"Main/Player:global_position": [-2.27874183654785, 0.499080866575241, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 113, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 114, "state": {"Main/Player:global_position": [-2.27874183654785, 0.499080866575241, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 120, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 120, "state": {"Main/Player:global_position": [-1.93874216079712, 0.500826001167297, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 121, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 122, "state": {"Main/Player:global_position": [-1.93874216079712, 0.500826001167297, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 128, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 128, "state": {"Main/Player:global_position": [-1.59874200820923, 0.498211473226547, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 129, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 130, "state": {"Main/Player:global_position": [-1.59874200820923, 0.498211473226547, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 136, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 136, "state": {"Main/Player:global_position": [-1.25874221324921, 0.500773668289185, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 137, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 138, "state": {"Main/Player:global_position": [-1.25874221324921, 0.499566048383713, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 144, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 144, "state": {"Main/Player:global_position": [-0.918742299079895, 0.500838935375214, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 145, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 146, "state": {"Main/Player:global_position": [-0.918742299079895, 0.499393731355667, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 152, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 152, "state": {"Main/Player:global_position": [-0.578742325305939, 0.50083863735199, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 153, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 154, "state": {"Main/Player:global_position": [-0.578742325305939, 0.50083863735199, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 160, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 160, "state": {"Main/Player:global_position": [-0.238742306828499, 0.500838100910187, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 161, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 162, "state": {"Main/Player:global_position": [-0.238742306828499, 0.500838100910187, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 168, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 168, "state": {"Main/Player:global_position": [0.101257726550102, 0.500838100910187, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 169, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 170, "state": {"Main/Player:global_position": [0.101257726550102, 0.500838100910187, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 176, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 176, "state": {"Main/Player:global_position": [0.441257774829865, 0.500840067863464, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 177, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 178, "state": {"Main/Player:global_position": [0.441257774829865, 0.500840067863464, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 184, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 184, "state": {"Main/Player:global_position": [0.781257808208466, 0.500838220119476, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 185, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 186, "state": {"Main/Player:global_position": [0.781257808208466, 0.500838220119476, -11.3212471008301], "Main:cleared": false, "Main:delivered": 1}}
+{"kind": "op", "frame": 189, "frames": 3, "press": ["interact"], "release": []}
+{"kind": "checkpoint", "frame": 189, "id": "deliver_2"}
+{"kind": "state", "frame": 189, "state": {"Main/Player:global_position": [0.781257808208466, 0.500838220119476, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 191, "frames": 2, "press": [], "release": ["interact"]}
+{"kind": "state", "frame": 192, "state": {"Main/Player:global_position": [0.781257808208466, 0.500838220119476, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "state", "frame": 193, "state": {"Main/Player:global_position": [0.781257808208466, 0.500838220119476, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 199, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 199, "state": {"Main/Player:global_position": [1.12125778198242, 0.500823080539703, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 200, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 201, "state": {"Main/Player:global_position": [1.12125778198242, 0.499434232711792, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 207, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 207, "state": {"Main/Player:global_position": [1.4612580537796, 0.500816345214844, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 208, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 209, "state": {"Main/Player:global_position": [1.4612580537796, 0.500816345214844, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 215, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 215, "state": {"Main/Player:global_position": [1.80125796794891, 0.500774800777435, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 216, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 217, "state": {"Main/Player:global_position": [1.80125796794891, 0.499162048101425, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 223, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 223, "state": {"Main/Player:global_position": [2.14125776290894, 0.499394953250885, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 224, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 225, "state": {"Main/Player:global_position": [2.14125776290894, 0.499394953250885, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 231, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 231, "state": {"Main/Player:global_position": [2.48125720024109, 0.500808238983154, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 232, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 233, "state": {"Main/Player:global_position": [2.48125720024109, 0.500808238983154, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 239, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 239, "state": {"Main/Player:global_position": [2.82125735282898, 0.500830173492432, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 240, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 241, "state": {"Main/Player:global_position": [2.82125735282898, 0.499743521213531, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 247, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 247, "state": {"Main/Player:global_position": [3.16125702857971, 0.500821948051453, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 248, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 249, "state": {"Main/Player:global_position": [3.16125702857971, 0.500089943408966, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 255, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 255, "state": {"Main/Player:global_position": [3.50125741958618, 0.500836610794067, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 256, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 257, "state": {"Main/Player:global_position": [3.50125741958618, 0.500836610794067, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 263, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 263, "state": {"Main/Player:global_position": [3.84125757217407, 0.500819683074951, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 264, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 265, "state": {"Main/Player:global_position": [3.84125757217407, 0.500819683074951, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 271, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 271, "state": {"Main/Player:global_position": [4.18125820159912, 0.500834882259369, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 272, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 273, "state": {"Main/Player:global_position": [4.18125820159912, 0.500834882259369, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 279, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 279, "state": {"Main/Player:global_position": [4.52125883102417, 0.500839054584503, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 280, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 281, "state": {"Main/Player:global_position": [4.52125883102417, 0.500839054584503, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 287, "frames": 6, "press": ["move_right"], "release": []}
+{"kind": "state", "frame": 287, "state": {"Main/Player:global_position": [4.86125993728638, 0.500837802886963, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 288, "frames": 1, "press": [], "release": ["move_right"]}
+{"kind": "state", "frame": 289, "state": {"Main/Player:global_position": [4.86125993728638, 0.500837802886963, -11.3212471008301], "Main:cleared": false, "Main:delivered": 2}}
+{"kind": "op", "frame": 292, "frames": 3, "press": ["interact"], "release": []}
+{"kind": "checkpoint", "frame": 292, "id": "deliver_3"}
+{"kind": "checkpoint", "frame": 292, "id": "cleared"}
+{"kind": "state", "frame": 292, "state": {"Main/Player:global_position": [4.86125993728638, 0.500837802886963, -11.3212471008301], "Main:cleared": true, "Main:delivered": 3}}
+{"kind": "op", "frame": 294, "frames": 2, "press": [], "release": ["interact"]}
+{"kind": "state", "frame": 295, "state": {"Main/Player:global_position": [4.86125993728638, 0.500837802886963, -11.3212471008301], "Main:cleared": true, "Main:delivered": 3}}
+{"kind": "state", "frame": 296, "state": {"Main/Player:global_position": [4.86125993728638, 0.500837802886963, -11.3212471008301], "Main:cleared": true, "Main:delivered": 3}}
+{"kind": "end", "frame": 296, "reason": "done"}

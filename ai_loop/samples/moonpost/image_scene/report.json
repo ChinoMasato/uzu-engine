@@ -1,0 +1,776 @@
+{
+  "format": "uzu-image-scene/1",
+  "image": {
+    "width": 1672,
+    "height": 941,
+    "basis": "observed",
+    "working_size": [
+      768,
+      432
+    ]
+  },
+  "depth": {
+    "source": "heuristic",
+    "basis": "inferred",
+    "reason": "no depth map supplied: vertical-position heuristic with a local-detail term"
+  },
+  "horizon": {
+    "y_px": 208,
+    "fraction": 0.481,
+    "basis": "inferred"
+  },
+  "ground_color": {
+    "value": "#33353e",
+    "basis": "observed",
+    "reason": "mean colour of the illustration's bottom rows"
+  },
+  "atmosphere": {
+    "value": "clear",
+    "basis": "inferred",
+    "reason": "from the top third's mean luminance and warmth"
+  },
+  "layers": {
+    "backdrop": {
+      "file": "background.png",
+      "size_m": [
+        26.0,
+        14.63
+      ]
+    },
+    "cards": [
+      {
+        "name": "Card_Foreground_0",
+        "image": "res://image_scene/card_foreground_0.png",
+        "position": [
+          0.095,
+          0.324,
+          -8.31
+        ],
+        "size": [
+          1.848,
+          0.648
+        ],
+        "collision": true,
+        "band": "foreground",
+        "basis": "inferred",
+        "image_bbox": [
+          288,
+          305,
+          502,
+          380
+        ],
+        "mean_color": "#676185"
+      },
+      {
+        "name": "Card_Foreground_1",
+        "image": "res://image_scene/card_foreground_1.png",
+        "position": [
+          -1.575,
+          0.272,
+          -8.31
+        ],
+        "size": [
+          1.494,
+          0.544
+        ],
+        "collision": true,
+        "band": "foreground",
+        "basis": "inferred",
+        "image_bbox": [
+          115,
+          319,
+          288,
+          382
+        ],
+        "mean_color": "#745e74"
+      },
+      {
+        "name": "Card_Midground_0",
+        "image": "res://image_scene/card_midground_0.png",
+        "position": [
+          3.111,
+          0.403,
+          -12.082
+        ],
+        "size": [
+          2.467,
+          0.805
+        ],
+        "collision": true,
+        "band": "midground",
+        "basis": "inferred",
+        "image_bbox": [
+          496,
+          288,
+          643,
+          336
+        ],
+        "mean_color": "#857593"
+      },
+      {
+        "name": "Card_Midground_1",
+        "image": "res://image_scene/card_midground_1.png",
+        "position": [
+          3.839,
+          0.336,
+          -12.288
+        ],
+        "size": [
+          2.997,
+          0.672
+        ],
+        "collision": true,
+        "band": "midground",
+        "basis": "inferred",
+        "image_bbox": [
+          520,
+          320,
+          694,
+          359
+        ],
+        "mean_color": "#53633d"
+      },
+      {
+        "name": "Card_Midground_2",
+        "image": "res://image_scene/card_midground_2.png",
+        "position": [
+          -3.577,
+          0.342,
+          -12.038
+        ],
+        "size": [
+          2.819,
+          0.684
+        ],
+        "collision": true,
+        "band": "midground",
+        "basis": "inferred",
+        "image_bbox": [
+          85,
+          290,
+          254,
+          331
+        ],
+        "mean_color": "#67703c"
+      },
+      {
+        "name": "Card_Midground_3",
+        "image": "res://image_scene/card_midground_3.png",
+        "position": [
+          5.247,
+          0.195,
+          -11.85
+        ],
+        "size": [
+          2.002,
+          0.391
+        ],
+        "collision": true,
+        "band": "midground",
+        "basis": "inferred",
+        "image_bbox": [
+          645,
+          286,
+          768,
+          310
+        ],
+        "mean_color": "#7c6e8f"
+      },
+      {
+        "name": "Card_Midground_4",
+        "image": "res://image_scene/card_midground_4.png",
+        "position": [
+          0.084,
+          0.228,
+          -12.939
+        ],
+        "size": [
+          2.813,
+          0.41
+        ],
+        "collision": false,
+        "band": "midground",
+        "basis": "inferred",
+        "image_bbox": [
+          313,
+          284,
+          464,
+          306
+        ],
+        "mean_color": "#7a8346"
+      },
+      {
+        "name": "Card_Foreground_2",
+        "image": "res://image_scene/card_foreground_2.png",
+        "position": [
+          1.916,
+          0.104,
+          -8.31
+        ],
+        "size": [
+          0.656,
+          0.207
+        ],
+        "collision": false,
+        "band": "foreground",
+        "basis": "inferred",
+        "image_bbox": [
+          568,
+          374,
+          644,
+          398
+        ],
+        "mean_color": "#505b8b"
+      },
+      {
+        "name": "Card_Midground_5",
+        "image": "res://image_scene/card_midground_5.png",
+        "position": [
+          6.001,
+          0.284,
+          -12.279
+        ],
+        "size": [
+          1.204,
+          0.568
+        ],
+        "collision": true,
+        "band": "midground",
+        "basis": "inferred",
+        "image_bbox": [
+          698,
+          325,
+          768,
+          358
+        ],
+        "mean_color": "#112220"
+      },
+      {
+        "name": "Card_Foreground_3",
+        "image": "res://image_scene/card_foreground_3.png",
+        "position": [
+          -0.626,
+          0.142,
+          -8.31
+        ],
+        "size": [
+          1.148,
+          0.285
+        ],
+        "collision": true,
+        "band": "foreground",
+        "basis": "inferred",
+        "image_bbox": [
+          245,
+          356,
+          378,
+          389
+        ],
+        "mean_color": "#46445d"
+      },
+      {
+        "name": "Card_Foreground_4",
+        "image": "res://image_scene/card_foreground_4.png",
+        "position": [
+          1.778,
+          0.164,
+          -8.31
+        ],
+        "size": [
+          0.984,
+          0.328
+        ],
+        "collision": true,
+        "band": "foreground",
+        "basis": "inferred",
+        "image_bbox": [
+          533,
+          380,
+          647,
+          418
+        ],
+        "mean_color": "#423e5d"
+      },
+      {
+        "name": "Card_Foreground_5",
+        "image": "res://image_scene/card_foreground_5.png",
+        "position": [
+          -2.719,
+          0.078,
+          -8.31
+        ],
+        "size": [
+          0.656,
+          0.155
+        ],
+        "collision": false,
+        "band": "foreground",
+        "basis": "inferred",
+        "image_bbox": [
+          31,
+          393,
+          107,
+          411
+        ],
+        "mean_color": "#86616a"
+      },
+      {
+        "name": "Card_Foreground_6",
+        "image": "res://image_scene/card_foreground_6.png",
+        "position": [
+          -3.098,
+          0.086,
+          -8.31
+        ],
+        "size": [
+          0.432,
+          0.173
+        ],
+        "collision": false,
+        "band": "foreground",
+        "basis": "inferred",
+        "image_bbox": [
+          0,
+          404,
+          50,
+          424
+        ],
+        "mean_color": "#685064"
+      },
+      {
+        "name": "Card_Foreground_7",
+        "image": "res://image_scene/card_foreground_7.png",
+        "position": [
+          -0.371,
+          0.095,
+          -8.31
+        ],
+        "size": [
+          0.604,
+          0.19
+        ],
+        "collision": false,
+        "band": "foreground",
+        "basis": "inferred",
+        "image_bbox": [
+          306,
+          368,
+          376,
+          390
+        ],
+        "mean_color": "#5a5980"
+      },
+      {
+        "name": "Card_Midground_6",
+        "image": "res://image_scene/card_midground_6.png",
+        "position": [
+          -4.605,
+          0.181,
+          -12.288
+        ],
+        "size": [
+          1.085,
+          0.362
+        ],
+        "collision": true,
+        "band": "midground",
+        "basis": "inferred",
+        "image_bbox": [
+          85,
+          338,
+          148,
+          359
+        ],
+        "mean_color": "#936d75"
+      },
+      {
+        "name": "Card_Midground_7",
+        "image": "res://image_scene/card_midground_7.png",
+        "position": [
+          0.925,
+          0.131,
+          -11.895
+        ],
+        "size": [
+          1.556,
+          0.262
+        ],
+        "collision": true,
+        "band": "midground",
+        "basis": "inferred",
+        "image_bbox": [
+          393,
+          299,
+          488,
+          315
+        ],
+        "mean_color": "#88728b"
+      }
+    ],
+    "skipped": [
+      {
+        "reason": "ground surface: a region reaching the bottom edge, or in the ground's own colour below the horizon, is floor (grass, a path), not a card; a foreground object cropped by the frame's bottom edge would be lost here",
+        "bbox": [
+          509,
+          357,
+          768,
+          432
+        ],
+        "area": 11036
+      },
+      {
+        "reason": "ground surface: a region reaching the bottom edge, or in the ground's own colour below the horizon, is floor (grass, a path), not a card; a foreground object cropped by the frame's bottom edge would be lost here",
+        "bbox": [
+          281,
+          355,
+          550,
+          432
+        ],
+        "area": 9141
+      },
+      {
+        "reason": "ground surface: a region reaching the bottom edge, or in the ground's own colour below the horizon, is floor (grass, a path), not a card; a foreground object cropped by the frame's bottom edge would be lost here",
+        "bbox": [
+          112,
+          373,
+          293,
+          432
+        ],
+        "area": 3992
+      },
+      {
+        "reason": "ground surface: a region reaching the bottom edge, or in the ground's own colour below the horizon, is floor (grass, a path), not a card; a foreground object cropped by the frame's bottom edge would be lost here",
+        "bbox": [
+          31,
+          399,
+          116,
+          432
+        ],
+        "area": 1197
+      },
+      {
+        "reason": "ground surface: a region reaching the bottom edge, or in the ground's own colour below the horizon, is floor (grass, a path), not a card; a foreground object cropped by the frame's bottom edge would be lost here",
+        "bbox": [
+          0,
+          383,
+          73,
+          415
+        ],
+        "area": 972
+      },
+      {
+        "reason": "ground surface: a region reaching the bottom edge, or in the ground's own colour below the horizon, is floor (grass, a path), not a card; a foreground object cropped by the frame's bottom edge would be lost here",
+        "bbox": [
+          180,
+          360,
+          266,
+          403
+        ],
+        "area": 922
+      },
+      {
+        "reason": "ground surface: a region reaching the bottom edge, or in the ground's own colour below the horizon, is floor (grass, a path), not a card; a foreground object cropped by the frame's bottom edge would be lost here",
+        "bbox": [
+          667,
+          405,
+          721,
+          432
+        ],
+        "area": 675
+      },
+      {
+        "reason": "ground surface: a region reaching the bottom edge, or in the ground's own colour below the horizon, is floor (grass, a path), not a card; a foreground object cropped by the frame's bottom edge would be lost here",
+        "bbox": [
+          85,
+          278,
+          145,
+          301
+        ],
+        "area": 511
+      }
+    ]
+  },
+  "walk_area": {
+    "x": [
+      -7.8,
+      7.8
+    ],
+    "z": [
+      -17.0,
+      -6.31
+    ],
+    "basis": "inferred",
+    "reason": "the ground strip below the horizon, narrowed to the centre lane so scaffold cards at the edges stay out of the way"
+  },
+  "spawn": [
+    0.0,
+    0.0,
+    -7.81
+  ],
+  "waypoints": [
+    [
+      0.0,
+      0.0,
+      -11.65
+    ],
+    [
+      -5.46,
+      0.0,
+      -10.95
+    ],
+    [
+      5.46,
+      0.0,
+      -10.95
+    ],
+    [
+      1.66,
+      0.0,
+      -11.54
+    ],
+    [
+      0.0,
+      0.0,
+      -7.81
+    ]
+  ],
+  "candidates": {
+    "interact": [
+      {
+        "id": "glow_0",
+        "kind": "glow",
+        "basis": "inferred",
+        "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+        "image_bbox": [
+          577,
+          9,
+          648,
+          79
+        ],
+        "confidence": 1.0,
+        "position": [
+          4.255,
+          4.904,
+          -12.939
+        ]
+      },
+      {
+        "id": "glow_1",
+        "kind": "glow",
+        "basis": "inferred",
+        "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+        "image_bbox": [
+          48,
+          175,
+          70,
+          193
+        ],
+        "confidence": 0.59,
+        "position": [
+          -6.051,
+          2.296,
+          -12.939
+        ]
+      },
+      {
+        "id": "glow_2",
+        "kind": "glow",
+        "basis": "inferred",
+        "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+        "image_bbox": [
+          265,
+          216,
+          276,
+          239
+        ],
+        "confidence": 0.56,
+        "position": [
+          -2.113,
+          1.486,
+          -12.939
+        ]
+      },
+      {
+        "id": "glow_3",
+        "kind": "glow",
+        "basis": "inferred",
+        "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+        "image_bbox": [
+          467,
+          213,
+          479,
+          236
+        ],
+        "confidence": 0.54,
+        "position": [
+          1.657,
+          1.542,
+          -12.939
+        ]
+      },
+      {
+        "id": "glow_4",
+        "kind": "glow",
+        "basis": "inferred",
+        "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+        "image_bbox": [
+          585,
+          14,
+          614,
+          33
+        ],
+        "confidence": 0.54,
+        "position": [
+          4.013,
+          5.286,
+          -12.939
+        ]
+      },
+      {
+        "id": "glow_5",
+        "kind": "glow",
+        "basis": "inferred",
+        "reason": "a bright blob (luminance >= 0.80): lit windows, lamps and signs read as interact points",
+        "image_bbox": [
+          242,
+          156,
+          252,
+          167
+        ],
+        "confidence": 0.52,
+        "position": [
+          -2.551,
+          2.715,
+          -12.939
+        ]
+      }
+    ],
+    "collision": [
+      {
+        "card": "Card_Foreground_0",
+        "basis": "inferred",
+        "reason": "a ground-standing foreground card 1.8 m wide: something a walker should not pass through",
+        "footprint": [
+          0.095,
+          -8.31,
+          1.848
+        ]
+      },
+      {
+        "card": "Card_Foreground_1",
+        "basis": "inferred",
+        "reason": "a ground-standing foreground card 1.5 m wide: something a walker should not pass through",
+        "footprint": [
+          -1.575,
+          -8.31,
+          1.494
+        ]
+      },
+      {
+        "card": "Card_Midground_0",
+        "basis": "inferred",
+        "reason": "a ground-standing midground card 2.5 m wide: something a walker should not pass through",
+        "footprint": [
+          3.111,
+          -12.082,
+          2.467
+        ]
+      },
+      {
+        "card": "Card_Midground_1",
+        "basis": "inferred",
+        "reason": "a ground-standing midground card 3.0 m wide: something a walker should not pass through",
+        "footprint": [
+          3.839,
+          -12.288,
+          2.997
+        ]
+      },
+      {
+        "card": "Card_Midground_2",
+        "basis": "inferred",
+        "reason": "a ground-standing midground card 2.8 m wide: something a walker should not pass through",
+        "footprint": [
+          -3.577,
+          -12.038,
+          2.819
+        ]
+      },
+      {
+        "card": "Card_Midground_3",
+        "basis": "inferred",
+        "reason": "a ground-standing midground card 2.0 m wide: something a walker should not pass through",
+        "footprint": [
+          5.247,
+          -11.85,
+          2.002
+        ]
+      },
+      {
+        "card": "Card_Midground_5",
+        "basis": "inferred",
+        "reason": "a ground-standing midground card 1.2 m wide: something a walker should not pass through",
+        "footprint": [
+          6.001,
+          -12.279,
+          1.204
+        ]
+      },
+      {
+        "card": "Card_Foreground_3",
+        "basis": "inferred",
+        "reason": "a ground-standing foreground card 1.1 m wide: something a walker should not pass through",
+        "footprint": [
+          -0.626,
+          -8.31,
+          1.148
+        ]
+      },
+      {
+        "card": "Card_Foreground_4",
+        "basis": "inferred",
+        "reason": "a ground-standing foreground card 1.0 m wide: something a walker should not pass through",
+        "footprint": [
+          1.778,
+          -8.31,
+          0.984
+        ]
+      },
+      {
+        "card": "Card_Midground_6",
+        "basis": "inferred",
+        "reason": "a ground-standing midground card 1.1 m wide: something a walker should not pass through",
+        "footprint": [
+          -4.605,
+          -12.288,
+          1.085
+        ]
+      },
+      {
+        "card": "Card_Midground_7",
+        "basis": "inferred",
+        "reason": "a ground-standing midground card 1.6 m wide: something a walker should not pass through",
+        "footprint": [
+          0.925,
+          -11.895,
+          1.556
+        ]
+      }
+    ]
+  },
+  "camera": {
+    "position": [
+      0.0,
+      1.7,
+      -4.31
+    ],
+    "look_at": [
+      0.0,
+      7.587,
+      -20.0
+    ],
+    "fov": 50.0,
+    "basis": "inferred",
+    "reason": "placed so the backdrop fills the frame at the given fov; B-1223 diffs the scene against the illustration from here"
+  }
+}

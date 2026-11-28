@@ -1,0 +1,88 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://main.gd" id="1"]
+[ext_resource type="PackedScene" path="res://image_scene/image_scene.tscn" id="2"]
+[ext_resource type="AudioStream" path="res://sfx_deliver.wav" id="3"]
+[ext_resource type="AudioStream" path="res://sfx_clear.wav" id="4"]
+
+[sub_resource type="CapsuleShape3D" id="capsule"]
+radius = 0.3
+height = 1.0
+
+[sub_resource type="CapsuleMesh" id="capsule_mesh"]
+radius = 0.3
+height = 1.0
+
+[sub_resource type="StandardMaterial3D" id="postman_blue"]
+albedo_color = Color(0.15, 0.3, 0.85, 1)
+
+[sub_resource type="BoxMesh" id="bag_mesh"]
+size = Vector3(0.36, 0.42, 0.2)
+
+[sub_resource type="StandardMaterial3D" id="bag_brown"]
+albedo_color = Color(0.45, 0.3, 0.15, 1)
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Street" parent="." instance=ExtResource("2")]
+
+[node name="Player" type="CharacterBody3D" parent="." groups=["uzu_player"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.4, 0.95, -10.6)
+
+[node name="Collision" type="CollisionShape3D" parent="Player"]
+shape = SubResource("capsule")
+
+[node name="Body" type="MeshInstance3D" parent="Player"]
+mesh = SubResource("capsule_mesh")
+material_override = SubResource("postman_blue")
+
+[node name="Bag" type="MeshInstance3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.36, 0.02, 0)
+mesh = SubResource("bag_mesh")
+material_override = SubResource("bag_brown")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="CountLabel" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 320.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 30
+text = "配達 0/3"
+
+[node name="HintLabel" type="Label" parent="HUD"]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -52.0
+offset_right = -24.0
+offset_bottom = -18.0
+theme_override_font_sizes/font_size = 20
+text = "郵便受けの近くで E / Space： 配達"
+horizontal_alignment = 1
+
+[node name="ClearPanel" type="PanelContainer" parent="HUD"]
+visible = false
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -190.0
+offset_top = -60.0
+offset_right = 190.0
+offset_bottom = 60.0
+
+[node name="ClearLabel" type="Label" parent="HUD/ClearPanel"]
+theme_override_font_sizes/font_size = 34
+text = "配達完了！ おつかれさま"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DeliverPlayer" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3")
+
+[node name="ClearPlayer" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4")

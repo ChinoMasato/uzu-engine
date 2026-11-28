@@ -1,0 +1,119 @@
+[
+ {
+  "id": "house_red",
+  "kind": "house",
+  "image_bbox": [
+   94,
+   69,
+   342,
+   296
+  ],
+  "node": "Backdrop",
+  "basis": "inferred",
+  "reason": "B-1221 のカード分割は深度帯の帯状切り抜きで、家ごとの物体カードは生成されない。赤屋根の家は Backdrop 画像内に描かれているため Backdrop へ対応づける"
+ },
+ {
+  "id": "house_tower",
+  "kind": "house",
+  "image_bbox": [
+   393,
+   48,
+   519,
+   294
+  ],
+  "node": "Backdrop",
+  "basis": "inferred",
+  "reason": "同上。青屋根の石塔は Backdrop 内"
+ },
+ {
+  "id": "house_green",
+  "kind": "house",
+  "image_bbox": [
+   549,
+   64,
+   756,
+   285
+  ],
+  "node": "Backdrop",
+  "basis": "inferred",
+  "reason": "同上。緑屋根の家は Backdrop 内"
+ },
+ {
+  "id": "mailbox_red",
+  "kind": "mailbox",
+  "image_bbox": [
+   278,
+   239,
+   312,
+   294
+  ],
+  "node": "Backdrop",
+  "basis": "inferred",
+  "reason": "赤い郵便受けは Backdrop 内に描画。ゲーム側の配達地点は main.tscn の同位置に置いた 3D マーカーが担う"
+ },
+ {
+  "id": "mailbox_blue",
+  "kind": "mailbox",
+  "image_bbox": [
+   393,
+   241,
+   425,
+   294
+  ],
+  "node": "Backdrop",
+  "basis": "inferred",
+  "reason": "青い郵便受けは Backdrop 内に描画"
+ },
+ {
+  "id": "mailbox_green",
+  "kind": "mailbox",
+  "image_bbox": [
+   618,
+   232,
+   650,
+   285
+  ],
+  "node": "Backdrop",
+  "basis": "inferred",
+  "reason": "緑の郵便受けは Backdrop 内に描画"
+ },
+ {
+  "id": "postman",
+  "kind": "character",
+  "image_bbox": [
+   32,
+   250,
+   99,
+   399
+  ],
+  "node": "Backdrop",
+  "basis": "inferred",
+  "reason": "郵便屋は Backdrop 内に描画。ゲーム側の操作キャラは main.tscn の Player（青カプセル＋茶カバン）が担う"
+ },
+ {
+  "id": "moon",
+  "kind": "sky",
+  "image_bbox": [
+   576,
+   16,
+   700,
+   122
+  ],
+  "node": "Backdrop",
+  "basis": "inferred",
+  "reason": "月は Backdrop 内に描画"
+ },
+ {
+  "id": "street",
+  "kind": "ground",
+  "image_bbox": [
+   0,
+   266,
+   768,
+   432
+  ],
+  "node": "Ground",
+  "basis": "inferred",
+  "reason": "石畳の通りは Ground メッシュと前景カード群が担う"
+ }
+]
