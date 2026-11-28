@@ -303,3 +303,5 @@
 - 2026-11-28 B-1005 (リード): イメージ先行サンプル『月夜の郵便屋さん』。仕様イラスト1枚から雛形→要素登録→完走できる配達ゲームまで到達（完走検証9項目 pass、spec-diff は構図0.83・色0.29・要素9件 pass）。道具の不便7件を B-1225〜B-1229・B-1113・B-320 として還した。記録 iterations/2026-11-28-B-1005-lead.md。
 
 - 2026-11-28 B-1225 CLI のパス解決の統一を統合（Gemini 4 生成、手直し0件）。入力パスは ai_loop/pathutil.py に集約し res://→絶対→プロジェクト相対→CWD 相対の順で解決、結果 JSON に resolved を報告。moonpost の手順が全てプロジェクト相対で通ることを実走確認。新規テスト9件、全テストは既知の test_animation 4件のみ失敗。詳細: iterations/2026-11-28-B-1225-gemini.md
+
+- 2026-11-28 B-1226 レジストリ bbox の座標系明記と範囲検査を統合（Gemini 4 生成、手直し0件）。image_bbox は working pixels が正と docstring に明記し、範囲外・退化 bbox は validate／map-element が warnings で返す（ok は不変）。B-1005 の事故例（[0,580,1672,941]）で警告が出ることを実走確認。詳細: iterations/2026-11-28-B-1226-gemini.md

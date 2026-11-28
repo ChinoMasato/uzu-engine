@@ -8,6 +8,13 @@ Both generation (B-1221, ai_loop/image_scene.py) and diff verification
 B-1509 (ai_loop/spec_set.py) records the spec image reference and element
 correspondences into scene_spec.json.
 
+Coordinate system:
+  All `image_bbox` coordinates ([x0, y0, x1, y1]) MUST be in working pixels
+  (the `working_size` [w, h] recorded by `register-image`, downscaled to
+  WORK_MAX_W=768 width when the source image is wider), NOT raw source image
+  pixels. Values outside [0..w]x[0..h] trigger warnings in `map-element` and
+  `validate`.
+
 Registry format ("uzu-spec-registry/1", default <project>/spec_registry.json):
   {
     "format": "uzu-spec-registry/1",
@@ -466,8 +473,70 @@ def bind_scene(registry, scene, image_id, report=None, spec=None, report_path=No
     return entry
 
 
+def bbox_warnings(element, working_size):
+    """Return warning strings if `element['image_bbox']` is degenerate or outside `working_size`."""
+    if not isinstance(element, dict) or not working_size:
+        return []
+    if not isinstance(working_size, (list, tuple)) or len(working_size) != 2:
+        return []
+    try:
+        w, h = int(working_size[0]), int(working_size[1])
+    except (TypeError, ValueError):
+        return []
+    if w <= 0 or h <= 0:
+        return []
+    bbox = element.get("image_bbox") if "image_bbox" in element else element.get("bbox")
+    if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+        return []
+    try:
+        x0, y0, x1, y1 = [int(v) for v in bbox]
+    except (TypeError, ValueError):
+        return []
+
+    eid = element.get("id") or "<unknown>"
+    bbox_val = [x0, y0, x1, y1]
+    ws_val = [w, h]
+    warnings = []
+    if x1 <= x0 or y1 <= y0:
+        warnings.append(
+            f"element {eid!r} has degenerate image_bbox {bbox_val} "
+            f"for working_size {ws_val} (requires x1 > x0 and y1 > y0)"
+        )
+    if x0 < 0 or y0 < 0 or x1 > w or y1 > h:
+        warnings.append(
+            f"element {eid!r} image_bbox {bbox_val} exceeds working_size {ws_val} "
+            f"(expected working pixels within [0..{w}]x[0..{h}])"
+        )
+    return warnings
+
+
+def collect_warnings(registry, project=None):
+    """Collect bbox warnings across all scenes and elements in `registry`."""
+    if not isinstance(registry, dict):
+        return []
+    images = registry.get("images") or {}
+    scenes = registry.get("scenes") or {}
+    if not isinstance(images, dict) or not isinstance(scenes, dict):
+        return []
+    warnings = []
+    for scene_key in sorted(scenes):
+        scene_entry = scenes[scene_key]
+        if not isinstance(scene_entry, dict):
+            continue
+        ws = scene_entry.get("working_size")
+        if not ws:
+            img = images.get(scene_entry.get("spec_image"))
+            if isinstance(img, dict):
+                ws = img.get("working_size")
+        for elem in scene_entry.get("elements") or []:
+            warnings.extend(bbox_warnings(elem, ws))
+    return warnings
+
+
 def upsert_element(registry, scene, element):
-    """Insert or update one element correspondence on a bound scene."""
+    """Insert or update one element correspondence on a bound scene.
+    `image_bbox` uses working pixels (matching the bound image's `working_size`).
+    """
     scene_ref = normalize_scene_ref(scene)
     scenes = registry.get("scenes") or {}
     if scene_ref not in scenes:
@@ -581,6 +650,7 @@ def run_cli(project, args):
     if sub == "validate":
         reg = load_registry(reg_path, create=False)
         errors = validate_registry(reg, project=project, check_files=True)
+        warnings = collect_warnings(reg, project=project)
         total_elems = sum(len(s.get("elements") or []) for s in (reg.get("scenes") or {}).values())
         return {
             "ok": not errors,
@@ -588,6 +658,7 @@ def run_cli(project, args):
             "subcommand": "validate",
             "registry": reg_path,
             "errors": errors,
+            "warnings": warnings,
             "image_count": len(reg.get("images") or {}),
             "scene_count": len(reg.get("scenes") or {}),
             "element_count": total_elems,
@@ -667,6 +738,8 @@ def run_cli(project, args):
         if not scene:
             raise RegistryError("map-element needs --scene res://...")
         reg = load_registry(reg_path, create=False)
+        binding = get_scene_binding(reg, scene)
+        ws = binding.get("working_size") if binding else None
         batch_file = _opt(rest, "elements")
         if batch_file:
             bpath = resolve_project_path(project, batch_file)
@@ -676,8 +749,14 @@ def run_cli(project, args):
                 raise RegistryError("--elements file must contain a JSON array")
             updated = [upsert_element(reg, scene, item) for item in items]
             save_registry(reg_path, reg)
-            return {"ok": True, "command": "spec-registry", "subcommand": "map-element",
-                    "registry": reg_path, "scene": normalize_scene_ref(scene), "updated": updated}
+            res = {"ok": True, "command": "spec-registry", "subcommand": "map-element",
+                   "registry": reg_path, "scene": normalize_scene_ref(scene), "updated": updated}
+            warnings = []
+            for item in updated:
+                warnings.extend(bbox_warnings(item, ws))
+            if warnings:
+                res["warnings"] = warnings
+            return res
         elem = {
             "id": _opt(rest, "id"),
             "kind": _opt(rest, "kind"),
@@ -695,8 +774,12 @@ def run_cli(project, args):
             elem["confidence"] = float(conf)
         stored = upsert_element(reg, scene, elem)
         save_registry(reg_path, reg)
-        return {"ok": True, "command": "spec-registry", "subcommand": "map-element",
-                "registry": reg_path, "scene": normalize_scene_ref(scene), "element": stored}
+        res = {"ok": True, "command": "spec-registry", "subcommand": "map-element",
+               "registry": reg_path, "scene": normalize_scene_ref(scene), "element": stored}
+        warnings = bbox_warnings(stored, ws)
+        if warnings:
+            res["warnings"] = warnings
+        return res
 
     if sub == "remove-element":
         scene = _opt(rest, "scene")
