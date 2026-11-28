@@ -267,16 +267,38 @@ def quantile(sorted_vals, q):
     return sorted_vals[min(int(q * len(sorted_vals)), len(sorted_vals) - 1)]
 
 
+def _bbox_iou(a, b):
+    ix0, iy0 = max(a[0], b[0]), max(a[1], b[1])
+    ix1, iy1 = min(a[2], b[2]), min(a[3], b[3])
+    if ix1 <= ix0 or iy1 <= iy0:
+        return 0.0
+    inter = (ix1 - ix0) * (iy1 - iy0)
+    area_a = max((a[2] - a[0]) * (a[3] - a[1]), 1)
+    area_b = max((b[2] - b[0]) * (b[3] - b[1]), 1)
+    return inter / (area_a + area_b - inter)
+
+
+def to_registry_elements(spec, report):
+    """Convert (spec, report) into B-1222 element correspondence entries."""
+    import spec_registry
+    return spec_registry.elements_from_report_data(report, spec=spec)
+
+
 # ---------------------------------------------------------------- layout
 
 
 def analyze(image_path, depth_path=None, depth_white_far=True,
             backdrop_width=26.0, backdrop_z=-20.0, fov=50.0,
-            out_res="res://image_scene", scene_name="image_scene"):
+            out_res="res://image_scene", scene_name="image_scene",
+            registry_elements=None):
     """Returns (spec, report, assets): a B-1207 build spec (dict), the
     generation report (dict), and {file name: PNG bytes} to write beside
     the spec (the layer textures). Pure: no file writes except reading the
-    input images, so tests can pin the shape."""
+    input images, so tests can pin the shape.
+
+    When `registry_elements` (from B-1222 ai_loop/spec_registry.py) is
+    given, registered element-to-node mappings override matching generated
+    names/bases and unmatched registered elements are injected as markers."""
     orig_w, orig_h, orig = load_rgba(image_path)
     w, h, rgba = downscale(orig_w, orig_h, orig)
     depth_rgba = None
@@ -472,6 +494,11 @@ def analyze(image_path, depth_path=None, depth_white_far=True,
     }]
     card_reports = []
     collision_candidates = []
+    reg_list = list(registry_elements or [])
+    matched_reg_ids = set()
+    reg_cards = [e for e in reg_list if e.get("kind") == "card"]
+    reg_interact = [e for e in reg_list if e.get("kind") != "card"]
+
     for card in cards:
         x0, y0, x1, y1 = card["bbox"]
         # A card's depth: its ground contact maps through the ground plane
@@ -487,16 +514,35 @@ def analyze(image_path, depth_path=None, depth_white_far=True,
         # A card wider than 40% of the backdrop is scenery (a ridge, a
         # terrace), not an obstacle a walker bumps into.
         collide = bool(card["touches_ground"] and 0.7 <= cw_m <= 0.4 * backdrop_width)
+        default_name = "Card_%s_%s" % (card["band"].capitalize(), card["file"].split("_")[-1].split(".")[0])
+        matched_reg = None
+        for re_item in reg_cards:
+            if re_item.get("id") == default_name or re_item.get("card") == default_name:
+                matched_reg = re_item
+                break
+        if matched_reg is None and reg_cards:
+            best = max(((re_item, _bbox_iou(re_item.get("image_bbox", [0, 0, 0, 0]), card["bbox"])) for re_item in reg_cards),
+                       key=lambda pair: pair[1])
+            if best[1] >= 0.7:
+                matched_reg = best[0]
+        card_name = matched_reg["node"] if (matched_reg and matched_reg.get("node")) else default_name
         entry = {
-            "name": "Card_%s_%s" % (card["band"].capitalize(), card["file"].split("_")[-1].split(".")[0]),
+            "name": card_name,
             "image": out_res + "/" + card["file"],
             "position": [round(cx_m, 3), round(cy_m, 3), round(z, 3)],
             "size": [round(cw_m, 3), round(ch_m, 3)],
             "collision": collide,
         }
         spec_cards.append(entry)
-        card_reports.append({**entry, "band": card["band"], "basis": "inferred",
-                             "image_bbox": card["bbox"], "mean_color": card["mean_color"]})
+        creport = {**entry, "band": card["band"], "basis": "inferred",
+                   "image_bbox": card["bbox"], "mean_color": card["mean_color"]}
+        if matched_reg:
+            matched_reg_ids.add(matched_reg["id"])
+            if matched_reg.get("basis") == "observed":
+                creport["basis"] = "observed"
+                if matched_reg.get("evidence"):
+                    creport["evidence"] = matched_reg["evidence"]
+        card_reports.append(creport)
         if collide:
             collision_candidates.append({
                 "card": entry["name"], "basis": "inferred",
@@ -515,6 +561,60 @@ def analyze(image_path, depth_path=None, depth_white_far=True,
         if cand["kind"] == "door":
             cy_m = (y1 - y0) * meters_per_px(z) / 2.0
         cand["position"] = [round(cx_m, 3), round(max(cy_m, 0.4), 3), round(z, 3)]
+        matched_reg = None
+        for re_item in reg_interact:
+            if re_item.get("id") == cand["id"]:
+                matched_reg = re_item
+                break
+        if matched_reg is None and reg_interact:
+            best = max(((re_item, _bbox_iou(re_item.get("image_bbox", [0, 0, 0, 0]), cand["image_bbox"]))
+                        for re_item in reg_interact if re_item.get("id") not in matched_reg_ids),
+                       key=lambda pair: pair[1], default=(None, 0.0))
+            if best[1] >= 0.5:
+                matched_reg = best[0]
+        if matched_reg:
+            matched_reg_ids.add(matched_reg["id"])
+            cand["id"] = matched_reg["id"]
+            if matched_reg.get("kind"):
+                cand["kind"] = matched_reg["kind"]
+            if matched_reg.get("node"):
+                cand["node"] = matched_reg["node"]
+            if matched_reg.get("basis") == "observed":
+                cand["basis"] = "observed"
+                cand.pop("reason", None)
+                if matched_reg.get("evidence"):
+                    cand["evidence"] = matched_reg["evidence"]
+
+    injected_count = 0
+    for re_item in reg_interact:
+        if re_item.get("id") in matched_reg_ids:
+            continue
+        bbox = re_item.get("image_bbox")
+        if not isinstance(bbox, list) or len(bbox) != 4:
+            continue
+        x0, y0, x1, y1 = [int(v) for v in bbox]
+        band = "foreground" if y1 >= horizon + 0.75 * max(h - horizon, 1) else "midground"
+        z = z_of_band[band]
+        cx_m, cy_m = project((x0 + x1) / 2.0, (y0 + y1) / 2.0, z)
+        if re_item.get("kind") in ("door", "sign", "npc", "prop"):
+            cy_m = (y1 - y0) * meters_per_px(z) / 2.0
+        pos = re_item.get("position") if isinstance(re_item.get("position"), list) else [round(cx_m, 3), round(max(cy_m, 0.4), 3), round(z, 3)]
+        injected = {
+            "id": re_item["id"],
+            "kind": re_item.get("kind", "interact"),
+            "basis": re_item.get("basis", "inferred"),
+            "image_bbox": [x0, y0, x1, y1],
+            "node": re_item.get("node") or ("Candidate_%s" % str(re_item["id"]).capitalize()),
+            "position": pos,
+        }
+        if injected["basis"] == "observed":
+            injected["evidence"] = re_item.get("evidence") or "registered in spec_registry"
+        else:
+            injected["reason"] = re_item.get("reason") or "registered element injected from spec_registry"
+        if re_item.get("confidence") is not None:
+            injected["confidence"] = float(re_item["confidence"])
+        candidates.append(injected)
+        injected_count += 1
 
     # Ground: coloured from the sample above (observed), sized to run from
     # behind the camera to the backdrop's base.
@@ -563,8 +663,8 @@ def analyze(image_path, depth_path=None, depth_white_far=True,
                    "color": ground_color, "collision": True},
         "camera": {"position": [0.0, cam_y, round(cam_z, 3)], "look_at": look_at, "fov": fov},
         "cards": spec_cards,
-        "lamps": [c["position"] for c in candidates if c["kind"] == "glow"],
-        "markers": [{"name": "Candidate_%s" % c["id"].capitalize(), "kind": c["kind"],
+        "lamps": [c["position"] for c in candidates if c["kind"] in ("glow", "lamp")],
+        "markers": [{"name": c.get("node") or ("Candidate_%s" % c["id"].capitalize()), "kind": c["kind"],
                      "position": c["position"], "radius": 0.9} for c in candidates],
     }
     report = {
@@ -590,6 +690,8 @@ def analyze(image_path, depth_path=None, depth_white_far=True,
                    "basis": "inferred",
                    "reason": "placed so the backdrop fills the frame at the given fov; B-1223 diffs the scene against the illustration from here"},
     }
+    if reg_list:
+        report["registry"] = {"matched": len(matched_reg_ids), "injected": injected_count}
     assets["background.png"] = None  # The caller copies the source file.
     return spec, report, assets
 

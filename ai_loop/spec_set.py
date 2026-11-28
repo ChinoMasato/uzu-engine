@@ -133,6 +133,75 @@ def _defaulted_parameters(input_spec, resolved):
     return [k for k in sorted(resolved) if k not in (input_spec or {})]
 
 
+def _attach_spec_image_to_scene_spec(scene_spec, record):
+    """Record B-1222 specification image reference and element mappings
+    (distinguishing observed vs inferred) into a B-1509 scene_spec."""
+    spec_image = record.get("spec_image")
+    elements = record.get("elements")
+    if spec_image:
+        ref = {
+            "id": spec_image.get("id"),
+            "path": spec_image.get("path"),
+        }
+        if spec_image.get("registry"):
+            ref["registry"] = spec_image["registry"]
+        if spec_image.get("working_size"):
+            ref["working_size"] = list(spec_image["working_size"])
+        scene_spec["spec_image"] = ref
+        if spec_image.get("width") and spec_image.get("height"):
+            scene_spec["observed"].append({
+                "name": "spec_image.size",
+                "value": [spec_image["width"], spec_image["height"]],
+                "evidence": f"specification image header ({spec_image.get('path') or spec_image.get('id')})",
+            })
+    if elements:
+        for elem in elements:
+            val = {
+                "id": elem.get("id"),
+                "kind": elem.get("kind"),
+                "node": elem.get("node"),
+                "image_bbox": list(elem.get("image_bbox") or elem.get("bbox") or []),
+            }
+            if elem.get("basis") == "observed":
+                scene_spec["observed"].append({
+                    "name": f"element.{elem.get('id')}",
+                    "value": val,
+                    "evidence": elem.get("evidence") or "annotated in specification image registry",
+                })
+            else:
+                scene_spec["inferred"].append({
+                    "name": f"element.{elem.get('id')}",
+                    "value": val,
+                    "reason": elem.get("reason") or "inferred from specification illustration",
+                })
+
+
+def attach_registry_to_record(record, registry, scene=None, registry_ref=None):
+    """Enrich a generation record with B-1222 spec_image and element mappings
+    from `registry` for `scene` (defaults to record['scene'])."""
+    import spec_registry
+    target_scene = scene or record.get("scene")
+    if not target_scene:
+        return record
+    binding = spec_registry.get_scene_binding(registry, target_scene)
+    if not binding:
+        return record
+    img = binding.get("image") or {}
+    spec_image = {
+        "id": binding["spec_image"],
+        "path": binding.get("spec_image_path"),
+        "working_size": binding.get("working_size"),
+        "width": img.get("width"),
+        "height": img.get("height"),
+    }
+    if registry_ref:
+        spec_image["registry"] = registry_ref
+    out = dict(record)
+    out["spec_image"] = spec_image
+    out["elements"] = binding.get("elements") or []
+    return out
+
+
 # ---------------------------------------------------------------- scene_spec
 
 
@@ -172,13 +241,15 @@ def _map_scene_spec(record):
         inferred.append({"name": "walkability",
                          "reason": "nature maps bake no navigation mesh; nothing here asserts the terrain can be walked"})
 
-    return {
+    scene_spec = {
         "format": SPEC_FORMAT, "kind": "map", "map_kind": result.get("kind"),
         "scene": record.get("scene"), "generator": record.get("generator"),
         "spec_source": record.get("spec_source"),
         "intent": input_spec, "basis": BASIS,
         "parameters": parameters, "observed": observed, "inferred": inferred,
     }
+    _attach_spec_image_to_scene_spec(scene_spec, record)
+    return scene_spec
 
 
 def _build_scene_spec(record):
@@ -203,13 +274,15 @@ def _build_scene_spec(record):
          "reason": "UZUScatter chose the individual positions from the seed; the build result reports "
                    "only the count per scatter entry, so positions are not observed here"},
     ]
-    return {
-        "format": SPEC_FORMAT, "kind": "build",
+    scene_spec = {
+        "format": SPEC_FORMAT, "kind": record.get("kind") or "build",
         "scene": record.get("scene"), "generator": record.get("generator"),
         "spec_source": record.get("spec_source"),
         "intent": spec, "basis": BASIS,
         "parameters": parameters, "observed": observed, "inferred": inferred,
     }
+    _attach_spec_image_to_scene_spec(scene_spec, record)
+    return scene_spec
 
 
 # ---------------------------------------------------------------- region_graph
@@ -312,7 +385,7 @@ def _build_registry(record):
                          "target": entry.get("target"), "count_basis": "observed",
                          "origin": {**origin, "seed": sspec.get("seed")},
                          "note": f"UZUScatter node {entry.get('node')}"})
-    for key in ("lamps", "particles", "water", "godrays"):
+    for key in ("cards", "markers", "lamps", "particles", "water", "godrays"):
         if key in built:
             families.append({"family": key, "count": built[key], "count_basis": "observed", "origin": dict(origin)})
     return families
@@ -465,7 +538,7 @@ def build_spec_set(record):
                                "families": _map_registry(record)},
             "validation_report": _report(record.get("scene"), _map_checks(record)),
         }
-    if kind == "build":
+    if kind in ("build", "image_scene"):
         return {
             "scene_spec": _build_scene_spec(record),
             "region_graph": _build_region_graph(record),
@@ -473,7 +546,7 @@ def build_spec_set(record):
                                "families": _build_registry(record)},
             "validation_report": _report(record.get("scene"), _build_checks(record)),
         }
-    raise ValueError(f"unknown record kind {kind!r} (want map, build or composite)")
+    raise ValueError(f"unknown record kind {kind!r} (want map, build, image_scene or composite)")
 
 
 def _composite_spec_set(record):
@@ -543,20 +616,28 @@ def spec_set_from_record(record, out_dir):
 
 
 def main(argv):
-    record_path = out_dir = None
+    record_path = out_dir = registry_path = scene_ref = None
     i = 0
     while i < len(argv):
         if argv[i] == "--record" and i + 1 < len(argv):
             record_path, i = argv[i + 1], i + 2
         elif argv[i] == "--out" and i + 1 < len(argv):
             out_dir, i = argv[i + 1], i + 2
+        elif argv[i] == "--registry" and i + 1 < len(argv):
+            registry_path, i = argv[i + 1], i + 2
+        elif argv[i] == "--scene" and i + 1 < len(argv):
+            scene_ref, i = argv[i + 1], i + 2
         else:
             i += 1
     if not record_path or not out_dir:
-        print(json.dumps({"ok": False, "error": "usage: spec_set.py --record record.json --out DIR"}))
+        print(json.dumps({"ok": False, "error": "usage: spec_set.py --record record.json --out DIR [--registry REG --scene res://...]"}))
         return 1
     with open(record_path, encoding="utf-8") as f:
         record = json.load(f)
+    if registry_path:
+        import spec_registry
+        reg = spec_registry.load_registry(registry_path)
+        record = attach_registry_to_record(record, reg, scene=scene_ref, registry_ref=os.path.basename(registry_path))
     written = spec_set_from_record(record, out_dir)
     print(json.dumps({"ok": True, "spec_set": written}, ensure_ascii=False))
     return 0
